@@ -223,7 +223,7 @@ export function DashboardLayout() {
                 <>
                   {/* Backdrop */}
                   <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 max-h-[480px] rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#121929] to-[#0d1320] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="fixed left-2 right-2 top-[60px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 max-h-[480px] rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#121929] to-[#0d1320] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
                     <h3 className="text-sm font-display text-white">Notifications</h3>
