@@ -1,0 +1,187 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { useProperty } from '@/hooks/useProperty';
+import { useRooms } from '@/hooks/useRooms';
+import { useRatePeriods } from '@/hooks/useRatePeriods';
+import { useBookings } from '@/hooks/useBookings';
+import { useStripePayment } from '@/hooks/useStripePayment';
+import { CheckoutForm } from '@/components/booking/CheckoutForm';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Separator } from '@/components/ui/Separator';
+import { differenceInDays, format } from 'date-fns';
+import { Calendar, BedDouble, Users, Shield } from 'lucide-react';
+import type { CheckoutFormData } from '@/lib/validators';
+
+export function CheckoutPage() {
+  const navigate = useNavigate();
+  const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const { property } = useProperty();
+  const { roomTypes } = useRooms();
+  const { ratePeriods } = useRatePeriods();
+  const { createBooking } = useBookings();
+
+  const checkIn = searchParams.get('check_in') || '';
+  const checkOut = searchParams.get('check_out') || '';
+  const guests = Number(searchParams.get('guests') || 2);
+  const roomTypeId = searchParams.get('room_type_id') || '';
+
+  const roomType = roomTypes.find((rt) => rt.id === roomTypeId);
+
+  // Use effective seasonal rate if an active rate period exists; otherwise use base_rate
+  const rate = (() => {
+    if (!roomType) return 0;
+    const now = new Date();
+    const activePeriod = ratePeriods.find(rp =>
+      rp.room_type_id === roomType.id && rp.is_active &&
+      new Date(rp.start_date) <= now && new Date(rp.end_date) >= now
+    );
+    return activePeriod ? activePeriod.rate : roomType.base_rate;
+  })();
+  const nights = checkIn && checkOut
+    ? Math.max(1, differenceInDays(new Date(checkOut), new Date(checkIn)))
+    : 1;
+  const total = rate * nights;
+
+  const TAX_RATE = property?.settings?.tax_rate ?? 0.20;
+  const taxAmount = total * TAX_RATE;
+  const totalWithTax = total + taxAmount;
+
+  const { createPaymentIntent, isStripeConfigured: stripeReady } = useStripePayment();
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  // Create a Stripe PaymentIntent when the page loads (if Stripe is configured)
+  useEffect(() => {
+    if (!stripeReady || totalWithTax <= 0 || clientSecret) return;
+    createPaymentIntent({
+      bookingId: `pending-${Date.now()}`,
+      amount: totalWithTax,
+      description: `Booking at ${property?.name ?? 'hotel'} — ${nights} night${nights !== 1 ? 's' : ''}`,
+    }).then(result => {
+      if (result) setClientSecret(result.clientSecret);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stripeReady, totalWithTax]);
+
+  const handleCheckout = (data: CheckoutFormData, _paymentIntentId?: string) => {
+    const confirmationCode = `AR-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+
+    // Create the booking in the system
+    createBooking.mutate({
+      property_id: property?.id ?? 'demo-property-id',
+      room_type_id: roomTypeId,
+      room_id: null,
+      check_in: checkIn,
+      check_out: checkOut,
+      num_guests: guests,
+      nightly_rate: rate,
+      source: 'direct',
+      special_requests: data.special_requests ?? '',
+      guest: {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone || '',
+      },
+    }, {
+      onSuccess: () => {
+        const params = new URLSearchParams({
+          code: confirmationCode,
+          check_in: checkIn,
+          check_out: checkOut,
+          guests: String(guests),
+          roomType: roomType?.name || 'Room',
+          total: String(totalWithTax),
+          name: `${data.first_name} ${data.last_name}`,
+          email: data.email,
+        });
+        navigate(`/book/${slug || property?.slug || 'hotel'}/confirmation?${params.toString()}`);
+      },
+    });
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-display text-midnight mb-6">Complete Your Booking</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Checkout Form */}
+        <div className="lg:col-span-2">
+          <CheckoutForm onSubmit={handleCheckout} isLoading={false} totalAmount={totalWithTax} currency="GBP" clientSecret={clientSecret} />
+        </div>
+
+        {/* Order Summary */}
+        <div>
+          <Card className="sticky top-24">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="font-display text-midnight text-lg">Booking Summary</h3>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <BedDouble size={16} className="text-teal shrink-0" />
+                  <div>
+                    <p className="text-sm font-body text-midnight font-medium">
+                      {roomType?.name || 'Selected Room'}
+                    </p>
+                    <p className="text-xs text-charcoal/60 font-body">
+                      {property?.name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Calendar size={16} className="text-teal shrink-0" />
+                  <div>
+                    <p className="text-sm font-body text-charcoal/70">
+                      {checkIn && format(new Date(checkIn), 'EEE, MMM d')} –{' '}
+                      {checkOut && format(new Date(checkOut), 'EEE, MMM d, yyyy')}
+                    </p>
+                    <p className="text-xs text-charcoal/50 font-body">
+                      {nights} night{nights !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Users size={16} className="text-teal shrink-0" />
+                  <p className="text-sm font-body text-charcoal/70">
+                    {guests} guest{guests !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-charcoal/60">
+                    £{rate} × {nights} night{nights !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-midnight">£{total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-charcoal/60">Taxes & fees ({Math.round(TAX_RATE * 100)}%)</span>
+                  <span className="text-midnight">£{taxAmount.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex justify-between items-center">
+                <span className="font-body font-semibold text-midnight">Total</span>
+                <span className="font-display text-xl text-midnight">
+                  £{totalWithTax.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-charcoal/50 font-body">
+                <Shield size={14} className="text-teal" />
+                Free cancellation up to 48 hours before check-in
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

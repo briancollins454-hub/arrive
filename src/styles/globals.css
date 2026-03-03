@@ -1,0 +1,541 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-cloud;
+  }
+
+  body {
+    @apply bg-snow text-steel font-body antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Premium scrollbar for dark dashboard */
+  .dashboard ::-webkit-scrollbar {
+    @apply w-[5px];
+  }
+  .dashboard ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .dashboard ::-webkit-scrollbar-thumb {
+    @apply bg-white/[0.08] rounded-full;
+    &:hover {
+      @apply bg-white/[0.15];
+    }
+  }
+
+  /* Selection color */
+  .dashboard ::selection {
+    background: rgba(14, 165, 160, 0.3);
+  }
+
+  /* Premium font rendering */
+  .dashboard {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* ============================================================
+     THEME WRAPPERS
+     ============================================================ */
+  .dashboard {
+    @apply bg-midnight text-silver min-h-screen;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  .booking-engine {
+    @apply bg-snow text-steel min-h-screen;
+  }
+
+  /* ============================================================
+     BUTTONS
+     ============================================================ */
+  .btn-gold {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm font-body
+           bg-gradient-to-r from-gold via-gold-light to-gold text-midnight
+           shadow-gold hover:shadow-gold-lg transition-all duration-300
+           hover:-translate-y-0.5 active:translate-y-0 active:shadow-gold;
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease infinite;
+  }
+  .btn-primary {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm font-body
+           bg-charcoal text-white border border-white/[0.06]
+           hover:bg-slate hover:border-white/[0.1] transition-all duration-200;
+  }
+  .btn-teal {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm font-body
+           bg-gradient-to-r from-teal to-teal-light text-white
+           hover:shadow-glow-teal transition-all duration-300
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .btn-ghost {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm font-body
+           bg-transparent text-midnight border-2 border-cloud
+           hover:border-mist hover:bg-snow transition-all duration-200;
+  }
+
+  /* ============================================================
+     CARDS — Premium glassmorphic with depth
+     ============================================================ */
+  .card-dark {
+    @apply rounded-2xl border border-white/[0.07] p-5
+           backdrop-blur-xl relative overflow-hidden;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.04) 100%);
+    box-shadow:
+      0 1px 3px rgba(0,0,0,0.3),
+      0 4px 6px rgba(0,0,0,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .card-dark::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.1) 0%,
+      transparent 40%,
+      transparent 60%,
+      rgba(255,255,255,0.05) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .card-dark:hover {
+    border-color: rgba(255,255,255,0.12);
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.25),
+      0 10px 15px rgba(0,0,0,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+  }
+  .card-dark:hover::before {
+    opacity: 1;
+  }
+
+  .card-light {
+    @apply rounded-2xl border border-cloud/80 bg-white p-5
+           shadow-card transition-all duration-300;
+  }
+  .card-light:hover {
+    @apply shadow-card-hover border-cloud;
+    transform: translateY(-2px);
+  }
+
+  /* ============================================================
+     GLASS PANELS — Premium frosted glass with depth
+     ============================================================ */
+  .glass-panel {
+    @apply rounded-2xl border border-white/[0.08]
+           backdrop-blur-2xl relative;
+    background: linear-gradient(145deg, rgba(20,24,37,0.85) 0%, rgba(10,14,26,0.90) 50%, rgba(20,24,37,0.80) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.15),
+      0 8px 32px rgba(0,0,0,0.5),
+      0 0 0 0.5px rgba(255,255,255,0.04);
+  }
+
+  /* Glass panel with animated border glow */
+  .glass-panel-glow {
+    @apply glass-panel relative overflow-hidden;
+  }
+  .glass-panel-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(201, 168, 76, 0.3) 0%,
+      rgba(14, 165, 160, 0.2) 50%,
+      rgba(201, 168, 76, 0.1) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    animation: borderGlow 4s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     GRADIENT BORDER — shimmer effect
+     ============================================================ */
+  .gradient-border {
+    position: relative;
+    border: none !important;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(201, 168, 76, 0.4),
+      rgba(14, 165, 160, 0.3),
+      rgba(168, 85, 247, 0.2),
+      rgba(201, 168, 76, 0.4)
+    );
+    background-size: 300% 300%;
+    animation: gradientShift 6s ease infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ============================================================
+     STATUS BADGES — with subtle glow
+     ============================================================ */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold font-body tracking-wide;
+  }
+  .badge-confirmed { @apply bg-teal/10 text-teal border border-teal/20; }
+  .badge-arriving { @apply bg-gold/10 text-gold border border-gold/20; }
+  .badge-checked-in { @apply bg-success/10 text-success border border-success/20; }
+  .badge-pending { @apply bg-steel/10 text-steel border border-steel/20; }
+  .badge-cancelled { @apply bg-danger/10 text-danger border border-danger/20; }
+  .badge-no-show { @apply bg-danger/10 text-danger border border-danger/20; }
+
+  /* ============================================================
+     INPUTS — Refined styling
+     ============================================================ */
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-cloud bg-white
+           text-midnight text-sm font-body
+           focus:outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold/50
+           placeholder:text-silver/60 transition-all duration-200;
+  }
+  .input-dark {
+    @apply w-full px-4 py-2.5 rounded-xl border border-white/[0.08]
+           bg-white/[0.04] text-silver text-sm font-body
+           focus:outline-none focus:ring-2 focus:ring-teal/20 focus:border-teal/30
+           placeholder:text-white/15 transition-all duration-200;
+  }
+  .input-dark:hover {
+    @apply border-white/[0.12] bg-white/[0.06];
+  }
+
+  /* Native <select> dark option styling */
+  .select-dark,
+  .input-dark {
+    color-scheme: dark;
+  }
+  .select-dark option,
+  .input-dark option {
+    background-color: #141825;
+    color: #e2e8f0;
+  }
+  .select-dark option:checked,
+  .input-dark option:checked {
+    background-color: #1e2536;
+    color: #ffffff;
+  }
+
+  /* ============================================================
+     BACKGROUNDS — Atmospheric effects
+     ============================================================ */
+
+  /* Rich mesh gradient — deeper, more cinematic */
+  .mesh-gradient {
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(201, 168, 76, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 10%, rgba(14, 165, 160, 0.06) 0%, transparent 45%),
+      radial-gradient(ellipse at 60% 60%, rgba(168, 85, 247, 0.035) 0%, transparent 50%),
+      radial-gradient(ellipse at 10% 80%, rgba(59, 130, 246, 0.025) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, #141825 0%, #0a0e1a 100%);
+  }
+
+  /* Dot grid overlay */
+  .dot-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Cinematic ambient light system — floating gradient orbs */
+  .aurora-bg {
+    position: relative;
+    overflow: hidden;
+  }
+  .aurora-bg::before,
+  .aurora-bg::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .aurora-bg::before {
+    width: 600px;
+    height: 600px;
+    top: -150px;
+    left: -100px;
+    background: radial-gradient(circle, rgba(201,168,76,0.1) 0%, rgba(227,201,110,0.04) 40%, transparent 70%);
+    animation: auroraFloat1 20s ease-in-out infinite;
+  }
+  .aurora-bg::after {
+    width: 500px;
+    height: 500px;
+    bottom: -120px;
+    right: -80px;
+    background: radial-gradient(circle, rgba(14,165,160,0.08) 0%, rgba(34,211,198,0.03) 40%, transparent 70%);
+    animation: auroraFloat2 24s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     TEXT EFFECTS — Luxurious gradient typography
+     ============================================================ */
+  .gradient-text {
+    background: linear-gradient(135deg, #c9a84c 0%, #e3c96e 25%, #f5ecd7 50%, #e3c96e 75%, #c9a84c 100%);
+    background-size: 400% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 6s ease-in-out infinite;
+  }
+
+  .gradient-text-teal {
+    background: linear-gradient(135deg, #0ea5a0 0%, #22d3c6 40%, #6ee7b7 60%, #22d3c6 80%, #0ea5a0 100%);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 5s ease-in-out infinite;
+  }
+
+  /* Vivid hero gradient text */
+  .gradient-text-hero {
+    background: linear-gradient(135deg, #ffffff 0%, #c9a84c 30%, #e3c96e 50%, #22d3c6 75%, #ffffff 100%);
+    background-size: 400% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 8s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     RING CHART
+     ============================================================ */
+  .ring-chart {
+    transform: rotate(-90deg);
+  }
+  .ring-chart circle {
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ============================================================
+     NOISE TEXTURE — subtle grain for depth
+     ============================================================ */
+  .noise-texture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.012;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='.75' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* ============================================================
+     SIDEBAR PREMIUM EFFECTS
+     ============================================================ */
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body
+           transition-all duration-200 relative group;
+  }
+  .sidebar-nav-item.active {
+    @apply text-white font-semibold;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .sidebar-nav-item:not(.active) {
+    @apply text-steel hover:text-silver;
+  }
+  .sidebar-nav-item:not(.active):hover {
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* Active indicator bar — animated gradient */
+  .nav-indicator {
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full;
+    background: linear-gradient(180deg, #c9a84c, #0ea5a0);
+    box-shadow: 0 0 8px rgba(201, 168, 76, 0.4);
+  }
+
+  /* ============================================================
+     AMBIENT LIGHT SYSTEM — Floating orbs for page backgrounds
+     ============================================================ */
+  .ambient-light {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+  }
+  .ambient-light-gold {
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(circle,
+      rgba(201,168,76,0.14) 0%,
+      rgba(201,168,76,0.08) 15%,
+      rgba(201,168,76,0.03) 35%,
+      rgba(201,168,76,0.01) 55%,
+      transparent 70%
+    );
+    animation: auroraFloat1 30s ease-in-out infinite;
+  }
+  .ambient-light-teal {
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle,
+      rgba(14,165,160,0.12) 0%,
+      rgba(14,165,160,0.07) 15%,
+      rgba(14,165,160,0.03) 35%,
+      rgba(14,165,160,0.01) 55%,
+      transparent 70%
+    );
+    animation: auroraFloat2 35s ease-in-out infinite;
+  }
+  .ambient-light-purple {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle,
+      rgba(168,85,247,0.10) 0%,
+      rgba(168,85,247,0.05) 15%,
+      rgba(168,85,247,0.02) 35%,
+      rgba(168,85,247,0.005) 55%,
+      transparent 70%
+    );
+    animation: auroraFloat3 28s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     SHIMMER LOADING EFFECT
+     ============================================================ */
+  .shimmer-loading {
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.03) 25%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     STAT CARD — Premium hover glow with animated radiance
+     ============================================================ */
+  .stat-card-glow {
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card-glow::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 30%, var(--glow-color, rgba(14,165,160,0.08)) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+  }
+  .stat-card-glow:hover::after {
+    opacity: 1;
+  }
+
+  /* Animated shimmer border for stat cards */
+  .stat-shimmer-border {
+    position: relative;
+  }
+  .stat-shimmer-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      var(--shimmer-color-1, rgba(201,168,76,0.3)) 0%,
+      transparent 25%,
+      transparent 50%,
+      var(--shimmer-color-2, rgba(14,165,160,0.2)) 75%,
+      transparent 100%
+    );
+    background-size: 300% 300%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    animation: gradientShift 4s ease infinite;
+  }
+  .stat-shimmer-border:hover::before {
+    opacity: 1;
+  }
+
+  /* ============================================================
+     PREMIUM PAGE HEADER — Cinematic hero effect
+     ============================================================ */
+  .hero-glow {
+    position: relative;
+  }
+  .hero-glow::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: -20px;
+    width: 300px;
+    height: 120px;
+    background: radial-gradient(ellipse, rgba(201,168,76,0.08) 0%, transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     HOVER SPOTLIGHT — Mouse-tracking light effect
+     ============================================================ */
+  .spotlight-card {
+    --spotlight-x: 50%;
+    --spotlight-y: 50%;
+  }
+  .spotlight-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      400px circle at var(--spotlight-x) var(--spotlight-y),
+      rgba(255,255,255,0.04) 0%,
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .spotlight-card:hover::after {
+    opacity: 1;
+  }
+}
