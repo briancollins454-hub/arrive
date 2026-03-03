@@ -177,16 +177,16 @@ export function DashboardLayout() {
           {/* Bottom glow line — gold-to-teal shimmer */}
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/15 to-transparent" />
           <div className="absolute bottom-0 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-teal/10 to-transparent" />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative z-10">
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-white/[0.06] text-steel hover:text-silver transition-all"
+              className="lg:hidden p-2 rounded-lg hover:bg-white/[0.06] text-silver hover:text-white transition-all active:scale-95"
               aria-label="Open menu"
             >
-              <Menu size={20} />
+              <Menu size={22} />
             </button>
-            <p className="text-sm font-body text-silver/80 tracking-wide relative z-10">
+            <p className="text-sm font-body text-silver/80 tracking-wide">
               {getGreeting()}{isDemoMode ? ', Alex' : ''}
               {isDemoMode && (
                 <span className="ml-2.5 inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-gradient-to-r from-gold/15 to-gold/5 text-gold border border-gold/20 tracking-wider">

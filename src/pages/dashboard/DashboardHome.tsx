@@ -74,7 +74,7 @@ function RoomGrid({ rooms }: { rooms: { id: string; room_number: string; status:
   };
 
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2">
       {rooms.map((r) => (
         <div
           key={r.id}
@@ -226,7 +226,7 @@ export function DashboardHome() {
   };
 
   return (
-    <div className="p-6 lg:p-8 mesh-gradient min-h-full relative overflow-hidden">
+    <div className="p-4 sm:p-6 lg:p-8 mesh-gradient min-h-full relative overflow-hidden">
       {/* Cinematic ambient background orbs — layered for depth */}
       <div className="pointer-events-none absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full bg-gradient-radial from-teal/[0.06] via-teal/[0.02] to-transparent blur-[120px] animate-aurora-float-2" />
       <div className="pointer-events-none absolute -bottom-48 -left-24 w-[600px] h-[600px] rounded-full bg-gradient-radial from-gold/[0.05] via-gold/[0.015] to-transparent blur-[100px] animate-aurora-float-1" />
@@ -235,15 +235,15 @@ export function DashboardHome() {
       <div className="pointer-events-none absolute inset-0 noise-texture" />
 
       {/* Hero Header — cinematic welcome */}
-      <div className="opacity-0 animate-fade-in mb-10 relative z-10">
-        <div className="flex items-start justify-between">
+      <div className="opacity-0 animate-fade-in mb-6 sm:mb-10 relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="hero-glow">
             <div className="flex items-center gap-3 mb-3">
-              <h1 className="text-4xl lg:text-5xl font-display text-white tracking-tight leading-none">{getGreeting()}</h1>
-              <Sparkles size={24} className="text-gold animate-pulse-soft drop-shadow-[0_0_12px_rgba(201,168,76,0.5)]" />
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-display text-white tracking-tight leading-none">{getGreeting()}</h1>
+              <Sparkles size={20} className="text-gold animate-pulse-soft drop-shadow-[0_0_12px_rgba(201,168,76,0.5)]" />
             </div>
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-silver/70 font-body tracking-wide">{todayStr}</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-xs sm:text-sm text-silver/70 font-body tracking-wide">{todayStr}</p>
               <span className="w-1 h-1 rounded-full bg-gold/40" />
               <div className="flex items-center gap-1.5">
                 <Clock size={12} className="text-gold/40" />
@@ -251,7 +251,7 @@ export function DashboardHome() {
               </div>
             </div>
           </div>
-          <Button onClick={() => setShowNewBooking(true)} className="shadow-[0_4px_24px_rgba(201,168,76,0.3)] hover:shadow-[0_8px_40px_rgba(201,168,76,0.4)] transition-all duration-500">
+          <Button onClick={() => setShowNewBooking(true)} className="shadow-[0_4px_24px_rgba(201,168,76,0.3)] hover:shadow-[0_8px_40px_rgba(201,168,76,0.4)] transition-all duration-500 w-full sm:w-auto">
             <Plus size={16} className="mr-2" />
             New Booking
           </Button>
@@ -378,10 +378,10 @@ export function DashboardHome() {
                   <div
                     key={booking.id}
                     onClick={() => navigate(`/dashboard/bookings/${booking.id}`)}
-                    className="group flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
+                    className="group flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
                   >
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal/20 to-teal-light/10 flex items-center justify-center text-[11px] font-bold text-teal/80 font-body shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal/20 to-teal-light/10 flex items-center justify-center text-[11px] font-bold text-teal/80 font-body shrink-0 hidden sm:flex">
                       {booking.guest?.first_name?.[0]}{booking.guest?.last_name?.[0]}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -392,7 +392,7 @@ export function DashboardHome() {
                         {booking.room_type?.name ?? 'Room'} · {booking.confirmation_code}
                       </p>
                     </div>
-                    <span className="text-xs text-steel font-body tabular-nums shrink-0">
+                    <span className="text-xs text-steel font-body tabular-nums shrink-0 hidden sm:block">
                       {differenceInDays(new Date(booking.check_out), new Date(booking.check_in))} night{differenceInDays(new Date(booking.check_out), new Date(booking.check_in)) !== 1 ? 's' : ''}
                     </span>
                     <StatusBadge status={booking.status} />
@@ -448,10 +448,10 @@ export function DashboardHome() {
                   <div
                     key={booking.id}
                     onClick={() => navigate(`/dashboard/bookings/${booking.id}`)}
-                    className="group flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
+                    className="group flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-white/[0.03] transition-all duration-200 cursor-pointer"
                   >
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-silver/10 to-white/5 flex items-center justify-center text-[11px] font-bold text-silver/60 font-body shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-silver/10 to-white/5 flex items-center justify-center text-[11px] font-bold text-silver/60 font-body shrink-0 hidden sm:flex">
                       {booking.guest?.first_name?.[0]}{booking.guest?.last_name?.[0]}
                     </div>
                     <div className="flex-1 min-w-0">

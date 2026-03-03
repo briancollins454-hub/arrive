@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arrivé — Staff Training Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --midnight: #0F172A;
+    --charcoal: #1E293B;
+    --slate: #334155;
+    --steel: #64748B;
+    --silver: #94A3B8;
+    --cloud: #E2E8F0;
+    --snow: #F1F5F9;
+    --white: #FFFFFF;
+    --gold: #D4A853;
+    --gold-light: #E8C97A;
+    --gold-dark: #B8892E;
+    --gold-subtle: #F5ECD7;
+    --teal: #0D9488;
+    --teal-light: #14B8A6;
+    --teal-dark: #0F766E;
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #E11D48;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--slate);
+    line-height: 1.7;
+    background: var(--white);
+    font-size: 11pt;
+  }
+
+  /* ---- PRINT STYLES ---- */
+  @media print {
+    body { font-size: 10pt; }
+    .cover-page, .toc-page, .chapter { page-break-after: always; }
+    .no-break { page-break-inside: avoid; }
+    .cover-page { page-break-before: auto; }
+    @page { margin: 1.5cm 2cm; size: A4; }
+  }
+
+  /* ---- COVER PAGE ---- */
+  .cover-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--midnight) 0%, #0a1628 40%, var(--charcoal) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover-page::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(212,168,83,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(13,148,136,0.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .cover-logo {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--teal) 100%);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 54px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 2.5rem;
+    box-shadow: 0 20px 60px rgba(212,168,83,0.3);
+    position: relative;
+    z-index: 1;
+  }
+  .cover-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 52px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-subtitle {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--silver);
+    margin-bottom: 3rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-divider {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--teal));
+    margin-bottom: 3rem;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-meta {
+    color: var(--steel);
+    font-size: 13px;
+    line-height: 2;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-meta strong { color: var(--silver); }
+  .cover-badge {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 8px 24px;
+    border: 1px solid rgba(212,168,83,0.3);
+    border-radius: 100px;
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- TABLE OF CONTENTS ---- */
+  .toc-page {
+    min-height: 100vh;
+    padding: 4rem 3rem;
+    background: var(--snow);
+  }
+  .toc-header {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    color: var(--midnight);
+    margin-bottom: 0.5rem;
+  }
+  .toc-accent {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--teal));
+    margin-bottom: 2.5rem;
+  }
+  .toc-list { list-style: none; }
+  .toc-list li {
+    display: flex;
+    align-items: baseline;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--cloud);
+  }
+  .toc-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    min-width: 50px;
+  }
+  .toc-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--midnight);
+    flex: 1;
+  }
+  .toc-dots {
+    flex: 1;
+    border-bottom: 2px dotted var(--cloud);
+    margin: 0 12px;
+    min-width: 40px;
+  }
+  .toc-page-num {
+    font-size: 14px;
+    color: var(--steel);
+    font-weight: 500;
+  }
+
+  /* ---- CHAPTERS ---- */
+  .chapter {
+    padding: 3rem;
+    min-height: 50vh;
+  }
+  .chapter-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .chapter-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--midnight);
+    margin-bottom: 6px;
+  }
+  .chapter-rule {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--teal));
+    margin-bottom: 2rem;
+  }
+  .chapter-intro {
+    font-size: 14px;
+    color: var(--steel);
+    line-height: 1.8;
+    margin-bottom: 2rem;
+    max-width: 680px;
+  }
+
+  /* ---- SECTION BLOCKS ---- */
+  .section {
+    margin-bottom: 2rem;
+  }
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--midnight);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .icon-gold { background: var(--gold-subtle); color: var(--gold-dark); }
+  .icon-teal { background: #ccfbf1; color: var(--teal-dark); }
+  .icon-blue { background: #dbeafe; color: #1d4ed8; }
+  .icon-rose { background: #ffe4e6; color: #be123c; }
+  .icon-amber { background: #fef3c7; color: #b45309; }
+  .icon-emerald { background: #d1fae5; color: #047857; }
+  .icon-purple { background: #ede9fe; color: #6d28d9; }
+  .icon-slate { background: var(--cloud); color: var(--slate); }
+
+  .section p, .section li {
+    font-size: 12px;
+    color: var(--slate);
+    line-height: 1.8;
+  }
+  .section ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  .section ul li {
+    padding: 4px 0 4px 20px;
+    position: relative;
+  }
+  .section ul li::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ---- STEP BOXES ---- */
+  .steps {
+    counter-reset: step-counter;
+    margin: 1rem 0;
+  }
+  .step {
+    counter-increment: step-counter;
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--cloud);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .step-num::after {
+    content: counter(step-counter);
+  }
+  .step-content { flex: 1; }
+  .step-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--midnight);
+    margin-bottom: 3px;
+  }
+  .step-desc {
+    font-size: 11.5px;
+    color: var(--steel);
+    line-height: 1.7;
+  }
+
+  /* ---- INFO / TIP / WARNING BOXES ---- */
+  .callout {
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin: 1rem 0;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .callout-title {
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .callout-tip {
+    background: #ecfdf5;
+    border-left: 4px solid var(--success);
+    color: #065f46;
+  }
+  .callout-tip .callout-title { color: var(--success); }
+  .callout-info {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    color: #1e40af;
+  }
+  .callout-info .callout-title { color: #2563eb; }
+  .callout-warning {
+    background: #fffbeb;
+    border-left: 4px solid var(--warning);
+    color: #92400e;
+  }
+  .callout-warning .callout-title { color: var(--warning); }
+  .callout-danger {
+    background: #fff1f2;
+    border-left: 4px solid var(--danger);
+    color: #9f1239;
+  }
+  .callout-danger .callout-title { color: var(--danger); }
+
+  /* ---- TABLE ---- */
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 11.5px;
+  }
+  .info-table th {
+    background: var(--midnight);
+    color: var(--gold-light);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .info-table th:first-child { border-radius: 8px 0 0 0; }
+  .info-table th:last-child { border-radius: 0 8px 0 0; }
+  .info-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--cloud);
+    color: var(--slate);
+  }
+  .info-table tr:nth-child(even) td { background: var(--snow); }
+  .info-table tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+  .info-table tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+
+  /* ---- STATUS BADGES ---- */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: #d1fae5; color: #047857; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-amber { background: #fef3c7; color: #b45309; }
+  .badge-red { background: #ffe4e6; color: #be123c; }
+  .badge-slate { background: var(--cloud); color: var(--slate); }
+  .badge-gold { background: var(--gold-subtle); color: var(--gold-dark); }
+  .badge-teal { background: #ccfbf1; color: var(--teal-dark); }
+
+  /* ---- TWO-COLUMN GRID ---- */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1rem 0;
+  }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .feature-card {
+    background: var(--snow);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--cloud);
+  }
+  .feature-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--midnight);
+    margin-bottom: 6px;
+  }
+  .feature-card p {
+    font-size: 11.5px;
+    color: var(--steel);
+    line-height: 1.7;
+  }
+
+  /* ---- ROLE CARDS ---- */
+  .role-card {
+    background: var(--snow);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--cloud);
+    margin-bottom: 1rem;
+  }
+  .role-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--midnight);
+    margin-bottom: 4px;
+  }
+  .role-card .role-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .role-card p {
+    font-size: 11.5px;
+    color: var(--steel);
+    line-height: 1.7;
+  }
+
+  /* ---- KEYBOARD SHORTCUT STYLE ---- */
+  kbd {
+    display: inline-block;
+    background: var(--cloud);
+    border: 1px solid #c5cdd8;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--slate);
+  }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--silver);
+    font-size: 11px;
+    border-top: 1px solid var(--cloud);
+    margin-top: 2rem;
+  }
+  .page-footer strong { color: var(--gold); }
+
+  /* ---- ROOM STATUS VISUAL ---- */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 1rem 0;
+  }
+  .status-block {
+    text-align: center;
+    padding: 16px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .status-available { background: #d1fae5; color: #047857; }
+  .status-occupied { background: #dbeafe; color: #1d4ed8; }
+  .status-maintenance { background: #fef3c7; color: #b45309; }
+  .status-blocked { background: #ffe4e6; color: #be123c; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- COVER PAGE                                                     -->
+<!-- ============================================================ -->
+<div class="cover-page">
+  <div class="cover-logo">A</div>
+  <h1 class="cover-title">Arrivé</h1>
+  <p class="cover-subtitle">Staff Training Guide</p>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <strong>Property Management System</strong><br>
+    The all-in-one booking platform for boutique hotels<br><br>
+    Version 1.0 &nbsp;·&nbsp; March 2026<br>
+    Prepared by The Supports Desk
+  </div>
+  <div class="cover-badge">Confidential — Internal Use Only</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TABLE OF CONTENTS                                              -->
+<!-- ============================================================ -->
+<div class="toc-page">
+  <h2 class="toc-header">Table of Contents</h2>
+  <div class="toc-accent"></div>
+  <ol class="toc-list">
+    <li><span class="toc-number">01</span><span class="toc-label">Getting Started — Logging In</span></li>
+    <li><span class="toc-number">02</span><span class="toc-label">Dashboard Overview</span></li>
+    <li><span class="toc-number">03</span><span class="toc-label">Bookings — Creating, Editing & Managing</span></li>
+    <li><span class="toc-number">04</span><span class="toc-label">The Booking Lifecycle — Check-in to Check-out</span></li>
+    <li><span class="toc-number">05</span><span class="toc-label">Calendar & Tape Chart</span></li>
+    <li><span class="toc-number">06</span><span class="toc-label">Rooms & Room Management</span></li>
+    <li><span class="toc-number">07</span><span class="toc-label">Guest Management</span></li>
+    <li><span class="toc-number">08</span><span class="toc-label">Payments & Folios</span></li>
+    <li><span class="toc-number">09</span><span class="toc-label">Housekeeping</span></li>
+    <li><span class="toc-number">10</span><span class="toc-label">Rates & Packages</span></li>
+    <li><span class="toc-number">11</span><span class="toc-label">Night Audit</span></li>
+    <li><span class="toc-number">12</span><span class="toc-label">Reports & Financials</span></li>
+    <li><span class="toc-number">13</span><span class="toc-label">Messaging & Communications</span></li>
+    <li><span class="toc-number">14</span><span class="toc-label">Additional Modules</span></li>
+    <li><span class="toc-number">15</span><span class="toc-label">Staff Roles & Permissions</span></li>
+    <li><span class="toc-number">16</span><span class="toc-label">Guest Booking Engine</span></li>
+    <li><span class="toc-number">17</span><span class="toc-label">Settings & Configuration</span></li>
+    <li><span class="toc-number">18</span><span class="toc-label">Quick Reference Card</span></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 1 — GETTING STARTED                                    -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch1">
+  <div class="chapter-number">Chapter 01</div>
+  <h2 class="chapter-title">Getting Started</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Arrivé is a cloud-based Property Management System designed for boutique hotels.
+    Access it from any modern browser — no installation required. Your property manager
+    will provide your login credentials.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">🔑</span> Logging In</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Navigate to the login page</div>
+          <div class="step-desc">Open your browser and go to <strong>www.arrivebooking.online/login</strong> (or your custom property URL).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Select your property</div>
+          <div class="step-desc">Choose your hotel from the property selector if multiple properties are configured.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Enter your credentials</div>
+          <div class="step-desc">Enter your staff email and PIN code provided by your manager. Click <strong>Sign In</strong>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">You're in!</div>
+          <div class="step-desc">You'll be taken to the Dashboard. The sidebar menu shows all modules available to your role.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-tip no-break">
+    <div class="callout-title">💡 Tip</div>
+    Bookmark the login page for quick access. Arrivé works on tablets and phones too — perfect for housekeeping staff on the go.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 2 — DASHBOARD OVERVIEW                                 -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch2">
+  <div class="chapter-number">Chapter 02</div>
+  <h2 class="chapter-title">Dashboard Overview</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    The dashboard is your command centre. At a glance, you can see today's arrivals,
+    departures, occupancy, revenue, and any items that need attention.
+  </p>
+
+  <div class="grid-2">
+    <div class="feature-card no-break">
+      <h4>📊 Key Metrics</h4>
+      <p>Today's occupancy rate, ADR (Average Daily Rate), RevPAR, total revenue, and
+      number of rooms available — all updated in real time.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>🛬 Today's Arrivals</h4>
+      <p>A list of all guests checking in today with their confirmation code, room assignment,
+      and special requests. Click any arrival to open the booking detail.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>🛫 Today's Departures</h4>
+      <p>Guests checking out today. Quickly verify balances and process check-outs
+      directly from the dashboard cards.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>⏳ In-House Guests</h4>
+      <p>See everyone currently staying at the property with their room number,
+      remaining nights, and any outstanding balance.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>🔔 Action Items</h4>
+      <p>Overdue housekeeping tasks, unassigned rooms, pending payments, and
+      maintenance requests that need your attention.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>📈 Revenue Chart</h4>
+      <p>Visual breakdown of revenue over the past 7 or 30 days, segmented by
+      room revenue, extras, and booking sources.</p>
+    </div>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">📋</span> Sidebar Navigation</div>
+    <p>The left sidebar contains all modules. Your visible options depend on your staff role. Key sections include:</p>
+    <ul>
+      <li><strong>Dashboard</strong> — Home overview with KPIs</li>
+      <li><strong>Calendar</strong> — Visual booking calendar</li>
+      <li><strong>Bookings</strong> — All reservations list</li>
+      <li><strong>In-House</strong> — Currently staying guests</li>
+      <li><strong>Guests</strong> — Guest database & profiles</li>
+      <li><strong>Rooms</strong> — Room inventory & status</li>
+      <li><strong>Housekeeping</strong> — Cleaning tasks & schedules</li>
+      <li><strong>Payments</strong> — Payment terminal</li>
+      <li><strong>Rates</strong> — Pricing & rate periods</li>
+      <li><strong>Reports</strong> — Operational & financial reports</li>
+      <li><strong>Settings</strong> — Property configuration</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 3 — BOOKINGS                                           -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch3">
+  <div class="chapter-number">Chapter 03</div>
+  <h2 class="chapter-title">Bookings — Creating, Editing & Managing</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Bookings are the core of Arrivé. Every reservation tracks the guest, dates, room type,
+    rate, payments, and status throughout the entire stay lifecycle.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">➕</span> Creating a New Booking</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Open Bookings page</div>
+          <div class="step-desc">Navigate to <strong>Bookings</strong> in the sidebar. Click the <strong>+ New Booking</strong> button.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Select or create a guest</div>
+          <div class="step-desc">Search for an existing guest by name/email, or create a new guest profile inline. Fill in first name, last name, email, and phone.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Set dates and room type</div>
+          <div class="step-desc">Pick check-in and check-out dates. Select a room type — the system shows available rooms and the current rate.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Choose booking source</div>
+          <div class="step-desc">Select how the booking was made: Direct, Phone, Walk-In, Booking.com, Expedia, Airbnb, Travel Agent, Corporate, etc.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Add special requests & notes</div>
+          <div class="step-desc">Record any guest preferences, dietary requirements, or special occasions in the notes field.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Confirm & save</div>
+          <div class="step-desc">Review the summary and click <strong>Create Booking</strong>. A unique confirmation code is generated automatically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🔍</span> Booking Statuses</div>
+    <table class="info-table">
+      <thead>
+        <tr><th>Status</th><th>Meaning</th><th>Next Action</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-amber">Pending</span></td>
+          <td>Booking created but not yet confirmed</td>
+          <td>Confirm or cancel</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">Confirmed</span></td>
+          <td>Reservation is confirmed and guaranteed</td>
+          <td>Assign room, await arrival</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">Checked In</span></td>
+          <td>Guest has arrived and is in-house</td>
+          <td>Manage stay, post charges</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-slate">Checked Out</span></td>
+          <td>Guest has departed, folio settled</td>
+          <td>Archive / review</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-red">Cancelled</span></td>
+          <td>Reservation was cancelled</td>
+          <td>Record reason, process refund if needed</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-red">No Show</span></td>
+          <td>Guest did not arrive on check-in date</td>
+          <td>Mark no-show, apply policy</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-blue">📝</span> Booking Detail Page</div>
+    <p>Click any booking to open its detail page. From here you can:</p>
+    <ul>
+      <li>View the full guest profile and contact details</li>
+      <li>See assigned room and room type with rate information</li>
+      <li>Manage the <strong>Guest Folio</strong> — view charges, add payments, post extras</li>
+      <li>Process <strong>check-in</strong> and <strong>check-out</strong></li>
+      <li>Change room assignment or extend/shorten the stay</li>
+      <li>Add internal notes visible only to staff</li>
+      <li>View the activity log for a full audit trail</li>
+      <li>Cancel the booking with a reason</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 4 — BOOKING LIFECYCLE                                  -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch4">
+  <div class="chapter-number">Chapter 04</div>
+  <h2 class="chapter-title">The Booking Lifecycle</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Every booking follows a natural journey from creation to departure. Understanding
+    this lifecycle ensures smooth operations and happy guests.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-emerald">✅</span> Check-In Process</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Find the booking</div>
+          <div class="step-desc">Use <strong>Today's Arrivals</strong> on the Dashboard, or search in <strong>Bookings</strong> by guest name or confirmation code.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Verify guest identity</div>
+          <div class="step-desc">Confirm the guest's name and booking details. Check any special requests or notes.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Assign a room (if not already assigned)</div>
+          <div class="step-desc">Select an available room of the correct type. The system prevents assigning rooms that are occupied or in maintenance.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Collect payment or verify deposit</div>
+          <div class="step-desc">If payment is due, use the <strong>+ Payment</strong> button to process a card payment or record cash/transfer.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Click "Check In"</div>
+          <div class="step-desc">The booking status changes to <span class="badge badge-green">Checked In</span>. The room status automatically updates to <span class="badge badge-blue">Occupied</span>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info no-break">
+      <div class="callout-title">ℹ️ Room Status Sync</div>
+      When you check a guest in, the room automatically moves to "Occupied." When you check them out,
+      it returns to "Available" (or "Dirty" if housekeeping is enabled). You never need to manually change room status for check-ins/outs.
+    </div>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-blue">🛫</span> Check-Out Process</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Open the booking</div>
+          <div class="step-desc">Find the guest in <strong>Today's Departures</strong> on the Dashboard or via the <strong>In-House</strong> page.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Review the folio</div>
+          <div class="step-desc">Check all charges are correct — room charges, minibar, restaurant, etc. Ensure the balance is zero or collect the outstanding amount.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Settle any remaining balance</div>
+          <div class="step-desc">Process final payment via card, cash, or transfer. The guest should have a zero balance before departure.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Click "Check Out"</div>
+          <div class="step-desc">The booking moves to <span class="badge badge-slate">Checked Out</span>. The room is released and becomes available for the next guest.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-warning no-break">
+    <div class="callout-title">⚠️ Important</div>
+    Always settle the folio before checking out. If a guest needs to be checked out with a remaining balance
+    (e.g., corporate account), record it as a <strong>City Ledger</strong> transfer first.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 5 — CALENDAR & TAPE CHART                              -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch5">
+  <div class="chapter-number">Chapter 05</div>
+  <h2 class="chapter-title">Calendar & Tape Chart</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Visual tools for seeing your property's availability at a glance — essential
+    for managing occupancy and spotting gaps.
+  </p>
+
+  <div class="grid-2">
+    <div class="feature-card no-break">
+      <h4>📅 Booking Calendar</h4>
+      <p>A month-view calendar showing all bookings as coloured bars. Colour-coded by status:
+      blue for confirmed, green for checked-in, grey for checked-out.
+      Click any booking bar to jump to its detail page. Use the arrow buttons to navigate between months.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>📊 Tape Chart</h4>
+      <p>A grid view showing rooms on the Y-axis and dates on the X-axis. Each cell shows occupancy.
+      Perfect for seeing exactly which physical rooms are available on which dates.
+      Drag to select dates and create new bookings directly. Colour-coded by room status.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-tip no-break">
+    <div class="callout-title">💡 Tip</div>
+    Use the Tape Chart when a guest asks "Do you have a specific room available next week?" — it shows
+    availability per physical room, not just per room type.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 6 — ROOMS                                              -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch6">
+  <div class="chapter-number">Chapter 06</div>
+  <h2 class="chapter-title">Rooms & Room Management</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Manage your physical room inventory, room types, and real-time room statuses.
+    The system prevents double-booking at the database level.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🚪</span> Room Statuses</div>
+    <div class="status-grid">
+      <div class="status-block status-available">✓<br>Available</div>
+      <div class="status-block status-occupied">●<br>Occupied</div>
+      <div class="status-block status-maintenance">🔧<br>Maintenance</div>
+      <div class="status-block status-blocked">✕<br>Blocked</div>
+    </div>
+    <ul>
+      <li><strong>Available</strong> — Clean and ready for the next guest</li>
+      <li><strong>Occupied</strong> — Currently has a checked-in guest (set automatically)</li>
+      <li><strong>Maintenance</strong> — Out of order for repairs; not bookable</li>
+      <li><strong>Blocked</strong> — Manually held out of inventory (e.g., owner use, renovation)</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">🏷️</span> Room Types</div>
+    <p>Room types define categories like "Standard Double," "Deluxe King," or "Family Suite." Each room type has:</p>
+    <ul>
+      <li>Base nightly rate</li>
+      <li>Maximum occupancy</li>
+      <li>Amenities list (WiFi, TV, minibar, sea view, etc.)</li>
+      <li>Bed configuration (king, twin, double, etc.)</li>
+      <li>Photos displayed on the booking engine</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-danger no-break">
+    <div class="callout-title">🛑 Double-Booking Protection</div>
+    Arrivé enforces an exclusion constraint at the database level. It is physically impossible to assign two overlapping
+    bookings to the same room. If you try, the system will reject it with an error.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 7 — GUESTS                                             -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch7">
+  <div class="chapter-number">Chapter 07</div>
+  <h2 class="chapter-title">Guest Management</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Build a rich guest database over time. Track preferences, stay history,
+    and spending to deliver personalised service.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-purple">👤</span> Guest Profiles</div>
+    <p>Each guest profile stores:</p>
+    <ul>
+      <li><strong>Contact info</strong> — Name, email, phone, nationality</li>
+      <li><strong>Preferences</strong> — Dietary requirements, room preferences, allergies</li>
+      <li><strong>Stay history</strong> — Total stays, total spend, all past bookings</li>
+      <li><strong>Tags</strong> — Custom labels like "VIP," "Loyalty Member," "Corporate," "Returner"</li>
+      <li><strong>Notes</strong> — Free-text notes visible to all staff</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🔍</span> Finding Guests</div>
+    <p>On the <strong>Guests</strong> page, you can:</p>
+    <ul>
+      <li>Search by name, email, or phone number</li>
+      <li>Filter by tags (e.g., show all VIP guests)</li>
+      <li>Sort by total stays or total spend to identify your best customers</li>
+      <li>Click a guest to view their full profile and booking history</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-tip no-break">
+    <div class="callout-title">💡 Tip</div>
+    When a returning guest calls, search for them by name. Their preferences and past stay details help you offer personalised service — "Welcome back, Mrs. Johnson! Would you like Room 204 again with extra pillows?"
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 8 — PAYMENTS & FOLIOS                                  -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch8">
+  <div class="chapter-number">Chapter 08</div>
+  <h2 class="chapter-title">Payments & Folios</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Every booking has a folio — a running account of charges and payments.
+    Arrivé supports card payments via Stripe, plus cash and transfer recording.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-emerald">💳</span> Processing Payments</div>
+    <p>From the Booking Detail page, click <strong>+ Payment</strong> to open the payment dialog:</p>
+    <table class="info-table">
+      <thead>
+        <tr><th>Method</th><th>How It Works</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Card</strong></td>
+          <td>Processed securely via Stripe. Guest enters card details in the secure payment form. Funds are captured immediately.</td>
+        </tr>
+        <tr>
+          <td><strong>Cash</strong></td>
+          <td>Record the amount received. Enter a reference (e.g., receipt number). The payment is logged to the folio.</td>
+        </tr>
+        <tr>
+          <td><strong>Bank Transfer</strong></td>
+          <td>Record a transfer payment with a bank reference number for reconciliation.</td>
+        </tr>
+        <tr>
+          <td><strong>Online</strong></td>
+          <td>For payments made through OTAs or external systems. Record with a transaction reference.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">📑</span> Guest Folio</div>
+    <p>The folio tab on each booking shows:</p>
+    <ul>
+      <li><strong>Room charges</strong> — Automatically posted nightly room rate</li>
+      <li><strong>Extras / Add-ons</strong> — Minibar, restaurant, laundry, etc. (manually posted by staff)</li>
+      <li><strong>Payments received</strong> — All payments with method, amount, and timestamp</li>
+      <li><strong>Running balance</strong> — Total charges minus total payments</li>
+      <li><strong>Full Balance button</strong> — Quickly set the payment amount to the outstanding balance</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-blue">🖥️</span> Payment Terminal</div>
+    <p>The dedicated <strong>Payments</strong> page in the sidebar provides a standalone payment terminal for processing payments outside of a specific booking — useful for walk-in purchases, gift cards, or deposits.</p>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-slate">🏛️</span> City Ledger</div>
+    <p>The <strong>City Ledger</strong> tracks outstanding balances for corporate accounts, travel agents, or guests who have checked out with an unpaid balance. Transfer charges here during check-out for later invoicing.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 9 — HOUSEKEEPING                                       -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch9">
+  <div class="chapter-number">Chapter 09</div>
+  <h2 class="chapter-title">Housekeeping</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Keep rooms clean and ready. The housekeeping module provides a real-time
+    task board that updates as guests check in and out.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🧹</span> Housekeeping Board</div>
+    <p>The Housekeeping page shows all rooms with their cleaning status:</p>
+    <ul>
+      <li><strong>Clean</strong> — Room is inspected and guest-ready</li>
+      <li><strong>Dirty</strong> — Needs cleaning (auto-set after check-out)</li>
+      <li><strong>In Progress</strong> — Housekeeper is currently cleaning</li>
+      <li><strong>Inspected</strong> — Cleaned and verified by supervisor</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">📱</span> For Housekeeping Staff</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Log in on your phone or tablet</div>
+          <div class="step-desc">Use your housekeeping PIN to log in. You'll see only the Housekeeping module based on your role.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">View your assigned rooms</div>
+          <div class="step-desc">See which rooms are marked "Dirty" and need attention. Prioritise by departure/arrival times shown.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Mark as "In Progress" when you start</div>
+          <div class="step-desc">Tap the room and change status. Front desk can see in real time that the room is being cleaned.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Mark as "Clean" when done</div>
+          <div class="step-desc">The room becomes available for the next check-in. Add notes if anything needs attention (e.g., "lightbulb needs replacing").</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 10 — RATES & PACKAGES                                  -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch10">
+  <div class="chapter-number">Chapter 10</div>
+  <h2 class="chapter-title">Rates & Packages</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Flexible pricing tools let you set seasonal rates, create special offers,
+    and bundle rooms with extras.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">💰</span> Rate Periods</div>
+    <p>The <strong>Rates</strong> page lets you set pricing that varies by season or event:</p>
+    <ul>
+      <li><strong>Base rate</strong> — Default nightly rate set on each room type</li>
+      <li><strong>Rate periods</strong> — Override pricing for date ranges (e.g., "Summer Peak," "Christmas," "Festival")</li>
+      <li><strong>Per room type or all</strong> — A rate period can apply to one room type or all types</li>
+      <li><strong>Minimum stay</strong> — Enforce minimum nights during busy periods</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🎁</span> Packages</div>
+    <p>The <strong>Packages</strong> page lets you create bundled offers:</p>
+    <ul>
+      <li>Combine a room with extras (e.g., "Romance Package" = Deluxe Room + Champagne + Late Checkout)</li>
+      <li>Set a package price that differs from the sum of components</li>
+      <li>Packages appear on the guest booking engine as special offers</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-purple">🤖</span> Rate Intelligence</div>
+    <p>The <strong>Rate Intelligence</strong> page provides AI-powered pricing suggestions based on:</p>
+    <ul>
+      <li>Current occupancy levels and demand patterns</li>
+      <li>Competitor pricing in your area</li>
+      <li>Historical booking data and trends</li>
+      <li>Upcoming events and holidays</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 11 — NIGHT AUDIT                                       -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch11">
+  <div class="chapter-number">Chapter 11</div>
+  <h2 class="chapter-title">Night Audit</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    The night audit is a daily end-of-day procedure that closes the business day,
+    posts room charges, and generates daily reports.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">🌙</span> Running the Night Audit</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Navigate to Night Audit</div>
+          <div class="step-desc">Go to <strong>Night Audit</strong> in the sidebar. The page shows a pre-audit checklist.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Review checklist items</div>
+          <div class="step-desc">Verify: all arrivals processed, departures checked out, no-shows marked, all folios balanced.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Post room charges</div>
+          <div class="step-desc">The system posts tonight's room charge to every in-house guest's folio automatically.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Close the day</div>
+          <div class="step-desc">Click <strong>Run Night Audit</strong>. The system advances the business date and generates the daily summary report.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-warning no-break">
+    <div class="callout-title">⚠️ Important</div>
+    The night audit should be run once daily, typically after midnight by the night shift or early morning by the first shift. It cannot be undone — ensure all corrections are made before running it.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 12 — REPORTS & FINANCIALS                              -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch12">
+  <div class="chapter-number">Chapter 12</div>
+  <h2 class="chapter-title">Reports & Financials</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Comprehensive reporting tools for tracking performance, revenue, and operations.
+  </p>
+
+  <div class="grid-2">
+    <div class="feature-card no-break">
+      <h4>📊 Reports Page</h4>
+      <p>Generate reports including: Occupancy Report, Revenue Report, Booking Sources, Guest Statistics,
+      Arrivals/Departures, No-Show Report, Cancellation Report, and more. Filter by date range and export data.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>💹 Financial Dashboard</h4>
+      <p>Real-time financial overview: total revenue, average daily rate (ADR), RevPAR, accounts receivable,
+      payment method breakdown, revenue by room type, and month-over-month comparisons.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>🤖 AI Insights</h4>
+      <p>AI-powered analytics that surface trends, anomalies, and opportunities. Get suggestions for
+      pricing adjustments, staffing optimisation, and upsell opportunities.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>📋 Activity Log</h4>
+      <p>Complete audit trail of every action taken in the system: bookings created, payments processed,
+      status changes, staff logins. Filter by staff member, action type, or date.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-info no-break">
+    <div class="callout-title">ℹ️ Key Metrics Explained</div>
+    <strong>ADR</strong> (Average Daily Rate) = Total Room Revenue ÷ Rooms Sold<br>
+    <strong>RevPAR</strong> (Revenue Per Available Room) = Total Room Revenue ÷ Total Available Rooms<br>
+    <strong>Occupancy %</strong> = Rooms Sold ÷ Total Available Rooms × 100
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 13 — MESSAGING                                         -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch13">
+  <div class="chapter-number">Chapter 13</div>
+  <h2 class="chapter-title">Messaging & Communications</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Communicate with guests via email, SMS, and WhatsApp. Use templates for
+    automated messages at key points in the booking journey.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">📧</span> Email Templates</div>
+    <p>Pre-built templates for common guest communications. Each template supports dynamic variables:</p>
+    <table class="info-table">
+      <thead><tr><th>Variable</th><th>Replaced With</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>{{guest_name}}</kbd></td><td>Guest's full name</td></tr>
+        <tr><td><kbd>{{confirmation_code}}</kbd></td><td>Booking confirmation code</td></tr>
+        <tr><td><kbd>{{check_in}}</kbd></td><td>Check-in date</td></tr>
+        <tr><td><kbd>{{check_out}}</kbd></td><td>Check-out date</td></tr>
+        <tr><td><kbd>{{room_type}}</kbd></td><td>Room type name</td></tr>
+        <tr><td><kbd>{{total_amount}}</kbd></td><td>Total booking amount</td></tr>
+        <tr><td><kbd>{{property_name}}</kbd></td><td>Your hotel name</td></tr>
+        <tr><td><kbd>{{property_phone}}</kbd></td><td>Hotel phone number</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-blue">💬</span> Message Triggers</div>
+    <p>Automated messages can be triggered at these booking stages:</p>
+    <ul>
+      <li><strong>Booking Confirmed</strong> — Instant confirmation with details</li>
+      <li><strong>Pre-Arrival</strong> — Sent 1-3 days before check-in with directions, parking info</li>
+      <li><strong>Check-In Reminder</strong> — Day-of arrival reminder</li>
+      <li><strong>Check-Out Reminder</strong> — Morning of departure</li>
+      <li><strong>Post-Stay</strong> — Thank you message with review request</li>
+      <li><strong>Cancellation</strong> — Confirms cancellation and any refund details</li>
+    </ul>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-purple">📨</span> Guest Messaging</div>
+    <p>The <strong>Guest Messaging</strong> page provides a unified inbox for all guest conversations across channels (email, SMS, WhatsApp). View conversation history, reply in-line, and maintain full communication records.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 14 — ADDITIONAL MODULES                                -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch14">
+  <div class="chapter-number">Chapter 14</div>
+  <h2 class="chapter-title">Additional Modules</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Arrivé includes specialised modules for complete hotel operations management.
+  </p>
+
+  <div class="grid-2">
+    <div class="feature-card no-break">
+      <h4>🔧 Maintenance</h4>
+      <p>Log and track maintenance requests. Assign tasks to maintenance staff, set priorities
+      (urgent/high/medium/low), and track resolution. Link issues to specific rooms.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>📦 Lost & Found</h4>
+      <p>Track items found by housekeeping or reported lost by guests. Record item descriptions,
+      location found, and link to guest profiles for returns.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>🛎️ Concierge</h4>
+      <p>Manage guest requests, restaurant reservations, tour bookings, transportation,
+      and special arrangements. Track fulfillment status for each request.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>👥 Group Bookings</h4>
+      <p>Handle group reservations for weddings, conferences, or tour groups. Manage
+      multiple rooms under one master booking with group billing.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>📡 Channel Manager</h4>
+      <p>Manage your distribution across OTAs (Booking.com, Expedia, Airbnb, etc.).
+      Sync availability and rates across all channels from one place.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>⏰ Staff Rota</h4>
+      <p>Schedule staff shifts, manage rotas, and ensure adequate coverage across
+      all departments. View weekly/monthly schedules.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>📝 Waitlist</h4>
+      <p>When fully booked, add guests to a waitlist. Automatically notify them
+      when a room becomes available due to cancellation.</p>
+    </div>
+    <div class="feature-card no-break">
+      <h4>🏛️ City Ledger</h4>
+      <p>Track outstanding balances for corporate accounts and travel agents.
+      Generate invoices and reconcile payments.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 15 — STAFF ROLES                                       -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch15">
+  <div class="chapter-number">Chapter 15</div>
+  <h2 class="chapter-title">Staff Roles & Permissions</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Arrivé uses role-based access control (RBAC) to ensure staff only see
+    what they need. Over 70 granular permissions are available.
+  </p>
+
+  <div class="role-card no-break">
+    <span class="role-badge badge-gold">Full Access</span>
+    <h4>Owner</h4>
+    <p>Complete access to all modules, settings, and staff management. Can view financial reports,
+    modify rates, manage properties, and configure the system. The only role that can manage other staff accounts.</p>
+  </div>
+
+  <div class="role-card no-break">
+    <span class="role-badge badge-teal">High Access</span>
+    <h4>Manager</h4>
+    <p>Access to most operational modules: bookings, guests, rooms, payments, housekeeping, reports,
+    and rates. Can run night audits and view financials. Cannot modify system settings or manage staff.</p>
+  </div>
+
+  <div class="role-card no-break">
+    <span class="role-badge badge-blue">Operational Access</span>
+    <h4>Receptionist</h4>
+    <p>Front desk operations: create and manage bookings, check guests in/out, process payments,
+    view room status, and access guest profiles. Cannot view financial reports or modify rates.</p>
+  </div>
+
+  <div class="role-card no-break">
+    <span class="role-badge badge-amber">Limited Access</span>
+    <h4>Housekeeping</h4>
+    <p>View and update room cleaning status only. Can mark rooms as clean/dirty/in-progress.
+    Cannot access bookings, guest details, payments, or any other module.</p>
+  </div>
+
+  <div class="callout callout-info no-break">
+    <div class="callout-title">ℹ️ Permission Examples</div>
+    The system checks permissions like <kbd>bookings.view</kbd>, <kbd>payments.process</kbd>,
+    <kbd>rooms.edit</kbd>, <kbd>reports.view</kbd>, <kbd>settings.edit</kbd>.
+    If a staff member doesn't have a required permission, the menu item is hidden and the page is inaccessible.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 16 — GUEST BOOKING ENGINE                              -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch16">
+  <div class="chapter-number">Chapter 16</div>
+  <h2 class="chapter-title">Guest Booking Engine</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Arrivé includes a beautiful, guest-facing booking engine. Guests can browse
+    rooms, select dates, and book directly — commission-free.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🌐</span> How It Works</div>
+    <p>The booking engine is accessed at <strong>/book/your-hotel-slug</strong> — each property has a unique URL based on its slug. The guest journey:</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Hotel Landing Page</div>
+          <div class="step-desc">Shows your hotel's branding, description, photos, and a date picker for checking availability.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Room Selection</div>
+          <div class="step-desc">Available room types displayed with photos, amenities, bed config, and pricing. Guest picks their room.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Checkout</div>
+          <div class="step-desc">Guest enters their details and processes payment securely via Stripe. Tax is calculated automatically.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Confirmation</div>
+          <div class="step-desc">Booking confirmation page with code, dates, and property details. Confirmation email sent automatically.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-content">
+          <div class="step-title">Manage Booking</div>
+          <div class="step-desc">Guests can look up their booking with confirmation code and email to view details or request changes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-tip no-break">
+    <div class="callout-title">💡 Tip</div>
+    Share your booking engine URL on your website, social media, and Google Business listing.
+    Direct bookings mean no OTA commission — typically saving 15-20% per booking.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 17 — SETTINGS                                          -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch17">
+  <div class="chapter-number">Chapter 17</div>
+  <h2 class="chapter-title">Settings & Configuration</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Configure your property's details, branding, policies, and system preferences.
+    Only staff with the Owner role can access Settings.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">⚙️</span> Property Settings</div>
+    <table class="info-table">
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Property Name</strong></td><td>Your hotel's display name</td></tr>
+        <tr><td><strong>Address</strong></td><td>Full address shown on booking confirmations</td></tr>
+        <tr><td><strong>Contact Details</strong></td><td>Phone, email, website</td></tr>
+        <tr><td><strong>Check-in / Check-out Times</strong></td><td>Default: 15:00 in, 11:00 out</td></tr>
+        <tr><td><strong>Currency</strong></td><td>GBP, EUR, USD, etc.</td></tr>
+        <tr><td><strong>Timezone</strong></td><td>Europe/London, etc.</td></tr>
+        <tr><td><strong>Tax Rate</strong></td><td>VAT/sales tax applied to bookings (e.g., 20%)</td></tr>
+        <tr><td><strong>Cancellation Policy</strong></td><td>Hours before check-in for free cancellation</td></tr>
+        <tr><td><strong>Deposit %</strong></td><td>Percentage required at booking</td></tr>
+        <tr><td><strong>Same-Day Booking</strong></td><td>Allow or disallow bookings for today</td></tr>
+        <tr><td><strong>Max Advance Days</strong></td><td>How far ahead guests can book (default: 365)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">🎨</span> Branding</div>
+    <p>Customise how your property appears on the guest booking engine:</p>
+    <ul>
+      <li><strong>Primary colour</strong> — Accent colour for buttons and highlights (default: gold #D4A853)</li>
+      <li><strong>Accent colour</strong> — Secondary colour (default: teal #0D9488)</li>
+      <li><strong>Logo</strong> — Upload your hotel logo</li>
+      <li><strong>Cover images</strong> — Hero images for the booking engine landing page</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 18 — QUICK REFERENCE                                   -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch18">
+  <div class="chapter-number">Chapter 18</div>
+  <h2 class="chapter-title">Quick Reference Card</h2>
+  <div class="chapter-rule"></div>
+  <p class="chapter-intro">
+    Print this page and keep it at the front desk for quick reference.
+  </p>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-gold">⚡</span> Common Tasks — Where to Find Them</div>
+    <table class="info-table">
+      <thead><tr><th>Task</th><th>Where</th><th>Quick Steps</th></tr></thead>
+      <tbody>
+        <tr><td>Create a booking</td><td>Bookings → + New</td><td>Select guest → dates → room type → save</td></tr>
+        <tr><td>Check in a guest</td><td>Dashboard → Today's Arrivals</td><td>Click booking → assign room → Check In</td></tr>
+        <tr><td>Check out a guest</td><td>Dashboard → Today's Departures</td><td>Click booking → settle folio → Check Out</td></tr>
+        <tr><td>Take a payment</td><td>Booking Detail → + Payment</td><td>Select method → enter amount → process</td></tr>
+        <tr><td>Post a charge</td><td>Booking Detail → Folio tab</td><td>Click + Charge → description → amount → save</td></tr>
+        <tr><td>Mark room clean</td><td>Housekeeping</td><td>Find room → change status → Clean</td></tr>
+        <tr><td>Block a room</td><td>Rooms</td><td>Click room → change status → Blocked</td></tr>
+        <tr><td>Find a guest</td><td>Guests → Search</td><td>Type name/email/phone → click profile</td></tr>
+        <tr><td>Change a rate</td><td>Rates</td><td>Edit room type base rate or add rate period</td></tr>
+        <tr><td>Run night audit</td><td>Night Audit</td><td>Review checklist → Run Night Audit</td></tr>
+        <tr><td>View today's revenue</td><td>Dashboard or Financials</td><td>Check KPI cards at top of dashboard</td></tr>
+        <tr><td>Cancel a booking</td><td>Booking Detail</td><td>Click Cancel → enter reason → confirm</td></tr>
+        <tr><td>Log maintenance</td><td>Maintenance → + New</td><td>Select room → describe issue → set priority</td></tr>
+        <tr><td>Send guest message</td><td>Guest Messaging</td><td>Select guest → compose → send</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section no-break">
+    <div class="section-title"><span class="icon icon-teal">📞</span> Booking Sources</div>
+    <p>When creating a booking, always select the correct source for accurate reporting:</p>
+    <table class="info-table">
+      <thead><tr><th>Source</th><th>When to Use</th></tr></thead>
+      <tbody>
+        <tr><td>Direct (Website)</td><td>Guest booked via the Arrivé booking engine</td></tr>
+        <tr><td>Phone</td><td>Guest called to make a reservation</td></tr>
+        <tr><td>Walk-In</td><td>Guest arrived without a reservation</td></tr>
+        <tr><td>Booking.com / Expedia / etc.</td><td>Reservation from an OTA channel</td></tr>
+        <tr><td>Travel Agent</td><td>Booked through a travel agency</td></tr>
+        <tr><td>Corporate</td><td>Company account / business booking</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-tip no-break" style="margin-top: 2rem;">
+    <div class="callout-title">💡 Remember</div>
+    <strong>Accuracy matters.</strong> Every piece of data you enter helps the system generate better reports,
+    smarter pricing suggestions, and more useful guest profiles. Take the extra 10 seconds to fill in
+    all fields correctly — your future self (and your managers) will thank you.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- FOOTER                                                         -->
+<!-- ============================================================ -->
+<div class="page-footer">
+  <strong>Arrivé</strong> Property Management System &nbsp;·&nbsp; Version 1.0 &nbsp;·&nbsp; March 2026<br>
+  &copy; 2026 The Supports Desk. All rights reserved.<br><br>
+  <em>For support, contact your property manager or email support@thesupportsdesk.com</em>
+</div>
+
+</body>
+</html>
