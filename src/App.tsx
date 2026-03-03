@@ -50,6 +50,7 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { BookingLayout } from '@/components/booking/BookingLayout';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { RequirePermission } from '@/components/shared/RequirePermission';
+import InstallPrompt from '@/components/shared/InstallPrompt';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +138,8 @@ function App() {
           },
         }}
       />
+
+      <InstallPrompt />
     </QueryClientProvider>
   );
 }
