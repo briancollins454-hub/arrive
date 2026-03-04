@@ -670,3 +670,29 @@ export interface InvoiceTax {
   rate: number;
   amount: number;
 }
+
+// ============================================================
+// MULTI-PROPERTY / GROUP VIEW
+// ============================================================
+
+/** Junction between staff and the properties they can access */
+export interface StaffPropertyAccess {
+  staff_id: string;
+  property_id: string;
+  role: StaffRole;
+  is_primary: boolean;          // the default property loaded on login
+}
+
+/** Summary KPIs for a single property — used in group dashboard */
+export interface PropertySummary {
+  property: Property;
+  totalRooms: number;
+  occupiedRooms: number;
+  occupancyPct: number;
+  arrivals: number;
+  departures: number;
+  inHouse: number;
+  todayRevenue: number;
+  adr: number;
+  revpar: number;
+}

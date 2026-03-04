@@ -11,6 +11,8 @@ interface AppState {
   user: { id: string; email: string } | null;
   staff: StaffMember | null;
   property: Property | null;
+  properties: Property[];          // all properties the user can access
+  activePropertyId: string | null; // currently selected property id (null = group view)
   isAuthenticated: boolean;
   currentRole: StaffRole;
   /** Per-user permission overrides — keys granted beyond role default, or revoked from it */
@@ -26,6 +28,8 @@ interface AppState {
   setUser: (user: { id: string; email: string } | null) => void;
   setStaff: (staff: StaffMember | null) => void;
   setProperty: (property: Property | null) => void;
+  setProperties: (properties: Property[]) => void;
+  setActivePropertyId: (id: string | null) => void;
   setCurrentRole: (role: StaffRole) => void;
   setPermissionOverrides: (overrides: { granted: Permission[]; revoked: Permission[] }) => void;
   logout: () => void;
@@ -44,6 +48,8 @@ export const useAppStore = create<AppState>((set) => ({
   user: null,
   staff: null,
   property: null,
+  properties: [],
+  activePropertyId: null,
   isAuthenticated: false,
   currentRole: 'owner',
   permissionOverrides: { granted: [], revoked: [] },
@@ -63,6 +69,17 @@ export const useAppStore = create<AppState>((set) => ({
   setProperty: (property) =>
     set({ property }),
 
+  setProperties: (properties) =>
+    set({ properties }),
+
+  setActivePropertyId: (activePropertyId) =>
+    set((s) => ({
+      activePropertyId,
+      property: activePropertyId
+        ? s.properties.find((p) => p.id === activePropertyId) ?? s.property
+        : s.property,
+    })),
+
   setCurrentRole: (currentRole) =>
     set({ currentRole, permissionOverrides: { granted: [], revoked: [] } }),
 
@@ -74,6 +91,8 @@ export const useAppStore = create<AppState>((set) => ({
       user: null,
       staff: null,
       property: null,
+      properties: [],
+      activePropertyId: null,
       isAuthenticated: false,
       currentRole: 'owner',
       permissionOverrides: { granted: [], revoked: [] },

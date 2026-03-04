@@ -7,10 +7,11 @@ import {
   Search, TrendingUp, Brain, Wrench, LogIn, LogOut as LogOutIcon2, Moon, BarChart3,
   ClipboardList, CheckCheck, CalendarRange, UsersRound, Gift, PackageSearch,
   BellRing, Mail, CreditCard, MessageCircle, Globe, Wallet, CalendarClock,
-  Menu, X, Landmark, Shield, ChevronDown,
+  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/shared/Logo';
+import { PropertySwitcher } from '@/components/dashboard/PropertySwitcher';
 import { useProperty } from '@/hooks/useProperty';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRBAC } from '@/hooks/useRBAC';
@@ -24,6 +25,7 @@ const navSections = [
     label: 'Operations',
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
+      { to: '/dashboard/group', icon: LayoutGrid, label: 'Group View' },
       { to: '/dashboard/bookings', icon: BookOpen, label: 'Bookings' },
       { to: '/dashboard/bookings?view=arrivals', icon: LogIn, label: 'Arrivals' },
       { to: '/dashboard/bookings?view=departures', icon: LogOutIcon2, label: 'Departures' },
@@ -367,22 +369,8 @@ function SidebarContent({ collapsed, setCollapsed, navigate, property, setShowCo
         )}
       </div>
 
-      {/* Property info */}
-      {show && property && (
-        <div className="relative z-10 mx-3 mb-3 p-3 rounded-xl bg-gradient-to-br from-gold/[0.1] via-teal/[0.04] to-transparent border border-white/[0.08] backdrop-blur-sm group hover:border-white/[0.12] transition-all duration-500">
-          {/* Subtle shimmer on hover */}
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="flex items-center gap-2.5 relative">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gold/40 to-gold/15 flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(201,168,76,0.2),inset_0_1px_0_rgba(255,255,255,0.15)] ring-1 ring-gold/20">
-              <Building2 size={16} className="text-gold drop-shadow-[0_0_4px_rgba(201,168,76,0.3)]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-white truncate font-body">{property.name}</p>
-              <p className="text-[10px] text-steel truncate font-body">{property.address.city}, {property.address.postcode}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Property Switcher (replaces static property card) */}
+      <PropertySwitcher collapsed={collapsed && !isMobile} />
 
       {/* Navigation */}
       <nav aria-label="Main navigation" className="relative z-10 flex-1 py-1 px-3 space-y-3 overflow-y-auto">
@@ -552,6 +540,7 @@ function SidebarContent({ collapsed, setCollapsed, navigate, property, setShowCo
 const commandItems = [
   // Navigation
   { id: 'nav-dashboard', label: 'Go to Dashboard', section: 'Navigate', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'nav-group', label: 'Go to Group View', section: 'Navigate', icon: LayoutGrid, path: '/dashboard/group' },
   { id: 'nav-bookings', label: 'Go to Bookings', section: 'Navigate', icon: BookOpen, path: '/dashboard/bookings' },
   { id: 'nav-guests', label: 'Go to Guests', section: 'Navigate', icon: Users, path: '/dashboard/guests' },
   { id: 'nav-rooms', label: 'Go to Room Inventory', section: 'Navigate', icon: BedDouble, path: '/dashboard/rooms' },

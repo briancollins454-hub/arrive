@@ -33,6 +33,7 @@ import { FinancialDashboardPage } from '@/pages/dashboard/FinancialDashboardPage
 import { StaffRotaPage } from '@/pages/dashboard/StaffRotaPage';
 import { WaitlistPage } from '@/pages/dashboard/WaitlistPage';
 import { CityLedgerPage } from '@/pages/dashboard/CityLedgerPage';
+import { GroupDashboardPage } from '@/pages/dashboard/GroupDashboardPage';
 
 // Pages — Booking Engine
 import { HotelPage } from '@/pages/booking/HotelPage';
@@ -72,6 +73,7 @@ function App() {
           {/* ============================== */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardHome />} />
+            <Route path="group" element={<GroupDashboardPage />} />
             <Route path="calendar" element={<RequirePermission permission="bookings.view"><CalendarPage /></RequirePermission>} />
             <Route path="bookings" element={<RequirePermission permission="bookings.view"><BookingsPage /></RequirePermission>} />
             <Route path="bookings/:id" element={<RequirePermission permission="bookings.view"><BookingDetailPage /></RequirePermission>} />
