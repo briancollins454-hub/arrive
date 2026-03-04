@@ -83,7 +83,7 @@ export function PropertySwitcher({ collapsed = false }: PropertySwitcherProps) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl border border-white/[0.08] bg-[#111827]/98 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl border border-white/[0.1] bg-[#0d1117] shadow-[0_20px_60px_rgba(0,0,0,0.7)] z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="p-2 border-b border-white/[0.06]">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-steel/50 font-body px-2">Switch Property</p>
           </div>
