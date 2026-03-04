@@ -151,7 +151,7 @@ export function DashboardLayout() {
         <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-gold/[0.04] blur-[100px] pointer-events-none animate-aurora-float-1" />
         <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full bg-teal/[0.03] blur-[80px] pointer-events-none animate-aurora-float-2" />
 
-        <SidebarContent collapsed={collapsed} setCollapsed={setCollapsed} navigate={navigate} property={property} setShowCommandPalette={setShowCommandPalette} isMobile={false} onClose={() => {}} />
+        <SidebarContent collapsed={collapsed} setCollapsed={setCollapsed} navigate={navigate} setShowCommandPalette={setShowCommandPalette} isMobile={false} onClose={() => {}} />
       </aside>
 
       {/* Mobile Sidebar — slide-over drawer */}
@@ -166,7 +166,7 @@ export function DashboardLayout() {
         <div className="absolute right-0 top-0 bottom-0 w-px">
           <div className="h-full bg-gradient-to-b from-gold/30 via-teal/20 via-purple/10 to-transparent" />
         </div>
-        <SidebarContent collapsed={false} setCollapsed={setCollapsed} navigate={navigate} property={property} setShowCommandPalette={setShowCommandPalette} isMobile onClose={() => setMobileOpen(false)} />
+        <SidebarContent collapsed={false} setCollapsed={setCollapsed} navigate={navigate} setShowCommandPalette={setShowCommandPalette} isMobile onClose={() => setMobileOpen(false)} />
       </aside>
 
       {/* Main Content */}
@@ -327,13 +327,12 @@ interface SidebarContentProps {
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
   navigate: ReturnType<typeof useNavigate>;
-  property: ReturnType<typeof useProperty>['property'];
   setShowCommandPalette: (v: boolean) => void;
   isMobile: boolean;
   onClose: () => void;
 }
 
-function SidebarContent({ collapsed, setCollapsed, navigate, property, setShowCommandPalette, isMobile, onClose }: SidebarContentProps) {
+function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalette, isMobile, onClose }: SidebarContentProps) {
   const location = useLocation();
   const show = isMobile || !collapsed; // mobile drawer always expanded
   const { currentRole, canAccessRoute, switchRole, roleLabel, roleColor, roleDefinitions } = useRBAC();
