@@ -2,61 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { useProperty } from './useProperty';
 import { logActivity } from './useActivityLog';
+import { getDemoRoomTypes, getDemoRooms } from './demoData';
 import type { RoomType, Room, HousekeepingStatus } from '@/types';
 import type { RoomFormData, RoomTypeFormData } from '@/lib/validators';
 import toast from 'react-hot-toast';
-
-// ============================================================
-// Demo Data
-// ============================================================
-
-export const demoRoomTypes: RoomType[] = [
-  {
-    id: 'rt1', property_id: 'demo-property-id', name: 'Deluxe Double',
-    description: 'Spacious double room with harbour view, king-size bed, and luxury bathroom.',
-    base_rate: 189, max_occupancy: 2,
-    amenities: ['wifi', 'tv', 'sea_view', 'tea_coffee', 'hairdryer', 'safe', 'air_con'],
-    images: [], bed_config: [{ type: 'king', count: 1 }],
-    sort_order: 1, is_active: true, created_at: '', updated_at: '',
-  },
-  {
-    id: 'rt2', property_id: 'demo-property-id', name: 'Standard Twin',
-    description: 'Comfortable twin room ideal for friends or colleagues travelling together.',
-    base_rate: 129, max_occupancy: 2,
-    amenities: ['wifi', 'tv', 'tea_coffee', 'hairdryer', 'desk'],
-    images: [], bed_config: [{ type: 'twin', count: 2 }],
-    sort_order: 2, is_active: true, created_at: '', updated_at: '',
-  },
-  {
-    id: 'rt3', property_id: 'demo-property-id', name: 'Garden Suite',
-    description: 'Luxurious suite with private garden terrace, super king bed, and separate living area.',
-    base_rate: 289, max_occupancy: 3,
-    amenities: ['wifi', 'tv', 'minibar', 'garden_view', 'balcony', 'bath', 'air_con', 'safe', 'living_area'],
-    images: [], bed_config: [{ type: 'super_king', count: 1 }],
-    sort_order: 3, is_active: true, created_at: '', updated_at: '',
-  },
-  {
-    id: 'rt4', property_id: 'demo-property-id', name: 'Sea View Double',
-    description: 'Elegant double with panoramic sea views and balcony.',
-    base_rate: 219, max_occupancy: 2,
-    amenities: ['wifi', 'tv', 'sea_view', 'balcony', 'tea_coffee', 'minibar', 'safe'],
-    images: [], bed_config: [{ type: 'king', count: 1 }],
-    sort_order: 4, is_active: true, created_at: '', updated_at: '',
-  },
-];
-
-const demoRooms: Room[] = [
-  { id: 'r1', property_id: 'demo-property-id', room_type_id: 'rt1', room_number: '201', floor: 2, status: 'reserved', housekeeping_status: 'clean', notes: null, created_at: '', updated_at: '' },
-  { id: 'r2', property_id: 'demo-property-id', room_type_id: 'rt1', room_number: '202', floor: 2, status: 'occupied', housekeeping_status: 'serviced', notes: null, created_at: '', updated_at: '' },
-  { id: 'r3', property_id: 'demo-property-id', room_type_id: 'rt2', room_number: '105', floor: 1, status: 'reserved', housekeeping_status: 'clean', notes: null, created_at: '', updated_at: '' },
-  { id: 'r4', property_id: 'demo-property-id', room_type_id: 'rt2', room_number: '106', floor: 1, status: 'available', housekeeping_status: 'inspected', notes: null, created_at: '', updated_at: '' },
-  { id: 'r5', property_id: 'demo-property-id', room_type_id: 'rt3', room_number: '302', floor: 3, status: 'occupied', housekeeping_status: 'serviced', notes: null, created_at: '', updated_at: '' },
-  { id: 'r6', property_id: 'demo-property-id', room_type_id: 'rt3', room_number: '303', floor: 3, status: 'reserved', housekeeping_status: 'clean', notes: null, created_at: '', updated_at: '' },
-  { id: 'r7', property_id: 'demo-property-id', room_type_id: 'rt4', room_number: '204', floor: 2, status: 'occupied', housekeeping_status: 'serviced', notes: null, created_at: '', updated_at: '' },
-  { id: 'r8', property_id: 'demo-property-id', room_type_id: 'rt4', room_number: '205', floor: 2, status: 'maintenance', housekeeping_status: 'out_of_order', notes: 'Bathroom renovation', created_at: '', updated_at: '' },
-  { id: 'r9', property_id: 'demo-property-id', room_type_id: 'rt1', room_number: '203', floor: 2, status: 'reserved', housekeeping_status: 'clean', notes: null, created_at: '', updated_at: '' },
-  { id: 'r10', property_id: 'demo-property-id', room_type_id: 'rt2', room_number: '107', floor: 1, status: 'occupied', housekeeping_status: 'serviced', notes: null, created_at: '', updated_at: '' },
-];
 
 // ============================================================
 // Hook
@@ -70,7 +19,7 @@ export function useRooms() {
   const roomTypesQuery = useQuery({
     queryKey: ['room-types', propertyId],
     queryFn: async (): Promise<RoomType[]> => {
-      if (isDemoMode) return demoRoomTypes;
+      if (isDemoMode) return getDemoRoomTypes(propertyId!);
       const { data, error } = await supabase
         .from('room_types')
         .select('*')
@@ -86,7 +35,7 @@ export function useRooms() {
   const roomsQuery = useQuery({
     queryKey: ['rooms', propertyId],
     queryFn: async (): Promise<Room[]> => {
-      if (isDemoMode) return demoRooms;
+      if (isDemoMode) return getDemoRooms(propertyId!);
       const { data, error } = await supabase
         .from('rooms')
         .select('*, room_type:room_types(*)')
@@ -104,7 +53,7 @@ export function useRooms() {
       if (isDemoMode) {
         const id = `rt-${Date.now()}`;
         const newRT: RoomType = {
-          id, property_id: 'demo-property-id', name: input.name,
+          id, property_id: propertyId!, name: input.name,
           description: input.description ?? '', base_rate: input.base_rate,
           max_occupancy: input.max_occupancy, amenities: input.amenities ?? [],
           images: [], bed_config: input.bed_config ?? [],
@@ -149,7 +98,7 @@ export function useRooms() {
       if (isDemoMode) {
         const id = `r-${Date.now()}`;
         const newRoom: Room = {
-          id, property_id: 'demo-property-id', room_type_id: input.room_type_id,
+          id, property_id: propertyId!, room_type_id: input.room_type_id,
           room_number: input.room_number, floor: input.floor ?? 1,
           status: input.status ?? 'available', housekeeping_status: 'clean', notes: input.notes ?? null,
           created_at: new Date().toISOString(), updated_at: new Date().toISOString(),

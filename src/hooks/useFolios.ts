@@ -1,10 +1,11 @@
 import { useQuery, useQueries, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { supabase, isDemoMode } from '@/lib/supabase';
-import { historicalBookings } from './useBookings';
+import { useProperty } from './useProperty';
+import { getHistoricalBookings, getDemoCurrentBookings } from './demoData';
 import { logActivity } from './useActivityLog';
 import toast from 'react-hot-toast';
 import type { FolioEntry, FolioChargeCategory, PaymentMethod, Booking } from '@/types';
-import { subDays, addDays } from 'date-fns';
+import { subDays, addDays, differenceInDays } from 'date-fns';
 
 const today = new Date();
 /** Return an ISO string for today's date at the given hour — safe regardless of current wall-clock time */
@@ -126,7 +127,7 @@ function seededRandFolio(seed: number) {
   return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
 }
 
-function generateHistoricalFolios(): Record<string, FolioEntry[]> {
+function generateHistoricalFolios(historicalBookings: Booking[]): Record<string, FolioEntry[]> {
   const folios: Record<string, FolioEntry[]> = {};
   const rand = seededRandFolio(123);
   const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)]!;
@@ -218,14 +219,72 @@ function generateHistoricalFolios(): Record<string, FolioEntry[]> {
   return folios;
 }
 
-const historicalFolios = generateHistoricalFolios();
-const demoFolios: Record<string, FolioEntry[]> = { ...historicalFolios, ...baseFolios };
+// ── Auto-generate folios from booking data (for properties 2 & 3 current bookings) ──
+function generateFolioFromBooking(b: Booking): FolioEntry[] {
+  const checkIn = new Date(b.check_in);
+  const checkOut = new Date(b.check_out);
+  const nights = Math.max(1, differenceInDays(checkOut, checkIn));
+  const entries: FolioEntry[] = [];
+  let fIdx = 0;
+
+  // Room charges — one per night
+  for (let n = 0; n < nights; n++) {
+    entries.push({
+      id: `fa-${b.id}-${++fIdx}`, booking_id: b.id, type: 'charge', category: 'room',
+      description: `Room Charge — ${b.room_type?.name ?? 'Room'} (Night ${n + 1})`,
+      amount: b.nightly_rate, quantity: 1, unit_price: b.nightly_rate,
+      posted_by: n === 0 ? 'System' : 'Night Audit',
+      posted_at: addDays(checkIn, n).toISOString(), is_voided: false,
+    });
+  }
+
+  // Payment if amount_paid > 0
+  if (b.amount_paid > 0) {
+    entries.push({
+      id: `fa-${b.id}-${++fIdx}`, booking_id: b.id, type: 'payment', category: 'room',
+      description: b.status === 'checked_out' ? 'Card payment at checkout' : 'Card payment on file',
+      amount: -b.amount_paid, quantity: 1, unit_price: -b.amount_paid,
+      payment_method: 'card', posted_by: 'System',
+      posted_at: checkIn.toISOString(), is_voided: false,
+    });
+  }
+
+  return entries;
+}
+
+// ── Lazily-computed per-property folio map ──
+const folioMapCache = new Map<string, Record<string, FolioEntry[]>>();
+
+function getDemoFolios(propertyId: string): Record<string, FolioEntry[]> {
+  if (folioMapCache.has(propertyId)) return folioMapCache.get(propertyId)!;
+
+  const historical = getHistoricalBookings(propertyId);
+  const histFolios = generateHistoricalFolios(historical);
+
+  let currentFolios: Record<string, FolioEntry[]>;
+  if (propertyId === 'demo-property-id') {
+    // Property 1 has detailed handcrafted folios
+    currentFolios = baseFolios;
+  } else {
+    // Other properties: auto-generate from booking data
+    currentFolios = {};
+    const currentBookings = getDemoCurrentBookings(propertyId);
+    for (const b of currentBookings) {
+      currentFolios[b.id] = generateFolioFromBooking(b);
+    }
+  }
+
+  const all = { ...histFolios, ...currentFolios };
+  folioMapCache.set(propertyId, all);
+  return all;
+}
 
 // ============================================================
 // Hook
 // ============================================================
 
 export function useFolios(bookingId: string) {
+  const { propertyId } = useProperty();
   const queryClient = useQueryClient();
 
   // Fetch folio entries for a booking
@@ -233,7 +292,8 @@ export function useFolios(bookingId: string) {
     queryKey: ['folio', bookingId],
     queryFn: async () => {
       if (isDemoMode) {
-        return demoFolios[bookingId] ?? [];
+        return queryClient.getQueryData<FolioEntry[]>(['folio', bookingId])
+          ?? getDemoFolios(propertyId ?? 'demo-property-id')[bookingId] ?? [];
       }
       const { data, error } = await supabase
         .from('folio_entries')
@@ -502,12 +562,21 @@ export function useFolios(bookingId: string) {
 // Hook — All Folios aggregated (for reports / dashboards)
 // ============================================================
 
+/** Find demo folio entries for a booking across all properties (IDs are unique) */
+function findDemoFolio(bookingId: string): FolioEntry[] {
+  for (const pid of ['demo-property-id', 'demo-property-2', 'demo-property-3']) {
+    const folios = getDemoFolios(pid);
+    if (folios[bookingId]) return folios[bookingId]!;
+  }
+  return [];
+}
+
 export function useAllFolios(bookingIds: string[]) {
   const results = useQueries({
     queries: bookingIds.map(id => ({
       queryKey: ['folio', id] as const,
       queryFn: async () => {
-        if (isDemoMode) return demoFolios[id] ?? [];
+        if (isDemoMode) return findDemoFolio(id);
         const { data, error } = await supabase
           .from('folio_entries')
           .select('*')
@@ -531,7 +600,7 @@ export function useAllFolios(bookingIds: string[]) {
 
 export function getFolioBalance(queryClient: QueryClient, bookingId: string): number {
   const entries = queryClient.getQueryData<FolioEntry[]>(['folio', bookingId])
-    ?? (isDemoMode ? (demoFolios[bookingId] ?? []) : []);
+    ?? (isDemoMode ? findDemoFolio(bookingId) : []);
   const active = entries.filter(e => !e.is_voided);
   const charges = active.filter(e => e.type === 'charge' || e.type === 'adjustment').reduce((s, e) => s + e.amount, 0);
   const payments = active.filter(e => e.type === 'payment').reduce((s, e) => s + Math.abs(e.amount), 0);

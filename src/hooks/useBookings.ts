@@ -2,145 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { useProperty } from './useProperty';
 import type { Booking, CreateBookingInput, Guest, BookingStatus, Room, FolioEntry, ActivityAction } from '@/types';
-import { demoGuests } from './useGuests';
-import { demoRoomTypes as demoRoomTypesArray } from './useRooms';
+import { getAllDemoBookings, getDemoRoomTypesMap } from './demoData';
 import { logActivity } from './useActivityLog';
 import toast from 'react-hot-toast';
-import { format, addDays, subDays, subMonths, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 
-// ============================================================
-// Demo Data — rich, realistic bookings
-// ============================================================
-
-const today = new Date();
-const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-
-const demoRoomTypes = Object.fromEntries(demoRoomTypesArray.map(rt => [rt.id, rt])) as Record<string, typeof demoRoomTypesArray[0]>;
-
-const demoBookings: Booking[] = [
-  { id: '1', property_id: 'demo-property-id', guest_id: 'g1', room_type_id: 'rt1', room_id: 'r1', confirmation_code: 'AR-TK82NP', check_in: fmt(today), check_out: fmt(addDays(today, 3)), num_guests: 2, status: 'confirmed', source: 'direct', nightly_rate: 189, total_amount: 567, deposit_amount: 0, amount_paid: 0, stripe_payment_id: null, special_requests: 'Late check-in please (arriving after 9pm)', internal_notes: 'VIP guest — complimentary upgrade if available', cancelled_at: null, cancellation_reason: null, checked_in_at: null, checked_out_at: null, created_at: subDays(today, 7).toISOString(), updated_at: today.toISOString(), guest: demoGuests[0], room_type: demoRoomTypes.rt1 },
-  { id: '2', property_id: 'demo-property-id', guest_id: 'g2', room_type_id: 'rt2', room_id: 'r3', confirmation_code: 'AR-JW93KE', check_in: fmt(today), check_out: fmt(addDays(today, 2)), num_guests: 1, status: 'confirmed', source: 'booking_com', nightly_rate: 129, total_amount: 258, deposit_amount: 0, amount_paid: 0, stripe_payment_id: null, special_requests: null, internal_notes: 'Called to confirm parking', cancelled_at: null, cancellation_reason: null, checked_in_at: null, checked_out_at: null, created_at: subDays(today, 3).toISOString(), updated_at: today.toISOString(), guest: demoGuests[1], room_type: demoRoomTypes.rt2 },
-  { id: '3', property_id: 'demo-property-id', guest_id: 'g3', room_type_id: 'rt3', room_id: 'r5', confirmation_code: 'AR-MF47RL', check_in: fmt(subDays(today, 3)), check_out: fmt(today), num_guests: 2, status: 'checked_in', source: 'direct', nightly_rate: 289, total_amount: 867, deposit_amount: 0, amount_paid: 985.30, stripe_payment_id: null, special_requests: 'Extra pillows please', internal_notes: 'Celebrating anniversary — champagne arranged', cancelled_at: null, cancellation_reason: null, checked_in_at: subDays(today, 3).toISOString(), checked_out_at: null, created_at: subDays(today, 14).toISOString(), updated_at: today.toISOString(), guest: demoGuests[2], room_type: demoRoomTypes.rt3 },
-  { id: '4', property_id: 'demo-property-id', guest_id: 'g4', room_type_id: 'rt1', room_id: 'r2', confirmation_code: 'AR-DC56WM', check_in: fmt(subDays(today, 1)), check_out: fmt(addDays(today, 5)), num_guests: 2, status: 'checked_in', source: 'direct', nightly_rate: 189, total_amount: 1134, deposit_amount: 0, amount_paid: 1134, stripe_payment_id: null, special_requests: null, internal_notes: null, cancelled_at: null, cancellation_reason: null, checked_in_at: subDays(today, 1).toISOString(), checked_out_at: null, created_at: subDays(today, 21).toISOString(), updated_at: today.toISOString(), guest: demoGuests[3], room_type: demoRoomTypes.rt1 },
-  { id: '5', property_id: 'demo-property-id', guest_id: 'g5', room_type_id: 'rt1', room_id: 'r9', confirmation_code: 'AR-EW28XG', check_in: fmt(addDays(today, 1)), check_out: fmt(addDays(today, 3)), num_guests: 1, status: 'pending', source: 'expedia', nightly_rate: 189, total_amount: 378, deposit_amount: 0, amount_paid: 0, stripe_payment_id: null, special_requests: 'Ground floor if possible', internal_notes: null, cancelled_at: null, cancellation_reason: null, checked_in_at: null, checked_out_at: null, created_at: subDays(today, 1).toISOString(), updated_at: today.toISOString(), guest: demoGuests[4], room_type: demoRoomTypes.rt1 },
-  { id: '6', property_id: 'demo-property-id', guest_id: 'g6', room_type_id: 'rt4', room_id: 'r7', confirmation_code: 'AR-HT61QP', check_in: fmt(addDays(today, 2)), check_out: fmt(addDays(today, 5)), num_guests: 2, status: 'confirmed', source: 'direct', nightly_rate: 219, total_amount: 657, deposit_amount: 0, amount_paid: 0, stripe_payment_id: null, special_requests: 'Japanese tea if available', internal_notes: null, cancelled_at: null, cancellation_reason: null, checked_in_at: null, checked_out_at: null, created_at: subDays(today, 10).toISOString(), updated_at: today.toISOString(), guest: demoGuests[5], room_type: demoRoomTypes.rt4 },
-  { id: '7', property_id: 'demo-property-id', guest_id: 'g7', room_type_id: 'rt3', room_id: 'r6', confirmation_code: 'AR-SL74FB', check_in: fmt(addDays(today, 4)), check_out: fmt(addDays(today, 8)), num_guests: 2, status: 'confirmed', source: 'airbnb', nightly_rate: 289, total_amount: 1156, deposit_amount: 0, amount_paid: 0, stripe_payment_id: null, special_requests: 'Gluten-free breakfast options', internal_notes: 'Repeat guest — 4th stay', cancelled_at: null, cancellation_reason: null, checked_in_at: null, checked_out_at: null, created_at: subDays(today, 30).toISOString(), updated_at: today.toISOString(), guest: demoGuests[6], room_type: demoRoomTypes.rt3 },
-  { id: '8', property_id: 'demo-property-id', guest_id: 'g8', room_type_id: 'rt2', room_id: 'r4', confirmation_code: 'AR-OW39VA', check_in: fmt(subDays(today, 5)), check_out: fmt(subDays(today, 3)), num_guests: 1, status: 'checked_out', source: 'hotels_com', nightly_rate: 129, total_amount: 258, deposit_amount: 0, amount_paid: 266, stripe_payment_id: null, special_requests: null, internal_notes: 'Left positive feedback', cancelled_at: null, cancellation_reason: null, checked_in_at: subDays(today, 5).toISOString(), checked_out_at: subDays(today, 3).toISOString(), created_at: subDays(today, 20).toISOString(), updated_at: subDays(today, 3).toISOString(), guest: demoGuests[7], room_type: demoRoomTypes.rt2 },
-  { id: '9', property_id: 'demo-property-id', guest_id: 'g9', room_type_id: 'rt4', room_id: 'r7', confirmation_code: 'AR-LM52HD', check_in: fmt(subDays(today, 2)), check_out: fmt(today), num_guests: 1, status: 'checked_in', source: 'direct', nightly_rate: 219, total_amount: 438, deposit_amount: 0, amount_paid: 446.50, stripe_payment_id: null, special_requests: 'Early morning wake-up call at 6am', internal_notes: null, cancelled_at: null, cancellation_reason: null, checked_in_at: subDays(today, 2).toISOString(), checked_out_at: null, created_at: subDays(today, 10).toISOString(), updated_at: today.toISOString(), guest: demoGuests[8], room_type: demoRoomTypes.rt4 },
-  { id: '10', property_id: 'demo-property-id', guest_id: 'g10', room_type_id: 'rt2', room_id: 'r10', confirmation_code: 'AR-AK89NW', check_in: fmt(subDays(today, 3)), check_out: fmt(today), num_guests: 2, status: 'checked_in', source: 'booking_com', nightly_rate: 129, total_amount: 387, deposit_amount: 0, amount_paid: 387, stripe_payment_id: null, special_requests: null, internal_notes: 'Returning guest — room 107 preferred', cancelled_at: null, cancellation_reason: null, checked_in_at: subDays(today, 3).toISOString(), checked_out_at: null, created_at: subDays(today, 15).toISOString(), updated_at: today.toISOString(), guest: demoGuests[9], room_type: demoRoomTypes.rt2 },
-];
-
-// ============================================================
-// Historical demo bookings — realistic year of data
-// ============================================================
-
-const HIST_FIRST_NAMES = ['Alice', 'Ben', 'Claire', 'Dan', 'Eve', 'Frank', 'Grace', 'Harry', 'Isla', 'Jack', 'Katie', 'Liam', 'Mia', 'Noah', 'Olivia', 'Peter', 'Quinn', 'Rose', 'Sam', 'Tara', 'Uma', 'Victor', 'Wendy', 'Xander', 'Yasmin', 'Zach'];
-const HIST_LAST_NAMES = ['Adams', 'Brown', 'Clark', 'Davis', 'Evans', 'Fisher', 'Green', 'Hall', 'Ito', 'Jones', 'King', 'Lee', 'Moore', 'Nash', 'Owen', 'Patel', 'Reed', 'Shah', 'Taylor', 'Vance', 'Walsh', 'Young', 'Ziegler', 'Costa', 'Müller', 'Kim', 'Singh', 'Russo', 'Berg', 'Novak'];
-const HIST_NATS = ['British', 'British', 'British', 'Irish', 'American', 'German', 'French', 'Spanish', 'Italian', 'Dutch', 'Japanese', 'Canadian', 'Australian', 'Polish', 'Swedish', 'Brazilian'];
-const HIST_SOURCES: Booking['source'][] = ['direct', 'direct', 'direct', 'booking_com', 'booking_com', 'expedia', 'airbnb', 'hotels_com', 'phone', 'walk_in', 'agoda', 'corporate', 'travel_agent'];
-
-const RT_POOL = [
-  { id: 'rt1', rate: 189, name: 'Deluxe Double' },
-  { id: 'rt2', rate: 129, name: 'Standard Twin' },
-  { id: 'rt3', rate: 289, name: 'Garden Suite' },
-  { id: 'rt4', rate: 219, name: 'Sea View Double' },
-];
-
-// Seasonal booking counts per month (Jan..Dec) — coastal UK hotel, 10 rooms
-const MONTHLY_BOOKING_COUNTS = [10, 9, 12, 15, 19, 22, 26, 27, 21, 16, 11, 14];
-
-function seededRand(seed: number) {
-  let s = seed;
-  return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
-}
-
-// Map room_type_id → room ids for historical assignment
-const ROOM_IDS_BY_TYPE: Record<string, string[]> = {
-  rt1: ['r1', 'r2', 'r9'],
-  rt2: ['r3', 'r4', 'r10'],
-  rt3: ['r5', 'r6'],
-  rt4: ['r7'],
-};
-
-function generateHistoricalBookings(): Booking[] {
-  const result: Booking[] = [];
-  let idCounter = 1000;
-  const rand = seededRand(42);
-  const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)]!;
-
-  // Generate for past 11 months (not current month — that has live bookings)
-  for (let mOffset = 11; mOffset >= 1; mOffset--) {
-    const monthStart = startOfMonth(subMonths(today, mOffset));
-    const monthEnd = endOfMonth(subMonths(today, mOffset));
-    const daysInMonth = differenceInDays(monthEnd, monthStart) + 1;
-    const monthIdx = monthStart.getMonth();
-    const count = MONTHLY_BOOKING_COUNTS[monthIdx]!;
-
-    for (let b = 0; b < count; b++) {
-      const id = String(++idCounter);
-      const guestId = `gh-${id}`;
-      const firstName = pick(HIST_FIRST_NAMES);
-      const lastName = pick(HIST_LAST_NAMES);
-      const nat = pick(HIST_NATS);
-      const source = pick(HIST_SOURCES);
-      const rt = pick(RT_POOL);
-
-      // Randomise check-in within the month
-      const dayOffset = Math.floor(rand() * (daysInMonth - 1));
-      const checkIn = addDays(monthStart, dayOffset);
-      const nights = Math.max(1, Math.round(1 + rand() * 3.5)); // 1-4 nights
-      let checkOut = addDays(checkIn, nights);
-      // Clamp check-out to not exceed way past month-end (but can spill a bit — realistic)
-      if (checkOut > addDays(monthEnd, 5)) checkOut = addDays(monthEnd, 1);
-      const actualNights = differenceInDays(checkOut, checkIn);
-      if (actualNights < 1) continue;
-
-      // Slight rate variation ±10%
-      const rateVariance = 1 + (rand() - 0.5) * 0.2;
-      const nightlyRate = Math.round(rt.rate * rateVariance);
-      const total = nightlyRate * actualNights;
-      const numGuests = rt.id === 'rt2' ? (rand() > 0.5 ? 2 : 1) : 2;
-
-      const guest: Guest = {
-        id: guestId, property_id: 'demo-property-id',
-        first_name: firstName, last_name: lastName,
-        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@email.com`,
-        phone: null, nationality: nat, preferences: {},
-        total_stays: Math.floor(rand() * 4) + 1,
-        total_spend: total,
-        tags: rand() > 0.85 ? ['VIP'] : rand() > 0.7 ? ['Returning'] : [],
-        created_at: subDays(checkIn, Math.floor(rand() * 30) + 5).toISOString(),
-        updated_at: checkOut.toISOString(),
-      };
-
-      const histRoomIds = ROOM_IDS_BY_TYPE[rt.id] ?? [];
-      const histRoomId = histRoomIds.length > 0 ? pick(histRoomIds) : null;
-
-      const booking: Booking = {
-        id, property_id: 'demo-property-id', guest_id: guestId,
-        room_type_id: rt.id, room_id: histRoomId,
-        confirmation_code: `AR-H${id.slice(-4)}`,
-        check_in: fmt(checkIn), check_out: fmt(checkOut),
-        num_guests: numGuests, status: 'checked_out',
-        source, nightly_rate: nightlyRate, total_amount: total,
-        deposit_amount: 0, amount_paid: total,
-        stripe_payment_id: null, special_requests: null, internal_notes: null,
-        cancelled_at: null, cancellation_reason: null,
-        checked_in_at: checkIn.toISOString(), checked_out_at: checkOut.toISOString(),
-        created_at: subDays(checkIn, Math.floor(rand() * 14) + 3).toISOString(),
-        updated_at: checkOut.toISOString(),
-        guest, room_type: demoRoomTypes[rt.id as keyof typeof demoRoomTypes],
-      };
-
-      result.push(booking);
-    }
-  }
-
-  return result;
-}
-
-export const historicalBookings = generateHistoricalBookings();
-const allDemoBookings = [...historicalBookings, ...demoBookings];
+// Re-export for useFolios and other consumers
+export { getHistoricalBookings } from './demoData';
 
 // ============================================================
 // Hook
@@ -156,7 +23,7 @@ export function useBookings() {
   const bookingsQuery = useQuery({
     queryKey: ['bookings', propertyId],
     queryFn: async (): Promise<Booking[]> => {
-      if (isDemoMode) return allDemoBookings;
+      if (isDemoMode) return getAllDemoBookings(propertyId!);
 
       const { data, error } = await supabase
         .from('bookings')
@@ -176,7 +43,7 @@ export function useBookings() {
       queryKey: ['booking', bookingId],
       queryFn: async (): Promise<Booking | null> => {
         if (isDemoMode) {
-          const all = queryClient.getQueryData<Booking[]>(['bookings', propertyId]) ?? allDemoBookings;
+          const all = queryClient.getQueryData<Booking[]>(['bookings', propertyId]) ?? getAllDemoBookings(propertyId!);
           return all.find((b) => b.id === bookingId) ?? null;
         }
 
@@ -201,8 +68,8 @@ export function useBookings() {
           (new Date(input.check_out).getTime() - new Date(input.check_in).getTime()) / 86400000
         );
 
-        const rtKey = input.room_type_id as keyof typeof demoRoomTypes;
-        const rt = (demoRoomTypes[rtKey] ?? Object.values(demoRoomTypes)[0])!;
+        const propRoomTypes = getDemoRoomTypesMap(propertyId!);
+        const rt = (propRoomTypes[input.room_type_id] ?? Object.values(propRoomTypes)[0])!;
         const rate = input.nightly_rate ?? rt.base_rate;
 
         // Auto-assign a room if none was explicitly provided
@@ -232,7 +99,7 @@ export function useBookings() {
         }
 
         const newGuest: Guest = {
-          id: `g-${id}`, property_id: 'demo-property-id',
+          id: `g-${id}`, property_id: propertyId!,
           first_name: input.guest.first_name, last_name: input.guest.last_name,
           email: input.guest.email || null, phone: input.guest.phone || null,
           nationality: null, preferences: {}, total_stays: 0, total_spend: 0, tags: [],
@@ -240,7 +107,7 @@ export function useBookings() {
         };
 
         const newBooking: Booking = {
-          id, property_id: 'demo-property-id', guest_id: newGuest.id,
+          id, property_id: propertyId!, guest_id: newGuest.id,
           room_type_id: input.room_type_id, room_id: assignedRoomId,
           confirmation_code: `AR-${Date.now().toString(36).toUpperCase().slice(-6)}`,
           check_in: input.check_in, check_out: input.check_out,
