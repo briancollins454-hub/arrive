@@ -142,6 +142,11 @@ export function BookingDetailPage() {
   const [refundReason, setRefundReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
+  // City ledger transfer dialog state
+  const [showCityLedgerDialog, setShowCityLedgerDialog] = useState(false);
+  const [clSelectedCompany, setClSelectedCompany] = useState('');
+  const [clSelectedEntryIds, setClSelectedEntryIds] = useState<Set<string>>(new Set());
+
   // Stripe payment state
   const [stripeInstance, setStripeInstance] = useState<Stripe | null>(null);
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
@@ -235,6 +240,14 @@ export function BookingDetailPage() {
   const [amendGuestLast, setAmendGuestLast] = useState('');
   const [amendGuestEmail, setAmendGuestEmail] = useState('');
   const [amendGuestPhone, setAmendGuestPhone] = useState('');
+
+  // City ledger company accounts (demo)
+  const cityLedgerCompanies = [
+    { id: 'cl-1', name: 'Meridian Consulting Group' },
+    { id: 'cl-2', name: 'Apex Travel Solutions' },
+    { id: 'cl-3', name: 'Sterling & Associates Law' },
+    { id: 'cl-4', name: 'Nova Tech Industries' },
+  ];
 
   if (isLoading) return <PageSpinner />;
 
@@ -1056,11 +1069,29 @@ export function BookingDetailPage() {
                       }}
                       className="text-[10px] text-teal font-body font-semibold hover:underline"
                     >
-                      + New Key
+                      + Extra Key
                     </button>
-
                     {activeKeys.length > 0 && (
                       <>
+                        <span className="text-white/20">|</span>
+                        <button
+                          onClick={() => {
+                            if (!assignedRoom) { toast.error('No room assigned'); return; }
+                            // Mark the most recent active key as lost and cut a new one
+                            const lastActive = [...activeKeys].reverse().find(k => k.status === 'active');
+                            if (lastActive) {
+                              keyCard.markKeyLost(booking.id, lastActive.id);
+                              toast.success('Previous key marked as lost');
+                            }
+                            setEncodedCards([]);
+                            setIsMasterKeyMode(false);
+                            keyCard.resetEncoding();
+                            setShowKeyCardModal(true);
+                          }}
+                          className="text-[10px] text-amber-400 font-body font-semibold hover:underline"
+                        >
+                          Recut Key
+                        </button>
                         <span className="text-white/20">|</span>
                         <button
                           onClick={() => {
@@ -1300,6 +1331,18 @@ export function BookingDetailPage() {
                     className="px-2 py-0.5 rounded text-[9px] font-body font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all leading-tight"
                   >
                     Refund
+                  </button>
+                )}
+                {folio.entries.filter(e => !e.is_voided && e.type === 'charge').length > 0 && (
+                  <button
+                    onClick={() => {
+                      setClSelectedCompany('');
+                      setClSelectedEntryIds(new Set());
+                      setShowCityLedgerDialog(true);
+                    }}
+                    className="px-2 py-0.5 rounded text-[9px] font-body font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-all leading-tight"
+                  >
+                    City Ledger
                   </button>
                 )}
               </div>
@@ -1970,27 +2013,17 @@ export function BookingDetailPage() {
 
               <button
                 onClick={() => {
-                  // Transfer balance to city ledger (billback to company)
-                  folio.postPayment.mutate(
-                    {
-                      amount: folio.balance,
-                      payment_method: 'other',
-                      description: `City Ledger transfer — billback to company`,
-                    },
-                    {
-                      onSuccess: () => {
-                        toast.success('Balance transferred to city ledger');
-                        setShowCheckoutBlockDialog(false);
-                      },
-                    }
-                  );
+                  setShowCheckoutBlockDialog(false);
+                  setClSelectedCompany('');
+                  setClSelectedEntryIds(new Set());
+                  setShowCityLedgerDialog(true);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-left"
               >
                 <Building size={16} className="text-blue-400 shrink-0" />
                 <div>
                   <p className="text-sm font-body font-semibold text-blue-300">Transfer to City Ledger</p>
-                  <p className="text-[11px] text-steel font-body">Billback £{folio.balance.toFixed(2)} to company account</p>
+                  <p className="text-[11px] text-steel font-body">Select items & company to billback</p>
                 </div>
               </button>
             </div>
@@ -2161,6 +2194,152 @@ export function BookingDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ============================== */}
+      {/* City Ledger Transfer Dialog    */}
+      {/* ============================== */}
+      {showCityLedgerDialog && booking && (() => {
+        const transferableEntries = folio.entries.filter(e => !e.is_voided && e.type === 'charge');
+        const selectedTotal = transferableEntries
+          .filter(e => clSelectedEntryIds.has(e.id))
+          .reduce((sum, e) => sum + e.amount, 0);
+        const allSelected = transferableEntries.length > 0 && clSelectedEntryIds.size === transferableEntries.length;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Transfer to City Ledger" onClick={() => setShowCityLedgerDialog(false)}>
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="relative w-full max-w-lg rounded-2xl bg-[#0f1724] border border-white/[0.1] shadow-2xl p-6 space-y-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-500/15 flex items-center justify-center">
+                  <Building size={18} className="text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-display font-semibold text-white">Transfer to City Ledger</h3>
+                  <p className="text-[11px] text-steel font-body">Select a company and the items to billback</p>
+                </div>
+              </div>
+
+              {/* Company Selection */}
+              <div>
+                <label className="block text-xs text-steel font-body mb-2">Company Account</label>
+                <select
+                  value={clSelectedCompany}
+                  onChange={e => setClSelectedCompany(e.target.value)}
+                  className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white font-body focus:outline-none focus:border-blue-500/40 transition-colors"
+                >
+                  <option value="" className="bg-[#0f1724]">— Select company —</option>
+                  {cityLedgerCompanies.map(c => (
+                    <option key={c.id} value={c.id} className="bg-[#0f1724]">{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Item Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-steel font-body">Select Items to Transfer</label>
+                  <button
+                    onClick={() => {
+                      if (allSelected) {
+                        setClSelectedEntryIds(new Set());
+                      } else {
+                        setClSelectedEntryIds(new Set(transferableEntries.map(e => e.id)));
+                      }
+                    }}
+                    className="text-[10px] text-blue-400 font-body font-semibold hover:underline"
+                  >
+                    {allSelected ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="space-y-1 max-h-48 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+                  {transferableEntries.length === 0 && (
+                    <p className="text-steel/50 text-xs font-body italic text-center py-3">No charges to transfer</p>
+                  )}
+                  {transferableEntries.map(entry => (
+                    <label
+                      key={entry.id}
+                      className={cn(
+                        'flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all',
+                        clSelectedEntryIds.has(entry.id)
+                          ? 'bg-blue-500/10 border border-blue-500/20'
+                          : 'border border-transparent hover:bg-white/[0.03]',
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={clSelectedEntryIds.has(entry.id)}
+                        onChange={() => {
+                          const next = new Set(clSelectedEntryIds);
+                          if (next.has(entry.id)) {
+                            next.delete(entry.id);
+                          } else {
+                            next.add(entry.id);
+                          }
+                          setClSelectedEntryIds(next);
+                        }}
+                        className="w-3.5 h-3.5 rounded border-white/20 bg-white/[0.05] text-blue-500 focus:ring-blue-500/30 accent-blue-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-silver font-body truncate">{entry.description}</p>
+                        <p className="text-[10px] text-steel/60 font-body">{format(new Date(entry.posted_at), 'dd MMM HH:mm')}</p>
+                      </div>
+                      <span className="text-xs text-white font-body font-medium">£{entry.amount.toFixed(2)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Transfer Summary */}
+              {clSelectedEntryIds.size > 0 && (
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <span className="text-xs text-blue-300 font-body">
+                    {clSelectedEntryIds.size} item{clSelectedEntryIds.size > 1 ? 's' : ''} selected
+                  </span>
+                  <span className="text-sm text-white font-display font-semibold">
+                    £{selectedTotal.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCityLedgerDialog(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel border border-white/[0.08] hover:bg-white/[0.04] transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!clSelectedCompany) { toast.error('Please select a company'); return; }
+                    if (clSelectedEntryIds.size === 0) { toast.error('Please select at least one item'); return; }
+                    const companyName = cityLedgerCompanies.find(c => c.id === clSelectedCompany)?.name ?? 'Company';
+                    folio.postPayment.mutate(
+                      {
+                        amount: selectedTotal,
+                        payment_method: 'other',
+                        description: `City Ledger transfer to ${companyName} — ${clSelectedEntryIds.size} item${clSelectedEntryIds.size > 1 ? 's' : ''}`,
+                      },
+                      {
+                        onSuccess: () => {
+                          toast.success(`£${selectedTotal.toFixed(2)} transferred to ${companyName} city ledger`);
+                          setShowCityLedgerDialog(false);
+                          setClSelectedCompany('');
+                          setClSelectedEntryIds(new Set());
+                        },
+                      }
+                    );
+                  }}
+                  disabled={!clSelectedCompany || clSelectedEntryIds.size === 0}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-blue-400 hover:bg-blue-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Transfer £{selectedTotal.toFixed(2)}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ============================== */}
       {/* Key Card Encoding Modal        */}
