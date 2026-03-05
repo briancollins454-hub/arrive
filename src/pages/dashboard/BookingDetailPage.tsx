@@ -1058,19 +1058,7 @@ export function BookingDetailPage() {
                     >
                       + New Key
                     </button>
-                    <span className="text-white/20">|</span>
-                    <button
-                      onClick={() => {
-                        if (!assignedRoom) { toast.error('No room assigned'); return; }
-                        setEncodedCards([]);
-                        setIsMasterKeyMode(true);
-                        keyCard.resetEncoding();
-                        setShowKeyCardModal(true);
-                      }}
-                      className="text-[10px] text-amber-400 font-body font-semibold hover:underline"
-                    >
-                      Master Key
-                    </button>
+
                     {activeKeys.length > 0 && (
                       <>
                         <span className="text-white/20">|</span>
