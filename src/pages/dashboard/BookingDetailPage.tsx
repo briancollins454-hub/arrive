@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import { useFolios } from '@/hooks/useFolios';
@@ -101,6 +102,7 @@ export function BookingDetailPage() {
   const { property } = useProperty();
   const folio = useFolios(id ?? '');
   const keyCard = useKeyCard();
+  const qc = useQueryClient();
 
   const [showKeyCardModal, setShowKeyCardModal] = useState(false);
   const [encodedCards, setEncodedCards] = useState<import('@/hooks/useKeyCard').KeyCard[]>([]);
@@ -241,13 +243,18 @@ export function BookingDetailPage() {
   const [amendGuestEmail, setAmendGuestEmail] = useState('');
   const [amendGuestPhone, setAmendGuestPhone] = useState('');
 
-  // City ledger company accounts (demo)
-  const cityLedgerCompanies = [
-    { id: 'cl-1', name: 'Meridian Consulting Group' },
-    { id: 'cl-2', name: 'Apex Travel Solutions' },
-    { id: 'cl-3', name: 'Sterling & Associates Law' },
-    { id: 'cl-4', name: 'Nova Tech Industries' },
-  ];
+  // City ledger company accounts — read from shared query cache
+  const cityLedgerCompanies = (() => {
+    const cached = qc.getQueryData<{ id: string; company_name: string }[]>(['city-ledger-accounts']);
+    if (cached) return cached.map(a => ({ id: a.id, name: a.company_name }));
+    // Fallback if cache not yet populated
+    return [
+      { id: 'cl-1', name: 'Meridian Consulting Group' },
+      { id: 'cl-2', name: 'Apex Travel Solutions' },
+      { id: 'cl-3', name: 'Sterling & Associates Law' },
+      { id: 'cl-4', name: 'Nova Tech Industries' },
+    ];
+  })();
 
   if (isLoading) return <PageSpinner />;
 
@@ -1483,6 +1490,118 @@ export function BookingDetailPage() {
               {isModifiable && (
                 <>
                   <button
+                    onClick={() => {
+                      const guestEmail = booking.guest?.email;
+                      if (!guestEmail) { toast.error('No guest email on file'); return; }
+                      const propName = property?.name ?? 'Hotel';
+                      const w = window.open('', '_blank', 'width=700,height=700');
+                      if (!w) { toast.error('Please allow popups'); return; }
+                      w.document.write(`<!DOCTYPE html><html><head><title>Booking Confirmation</title>
+                        <style>
+                          * { margin: 0; padding: 0; box-sizing: border-box; }
+                          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a2e; font-size: 14px; max-width: 600px; margin: 0 auto; }
+                          .logo { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+                          .subtitle { color: #64748b; font-size: 12px; margin-bottom: 24px; }
+                          .card { background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+                          .card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
+                          .row { display: flex; justify-content: space-between; padding: 6px 0; }
+                          .row .label { color: #64748b; }
+                          .row .value { font-weight: 600; }
+                          .highlight { background: #0d9488; color: #fff; border-radius: 12px; padding: 16px 20px; text-align: center; margin: 20px 0; }
+                          .highlight .code { font-size: 28px; font-weight: 700; letter-spacing: 3px; }
+                          .highlight .hint { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+                          .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #94a3b8; }
+                          @media print { body { padding: 20px; } }
+                        </style></head><body>
+                        <div class="logo">${esc(propName)}</div>
+                        <p class="subtitle">Booking Confirmation</p>
+                        <div class="highlight">
+                          <div class="hint">Your Confirmation Code</div>
+                          <div class="code">${esc(booking.confirmation_code)}</div>
+                          <div class="hint">Please keep this for your records</div>
+                        </div>
+                        <div class="card">
+                          <h3>Guest Details</h3>
+                          <div class="row"><span class="label">Name</span><span class="value">${esc((guest?.first_name ?? '') + ' ' + (guest?.last_name ?? ''))}</span></div>
+                          <div class="row"><span class="label">Email</span><span class="value">${esc(guestEmail)}</span></div>
+                        </div>
+                        <div class="card">
+                          <h3>Stay Details</h3>
+                          <div class="row"><span class="label">Check-in</span><span class="value">${format(new Date(booking.check_in), 'EEE, d MMM yyyy')}</span></div>
+                          <div class="row"><span class="label">Check-out</span><span class="value">${format(new Date(booking.check_out), 'EEE, d MMM yyyy')}</span></div>
+                          <div class="row"><span class="label">Nights</span><span class="value">${nights}</span></div>
+                          <div class="row"><span class="label">Room Type</span><span class="value">${esc(roomType?.name ?? '—')}</span></div>
+                          <div class="row"><span class="label">Guests</span><span class="value">${booking.num_guests}</span></div>
+                          <div class="row"><span class="label">Total</span><span class="value">£${booking.total_amount?.toFixed(2) ?? '—'}</span></div>
+                        </div>
+                        <p class="footer">This confirms your reservation at ${esc(propName)}.<br/>If you have any questions, please contact us at ${esc(property?.contact?.email ?? '')} or ${esc(property?.contact?.phone ?? '')}.<br/><br/>We look forward to welcoming you!</p>
+                      </body></html>`);
+                      w.document.close();
+                      toast.success(`Confirmation ready for ${guestEmail}`);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-body font-semibold bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10 transition-all text-left"
+                  >
+                    <Mail size={14} />
+                    <span>Send Guest Confirmation</span>
+                  </button>
+                  {companyEntryIds.size > 0 && (
+                    <button
+                      onClick={() => {
+                        const propName = property?.name ?? 'Hotel';
+                        // Find the company in folio transfer context
+                        const companyCharges = folio.entries
+                          .filter(e => !e.is_voided && e.type === 'charge' && companyEntryIds.has(e.id));
+                        const companyTotal = companyCharges.reduce((s, e) => s + e.amount, 0);
+                        const w = window.open('', '_blank', 'width=700,height=700');
+                        if (!w) { toast.error('Please allow popups'); return; }
+                        w.document.write(`<!DOCTYPE html><html><head><title>Company Billing Confirmation</title>
+                          <style>
+                            * { margin: 0; padding: 0; box-sizing: border-box; }
+                            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a2e; font-size: 14px; max-width: 600px; margin: 0 auto; }
+                            .logo { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+                            .subtitle { color: #64748b; font-size: 12px; margin-bottom: 24px; }
+                            .card { background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+                            .card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
+                            .row { display: flex; justify-content: space-between; padding: 6px 0; }
+                            .row .label { color: #64748b; }
+                            .row .value { font-weight: 600; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                            th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; padding: 6px 8px; }
+                            td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+                            td.amount { text-align: right; font-weight: 600; }
+                            .total { text-align: right; font-size: 16px; font-weight: 700; padding-top: 12px; border-top: 2px solid #1a1a2e; margin-top: 8px; }
+                            .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #94a3b8; }
+                            @media print { body { padding: 20px; } }
+                          </style></head><body>
+                          <div class="logo">${esc(propName)}</div>
+                          <p class="subtitle">Company Billing Confirmation</p>
+                          <div class="card">
+                            <h3>Booking Details</h3>
+                            <div class="row"><span class="label">Confirmation</span><span class="value">${esc(booking.confirmation_code)}</span></div>
+                            <div class="row"><span class="label">Guest</span><span class="value">${esc((guest?.first_name ?? '') + ' ' + (guest?.last_name ?? ''))}</span></div>
+                            <div class="row"><span class="label">Check-in</span><span class="value">${format(new Date(booking.check_in), 'EEE, d MMM yyyy')}</span></div>
+                            <div class="row"><span class="label">Check-out</span><span class="value">${format(new Date(booking.check_out), 'EEE, d MMM yyyy')}</span></div>
+                          </div>
+                          <div class="card">
+                            <h3>Company Folio Items</h3>
+                            <table>
+                              <tr><th>Date</th><th>Description</th><th style="text-align:right">Amount</th></tr>
+                              ${companyCharges.map(e => `<tr><td>${format(new Date(e.posted_at), 'dd/MM')}</td><td>${esc(e.description)}</td><td class="amount">£${e.amount.toFixed(2)}</td></tr>`).join('')}
+                            </table>
+                            <div class="total">Total: £${companyTotal.toFixed(2)}</div>
+                          </div>
+                          <p class="footer">This confirms the charges billed to your company account.<br/>Payment terms as per agreement.<br/><br/>${esc(propName)} · ${esc(property?.contact?.email ?? '')} · ${esc(property?.contact?.phone ?? '')}</p>
+                        </body></html>`);
+                        w.document.close();
+                        toast.success('Company billing confirmation ready');
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-body font-semibold bg-blue-500/5 border border-blue-500/10 text-blue-300 hover:bg-blue-500/10 transition-all text-left"
+                    >
+                      <Building size={14} />
+                      <span>Send Company Confirmation</span>
+                    </button>
+                  )}
+                  <button
                     onClick={() => { setShowExtend(true); setShowModifyDates(false); setShowAssignRoom(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-body font-semibold bg-teal/5 border border-teal/10 text-teal hover:bg-teal/10 transition-all text-left"
                   >
@@ -2225,7 +2344,7 @@ export function BookingDetailPage() {
                 <select
                   value={clSelectedCompany}
                   onChange={e => setClSelectedCompany(e.target.value)}
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white font-body focus:outline-none focus:border-blue-500/40 transition-colors"
+                  className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white font-body focus:outline-none focus:border-blue-500/40 transition-colors [&>option]:bg-[#0f1724] [&>option]:text-white"
                 >
                   <option value="" className="bg-[#0f1724]">— Select company —</option>
                   {cityLedgerCompanies.map(c => (

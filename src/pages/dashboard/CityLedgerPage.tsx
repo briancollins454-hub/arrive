@@ -4,6 +4,7 @@ import {
   Mail, Phone, FileText, Clock, AlertTriangle, Check, Trash2,
   TrendingUp, Receipt, Download, Landmark,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { exportCSV } from '@/lib/exportUtils';
@@ -186,7 +187,23 @@ const invoiceStatusConfig: Record<string, { label: string; color: string; bg: st
 // ============================================================
 
 export function CityLedgerPage() {
-  const [accounts, setAccounts] = useState<CityLedgerAccount[]>(demoAccounts);
+  const queryClient = useQueryClient();
+
+  // Persist accounts in query cache so they survive navigation
+  const cachedAccounts = queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']);
+  if (!cachedAccounts) {
+    queryClient.setQueryData(['city-ledger-accounts'], demoAccounts);
+  }
+  const [accounts, setAccountsLocal] = useState<CityLedgerAccount[]>(
+    () => queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']) ?? demoAccounts
+  );
+  const setAccounts = (updater: CityLedgerAccount[] | ((prev: CityLedgerAccount[]) => CityLedgerAccount[])) => {
+    setAccountsLocal(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      queryClient.setQueryData(['city-ledger-accounts'], next);
+      return next;
+    });
+  };
   const [invoices, setInvoices] = useState<CityLedgerInvoice[]>(demoInvoices);
   const [search, setSearch] = useState('');
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
@@ -750,14 +767,16 @@ export function CityLedgerPage() {
                 <select
                   value={newAccount.payment_terms}
                   onChange={e => setNewAccount(prev => ({ ...prev, payment_terms: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white font-body focus:outline-none focus:ring-1 focus:ring-gold/30"
+                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white font-body focus:outline-none focus:ring-1 focus:ring-gold/30 [&>option]:bg-[#0f1724] [&>option]:text-white"
                 >
-                  <option value="7">7 days</option>
-                  <option value="14">14 days</option>
-                  <option value="30">30 days</option>
-                  <option value="45">45 days</option>
-                  <option value="60">60 days</option>
-                  <option value="90">90 days</option>
+                  <option value="7" className="bg-[#0f1724]">7 days</option>
+                  <option value="14" className="bg-[#0f1724]">14 days</option>
+                  <option value="21" className="bg-[#0f1724]">21 days</option>
+                  <option value="30" className="bg-[#0f1724]">30 days</option>
+                  <option value="45" className="bg-[#0f1724]">45 days</option>
+                  <option value="60" className="bg-[#0f1724]">60 days</option>
+                  <option value="90" className="bg-[#0f1724]">90 days</option>
+                  <option value="120" className="bg-[#0f1724]">120 days</option>
                 </select>
               </div>
               <div>
