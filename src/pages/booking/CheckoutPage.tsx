@@ -9,8 +9,17 @@ import { CheckoutForm } from '@/components/booking/CheckoutForm';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';
 import { differenceInDays, format } from 'date-fns';
-import { Calendar, BedDouble, Users, Shield } from 'lucide-react';
+import { Calendar, BedDouble, Users, Shield, Tag, Plus, Check } from 'lucide-react';
 import type { CheckoutFormData } from '@/lib/validators';
+
+// Available add-ons
+const ADDONS = [
+  { id: 'breakfast', name: 'Full Breakfast', description: 'Cooked English breakfast each morning', pricePerNight: 15 },
+  { id: 'parking', name: 'Parking', description: 'On-site secure parking', pricePerNight: 10 },
+  { id: 'late-checkout', name: 'Late Check-out (2pm)', description: 'Guaranteed late departure', priceFlat: 25 },
+  { id: 'airport', name: 'Airport Transfer', description: 'Private car to/from airport', priceFlat: 45 },
+  { id: 'welcome', name: 'Welcome Package', description: 'Champagne & chocolates in room', priceFlat: 35 },
+];
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -44,11 +53,42 @@ export function CheckoutPage() {
   const total = rate * nights;
 
   const TAX_RATE = property?.settings?.tax_rate ?? 0.20;
-  const taxAmount = total * TAX_RATE;
-  const totalWithTax = total + taxAmount;
 
   const { createPaymentIntent, isStripeConfigured: stripeReady } = useStripePayment();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [promoError, setPromoError] = useState('');
+
+  // Add-ons state
+  const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
+
+  const addonsTotal = ADDONS.filter(a => selectedAddons.has(a.id)).reduce((sum, a) => {
+    if (a.priceFlat) return sum + a.priceFlat;
+    if (a.pricePerNight) return sum + a.pricePerNight * nights;
+    return sum;
+  }, 0);
+
+  const promoDiscount = appliedPromo?.discount ?? 0;
+  const subtotalAfterPromo = Math.max(0, total - promoDiscount) + addonsTotal;
+  const taxAmount = subtotalAfterPromo * TAX_RATE;
+  const totalWithTax = subtotalAfterPromo + taxAmount;
+
+  const handleApplyPromo = () => {
+    setPromoError('');
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+    // Demo promo codes
+    if (code === 'WELCOME10') {
+      setAppliedPromo({ code, discount: total * 0.10 });
+    } else if (code === 'SAVE20') {
+      setAppliedPromo({ code, discount: 20 });
+    } else {
+      setPromoError('Invalid promo code');
+    }
+  };
 
   // Create a Stripe PaymentIntent when the page loads (if Stripe is configured)
   useEffect(() => {
@@ -159,9 +199,87 @@ export function CheckoutPage() {
                   </span>
                   <span className="text-midnight">£{total.toFixed(2)}</span>
                 </div>
+                {appliedPromo && (
+                  <div className="flex justify-between text-sm font-body">
+                    <span className="text-emerald-600 flex items-center gap-1"><Tag size={12} /> {appliedPromo.code}</span>
+                    <span className="text-emerald-600">-£{appliedPromo.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                {selectedAddons.size > 0 && ADDONS.filter(a => selectedAddons.has(a.id)).map(addon => (
+                  <div key={addon.id} className="flex justify-between text-sm font-body">
+                    <span className="text-charcoal/60">{addon.name}</span>
+                    <span className="text-midnight">£{(addon.priceFlat ?? (addon.pricePerNight ?? 0) * nights).toFixed(2)}</span>
+                  </div>
+                ))}
                 <div className="flex justify-between text-sm font-body">
                   <span className="text-charcoal/60">Taxes & fees ({Math.round(TAX_RATE * 100)}%)</span>
                   <span className="text-midnight">£{taxAmount.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Promo Code */}
+              <div>
+                <p className="text-xs font-body font-semibold text-midnight mb-1.5">Promo Code</p>
+                <div className="flex gap-1.5">
+                  <input
+                    value={promoCode}
+                    onChange={e => { setPromoCode(e.target.value); setPromoError(''); }}
+                    placeholder="Enter code"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-charcoal/15 text-xs font-body focus:outline-none focus:ring-1 focus:ring-teal/30"
+                    disabled={!!appliedPromo}
+                  />
+                  {appliedPromo ? (
+                    <button onClick={() => { setAppliedPromo(null); setPromoCode(''); }} className="px-3 py-1.5 rounded-lg text-xs font-body text-red-500 border border-red-200 hover:bg-red-50 transition-all">
+                      Remove
+                    </button>
+                  ) : (
+                    <button onClick={handleApplyPromo} className="px-3 py-1.5 rounded-lg text-xs font-body font-semibold text-white bg-teal hover:bg-teal/90 transition-all">
+                      Apply
+                    </button>
+                  )}
+                </div>
+                {promoError && <p className="text-[10px] text-red-500 font-body mt-1">{promoError}</p>}
+                {appliedPromo && <p className="text-[10px] text-emerald-600 font-body mt-1 flex items-center gap-1"><Check size={10} /> Code applied!</p>}
+              </div>
+
+              <Separator />
+
+              {/* Add-ons */}
+              <div>
+                <p className="text-xs font-body font-semibold text-midnight mb-1.5">Enhance Your Stay</p>
+                <div className="space-y-1.5">
+                  {ADDONS.map(addon => (
+                    <button
+                      key={addon.id}
+                      onClick={() => {
+                        const next = new Set(selectedAddons);
+                        if (next.has(addon.id)) next.delete(addon.id); else next.add(addon.id);
+                        setSelectedAddons(next);
+                      }}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg border text-left transition-all text-xs ${
+                        selectedAddons.has(addon.id)
+                          ? 'bg-teal/5 border-teal/30'
+                          : 'border-charcoal/10 hover:border-charcoal/20'
+                      }`}
+                    >
+                      <div>
+                        <p className="font-body font-medium text-midnight">{addon.name}</p>
+                        <p className="text-[10px] text-charcoal/50 font-body">{addon.description}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-body font-semibold text-midnight">
+                          £{addon.priceFlat ?? `${addon.pricePerNight}/nt`}
+                        </span>
+                        {selectedAddons.has(addon.id) ? (
+                          <Check size={14} className="text-teal" />
+                        ) : (
+                          <Plus size={14} className="text-charcoal/30" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   Building2, Search, Plus, ChevronDown, ChevronUp, CreditCard,
   Mail, Phone, FileText, Clock, AlertTriangle, Check, Trash2,
-  TrendingUp, Receipt, Download, Landmark,
+  TrendingUp, Receipt, Download, Landmark, ReceiptText, Send, Ban,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -212,6 +212,15 @@ export function CityLedgerPage() {
   const [showPaymentDialog, setShowPaymentDialog] = useState<CityLedgerInvoice | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
 
+  // Credit note state
+  const [showCreditNote, setShowCreditNote] = useState<CityLedgerInvoice | null>(null);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditReason, setCreditReason] = useState('');
+
+  // Collections workflow state
+  const [showCollections, setShowCollections] = useState(false);
+  const [collectionActions, setCollectionActions] = useState<Record<string, { stage: 'reminder' | 'escalation' | 'final' | 'write-off'; sent_at?: string }>>({});
+
   // New account form
   const [newAccount, setNewAccount] = useState({
     company_name: '', contact_name: '', email: '', phone: '', address: '',
@@ -314,6 +323,47 @@ export function CityLedgerPage() {
     toast.success('Invoice written off');
   };
 
+  const handleCreditNote = () => {
+    if (!showCreditNote) return;
+    const amount = parseFloat(creditAmount);
+    if (!amount || amount <= 0) { toast.error('Enter a valid credit amount'); return; }
+    const remaining = showCreditNote.amount - showCreditNote.amount_paid;
+    if (amount > remaining) { toast.error(`Credit exceeds balance of £${remaining.toFixed(2)}`); return; }
+    // Create credit note as a negative invoice
+    const cn: CityLedgerInvoice = {
+      id: `cn-${Date.now()}`,
+      account_id: showCreditNote.account_id,
+      invoice_number: `CN-${format(new Date(), 'yyyy')}-${String(invoices.length + 1).padStart(4, '0')}`,
+      booking_confirmation: showCreditNote.booking_confirmation,
+      guest_name: showCreditNote.guest_name,
+      description: `Credit Note: ${creditReason || 'Adjustment'} (ref: ${showCreditNote.invoice_number})`,
+      amount: -amount,
+      date_posted: new Date().toISOString(),
+      due_date: new Date().toISOString(),
+      status: 'paid',
+      amount_paid: -amount,
+    };
+    // Also reduce original invoice balance
+    setInvoices(prev => [
+      ...prev.map(inv => {
+        if (inv.id !== showCreditNote.id) return inv;
+        const newPaid = inv.amount_paid + amount;
+        return { ...inv, amount_paid: newPaid, status: newPaid >= inv.amount ? 'paid' as const : 'partially_paid' as const };
+      }),
+      cn,
+    ]);
+    toast.success(`Credit note ${cn.invoice_number} issued for £${amount.toFixed(2)}`);
+    setShowCreditNote(null);
+    setCreditAmount('');
+    setCreditReason('');
+  };
+
+  const handleSendReminder = (invoiceId: string, stage: 'reminder' | 'escalation' | 'final') => {
+    const stageLabels = { reminder: 'Payment reminder', escalation: 'Escalation notice', final: 'Final demand' };
+    setCollectionActions(prev => ({ ...prev, [invoiceId]: { stage, sent_at: new Date().toISOString() } }));
+    toast.success(`${stageLabels[stage]} sent for ${invoices.find(i => i.id === invoiceId)?.invoice_number ?? invoiceId}`);
+  };
+
   const handleToggleAccountStatus = (accountId: string) => {
     setAccounts(prev => prev.map(a => {
       if (a.id !== accountId) return a;
@@ -385,6 +435,18 @@ export function CityLedgerPage() {
             Export
           </button>
           <button
+            onClick={() => setShowCollections(!showCollections)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border text-xs font-body transition-all duration-200 touch-manipulation',
+              showCollections
+                ? 'bg-amber-500/15 border-amber-500/25 text-amber-400'
+                : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-steel hover:text-silver',
+            )}
+          >
+            <Send size={14} />
+            Collections
+          </button>
+          <button
             onClick={() => setShowAddAccount(true)}
             className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl bg-gradient-to-r from-gold/20 to-teal/10 border border-gold/25 text-gold hover:text-gold-light text-xs font-body font-semibold transition-all duration-200 touch-manipulation"
           >
@@ -435,6 +497,67 @@ export function CityLedgerPage() {
           ))}
         </div>
       </div>
+
+      {/* Collections Workflow Panel */}
+      {showCollections && (
+        <div className="relative glass-panel rounded-xl p-4 sm:p-5 border border-amber-500/15">
+          <h3 className="text-sm font-display font-semibold text-white mb-3 flex items-center gap-2">
+            <Send size={15} className="text-amber-400" />
+            Collections Workflow — Overdue Invoices
+          </h3>
+          {(() => {
+            const overdueInvs = invoices.filter(inv => inv.status === 'overdue');
+            if (overdueInvs.length === 0) return <p className="text-steel text-xs font-body">No overdue invoices — all clear!</p>;
+            return (
+              <div className="space-y-2">
+                {overdueInvs.map(inv => {
+                  const acct = accounts.find(a => a.id === inv.account_id);
+                  const days = differenceInDays(new Date(), new Date(inv.due_date));
+                  const action = collectionActions[inv.id];
+                  const stages = ['reminder', 'escalation', 'final', 'write-off'] as const;
+                  const currentIdx = action ? stages.indexOf(action.stage) : -1;
+                  return (
+                    <div key={inv.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-silver font-body font-semibold truncate">{inv.invoice_number} — {acct?.company_name}</p>
+                        <p className="text-[10px] text-steel font-body">{days} days overdue · £{(inv.amount - inv.amount_paid).toFixed(2)}</p>
+                        {action && (
+                          <p className="text-[10px] text-amber-400/80 font-body mt-0.5">
+                            Last action: {action.stage} sent {action.sent_at ? format(new Date(action.sent_at), 'dd MMM HH:mm') : ''}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {stages.map((stage, idx) => (
+                          <button
+                            key={stage}
+                            onClick={() => {
+                              if (stage === 'write-off') handleWriteOff(inv.id);
+                              else handleSendReminder(inv.id, stage);
+                            }}
+                            disabled={idx <= currentIdx && stage !== 'write-off'}
+                            className={cn(
+                              'px-2 py-1 rounded-lg text-[9px] font-body font-semibold border transition-all capitalize',
+                              idx <= currentIdx
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                : idx === currentIdx + 1
+                                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
+                                  : 'bg-white/[0.03] border-white/[0.06] text-steel',
+                              stage === 'write-off' && 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20',
+                            )}
+                          >
+                            {stage === 'write-off' ? <Ban size={10} /> : stage}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Search & Filter */}
       <div className="relative flex flex-col sm:flex-row gap-3">
@@ -620,6 +743,27 @@ export function CityLedgerPage() {
                                     >
                                       <CreditCard size={13} />
                                     </button>
+                                    <button
+                                      onClick={() => { setShowCreditNote(inv); setCreditAmount(''); setCreditReason(''); }}
+                                      className="p-1.5 rounded-lg hover:bg-purple-500/10 text-steel hover:text-purple-400 transition-all touch-manipulation"
+                                      title="Issue credit note"
+                                      aria-label="Issue credit note"
+                                    >
+                                      <ReceiptText size={13} />
+                                    </button>
+                                    {(inv.status === 'overdue') && (
+                                      <button
+                                        onClick={() => {
+                                          const current = collectionActions[inv.id];
+                                          const nextStage = !current ? 'reminder' : current.stage === 'reminder' ? 'escalation' : 'final';
+                                          handleSendReminder(inv.id, nextStage as 'reminder' | 'escalation' | 'final');
+                                        }}
+                                        className="p-1.5 rounded-lg hover:bg-amber-500/10 text-steel hover:text-amber-400 transition-all touch-manipulation"
+                                        title={`Send ${collectionActions[inv.id]?.stage === 'reminder' ? 'escalation' : collectionActions[inv.id]?.stage === 'escalation' ? 'final demand' : 'reminder'}`}
+                                      >
+                                        <Send size={13} />
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => handleWriteOff(inv.id)}
                                       className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all touch-manipulation"
@@ -844,6 +988,34 @@ export function CityLedgerPage() {
               >
                 Confirm Payment
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Credit Note Dialog ── */}
+      {showCreditNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Issue credit note">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" onClick={() => setShowCreditNote(null)} />
+          <div className="relative w-full max-w-sm rounded-2xl bg-[#0f1724] border border-white/[0.1] shadow-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-display font-semibold text-white flex items-center gap-2">
+              <ReceiptText size={18} className="text-purple-400" /> Issue Credit Note
+            </h3>
+            <div className="text-xs text-steel font-body space-y-1">
+              <p>Against: <span className="text-silver">{showCreditNote.invoice_number}</span></p>
+              <p>Original: <span className="text-white">£{showCreditNote.amount.toFixed(2)}</span> — Balance: <span className="text-white font-semibold">£{(showCreditNote.amount - showCreditNote.amount_paid).toFixed(2)}</span></p>
+            </div>
+            <div>
+              <label className="block text-xs text-steel font-body mb-1">Credit Amount (£)</label>
+              <input value={creditAmount} onChange={e => setCreditAmount(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white font-body focus:outline-none focus:ring-1 focus:ring-purple-500/30" type="number" step="0.01" autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs text-steel font-body mb-1">Reason</label>
+              <input value={creditReason} onChange={e => setCreditReason(e.target.value)} placeholder="e.g. Late check-in compensation" className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white font-body focus:outline-none focus:ring-1 focus:ring-purple-500/30" />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowCreditNote(null)} className="px-4 py-2 rounded-xl text-xs font-body text-steel hover:text-silver border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-all">Cancel</button>
+              <button onClick={handleCreditNote} className="px-4 py-2 rounded-xl text-xs font-body font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all">Issue Credit Note</button>
             </div>
           </div>
         </div>

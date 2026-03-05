@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import {
   Wrench, Plus, X, CheckCircle, Clock, AlertTriangle, AlertCircle,
-  ChevronDown, ChevronUp, MapPin, Trash2,
+  ChevronDown, ChevronUp, MapPin, Trash2, CalendarClock, RotateCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -37,6 +37,18 @@ export function MaintenancePage() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<WorkOrderStatus | 'all'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'reactive' | 'preventive'>('reactive');
+
+  // Preventive maintenance schedules
+  const [pmSchedules, setPmSchedules] = useState([
+    { id: 'pm-1', task: 'HVAC Filter Replacement', frequency: 'monthly', location: 'All floors', assignee: 'HVAC Team', lastRun: '2026-02-01', nextDue: '2026-03-01', active: true },
+    { id: 'pm-2', task: 'Fire Alarm Testing', frequency: 'quarterly', location: 'All areas', assignee: 'Safety Officer', lastRun: '2026-01-15', nextDue: '2026-04-15', active: true },
+    { id: 'pm-3', task: 'Elevator Inspection', frequency: 'monthly', location: 'Main building', assignee: 'Otis Engineering', lastRun: '2026-02-10', nextDue: '2026-03-10', active: true },
+    { id: 'pm-4', task: 'Pool Pump Servicing', frequency: 'quarterly', location: 'Pool area', assignee: 'Pool Tech', lastRun: '2025-12-01', nextDue: '2026-03-01', active: true },
+    { id: 'pm-5', task: 'Generator Load Test', frequency: 'biannual', location: 'Basement', assignee: 'Electrical Team', lastRun: '2025-09-15', nextDue: '2026-03-15', active: false },
+  ]);
+  const [showAddPM, setShowAddPM] = useState(false);
+  const [newPM, setNewPM] = useState({ task: '', frequency: 'monthly', location: '', assignee: '' });
 
   const allOrders = workOrders ?? [];
   const allRooms = rooms ?? [];
@@ -110,6 +122,162 @@ export function MaintenancePage() {
           </div>
         ))}
       </div>
+
+      {/* Tabs: Reactive / Preventive */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setActiveTab('reactive')}
+          className={cn(
+            'px-4 py-2 rounded-xl text-xs font-body font-semibold border transition-all',
+            activeTab === 'reactive' ? 'bg-teal/15 border-teal/25 text-teal' : 'text-silver border-white/10 hover:text-white',
+          )}
+        >
+          <Wrench className="w-3.5 h-3.5 inline mr-1" /> Reactive
+        </button>
+        <button
+          onClick={() => setActiveTab('preventive')}
+          className={cn(
+            'px-4 py-2 rounded-xl text-xs font-body font-semibold border transition-all',
+            activeTab === 'preventive' ? 'bg-purple-500/15 border-purple-500/25 text-purple-400' : 'text-silver border-white/10 hover:text-white',
+          )}
+        >
+          <CalendarClock className="w-3.5 h-3.5 inline mr-1" /> Preventive
+        </button>
+      </div>
+
+      {/* ── Preventive Maintenance Tab ── */}
+      {activeTab === 'preventive' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-silver font-body">Scheduled recurring maintenance tasks</p>
+            <Button variant="teal" onClick={() => setShowAddPM(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Add Schedule
+            </Button>
+          </div>
+
+          {showAddPM && (
+            <div className="glass-panel rounded-xl p-5 border border-purple-500/20 space-y-3">
+              <h3 className="text-sm font-display font-semibold text-white">New Preventive Schedule</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-silver mb-1">Task *</label>
+                  <input className="input-dark w-full" placeholder="e.g. HVAC Filter Replacement" value={newPM.task} onChange={e => setNewPM(p => ({ ...p, task: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-silver mb-1">Frequency</label>
+                  <select className="input-dark w-full" value={newPM.frequency} onChange={e => setNewPM(p => ({ ...p, frequency: e.target.value }))}>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Bi-weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="biannual">Bi-annual</option>
+                    <option value="annual">Annual</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-silver mb-1">Location</label>
+                  <input className="input-dark w-full" placeholder="e.g. All floors" value={newPM.location} onChange={e => setNewPM(p => ({ ...p, location: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-silver mb-1">Assignee</label>
+                  <input className="input-dark w-full" placeholder="Team or person" value={newPM.assignee} onChange={e => setNewPM(p => ({ ...p, assignee: e.target.value }))} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost-dark" onClick={() => setShowAddPM(false)}>Cancel</Button>
+                <Button variant="teal" onClick={() => {
+                  if (!newPM.task.trim()) { toast.error('Task name required'); return; }
+                  const freqDays: Record<string, number> = { weekly: 7, biweekly: 14, monthly: 30, quarterly: 90, biannual: 182, annual: 365 };
+                  const today = format(new Date(), 'yyyy-MM-dd');
+                  setPmSchedules(prev => [...prev, {
+                    id: `pm-${Date.now()}`,
+                    task: newPM.task,
+                    frequency: newPM.frequency,
+                    location: newPM.location,
+                    assignee: newPM.assignee,
+                    lastRun: today,
+                    nextDue: format(addDays(new Date(), freqDays[newPM.frequency] ?? 30), 'yyyy-MM-dd'),
+                    active: true,
+                  }]);
+                  setNewPM({ task: '', frequency: 'monthly', location: '', assignee: '' });
+                  setShowAddPM(false);
+                  toast.success('Preventive schedule created');
+                }}>Create</Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {pmSchedules.map(pm => {
+              const isOverdue = new Date(pm.nextDue) < new Date();
+              return (
+                <div key={pm.id} className={cn(
+                  'glass-panel rounded-xl px-4 py-3 flex items-center justify-between gap-3',
+                  !pm.active && 'opacity-50',
+                )}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <RotateCw size={14} className="text-purple-400 flex-shrink-0" />
+                      <span className="text-sm text-white font-body font-semibold truncate">{pm.task}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-body font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 capitalize">{pm.frequency}</span>
+                      {isOverdue && pm.active && <span className="px-1.5 py-0.5 rounded text-[9px] font-body font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Overdue</span>}
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-[10px] text-steel font-body">
+                      <span><MapPin size={10} className="inline mr-0.5" />{pm.location}</span>
+                      <span>Assigned: {pm.assignee}</span>
+                      <span>Last: {format(new Date(pm.lastRun), 'dd MMM yyyy')}</span>
+                      <span className={isOverdue ? 'text-red-400' : 'text-teal'}>Next: {format(new Date(pm.nextDue), 'dd MMM yyyy')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {pm.active && (
+                      <button
+                        onClick={() => {
+                          // Mark as done and reschedule
+                          const freqDays: Record<string, number> = { weekly: 7, biweekly: 14, monthly: 30, quarterly: 90, biannual: 182, annual: 365 };
+                          setPmSchedules(prev => prev.map(s => s.id === pm.id ? {
+                            ...s,
+                            lastRun: format(new Date(), 'yyyy-MM-dd'),
+                            nextDue: format(addDays(new Date(), freqDays[s.frequency] ?? 30), 'yyyy-MM-dd'),
+                          } : s));
+                          toast.success(`${pm.task} completed — next due rescheduled`);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-steel hover:text-emerald-400 transition-all"
+                        title="Mark completed & reschedule"
+                      >
+                        <CheckCircle size={14} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setPmSchedules(prev => prev.map(s => s.id === pm.id ? { ...s, active: !s.active } : s))}
+                      className={cn('p-1.5 rounded-lg transition-all', pm.active ? 'hover:bg-amber-500/10 text-steel hover:text-amber-400' : 'hover:bg-teal/10 text-steel hover:text-teal')}
+                      title={pm.active ? 'Pause schedule' : 'Activate schedule'}
+                    >
+                      {pm.active ? <Clock size={14} /> : <CheckCircle size={14} />}
+                    </button>
+                    <button
+                      onClick={() => setPmSchedules(prev => prev.filter(s => s.id !== pm.id))}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all"
+                      title="Delete schedule"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {pmSchedules.length === 0 && (
+              <div className="glass-panel rounded-xl p-8 text-center text-silver">
+                <CalendarClock className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p>No preventive schedules set up yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Reactive Maintenance Tab ── */}
+      {activeTab === 'reactive' && (<>
 
       {/* Filters */}
       <div className="flex items-center gap-2">
@@ -245,6 +413,7 @@ export function MaintenancePage() {
           );
         })}
       </div>
+      </>)}
     </div>
   );
 }

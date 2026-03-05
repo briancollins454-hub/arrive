@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/Separator';
 import {
   Moon, Play, CheckCircle, Clock, AlertTriangle, Users,
   BedDouble, DollarSign, FileText, XCircle, Printer,
+  ShieldAlert, Package, CalendarCheck,
 } from 'lucide-react';
 import { format, isSameDay, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -34,11 +35,18 @@ export function NightAuditPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [auditComplete, setAuditComplete] = useState(false);
   const auditRunningRef = useRef(false);
+  const [/* showExceptions */, setShowExceptions] = useState(true);
+  void setShowExceptions;
+  const [businessDate, setBusinessDate] = useState('');
+  void businessDate;
   const [steps, setSteps] = useState<AuditStep[]>([
+    { id: 'exceptions', label: 'Pre-flight Checks', description: 'Verify all pre-conditions before running audit', icon: ShieldAlert, status: 'pending' },
     { id: 'no-shows', label: 'Process No-Shows', description: 'Mark confirmed bookings that did not check in today', icon: XCircle, status: 'pending' },
     { id: 'overdue-checkout', label: 'Overdue Check-outs', description: 'Flag guests past their check-out date', icon: AlertTriangle, status: 'pending' },
     { id: 'post-charges', label: 'Post Room Charges', description: 'Apply nightly rates for all in-house guests', icon: DollarSign, status: 'pending' },
+    { id: 'post-packages', label: 'Post Package Charges', description: 'Apply recurring package inclusions (B&B, HB, FB)', icon: Package, status: 'pending' },
     { id: 'housekeeping', label: 'Reset Housekeeping', description: 'Set all occupied rooms to "dirty" status', icon: BedDouble, status: 'pending' },
+    { id: 'advance-date', label: 'Advance Business Date', description: 'Roll business date to next day', icon: CalendarCheck, status: 'pending' },
     { id: 'report', label: 'Generate Report', description: 'Compile daily revenue and occupancy statistics', icon: FileText, status: 'pending' },
   ]);
 
@@ -70,6 +78,16 @@ export function NightAuditPage() {
 
     // Reset all steps
     setSteps(prev => prev.map(s => ({ ...s, status: 'pending' as const, result: undefined })));
+
+    // Step 0: Pre-flight exceptions check
+    updateStep('exceptions', { status: 'running' });
+    await sleep(800);
+    const exceptions: string[] = [];
+    const unassignedRooms = inHouseGuests.filter(b => !b.room_id);
+    if (unassignedRooms.length > 0) exceptions.push(`${unassignedRooms.length} guest(s) without room assignment`);
+    const zeroRateGuests = guestsToCharge.filter(b => b.nightly_rate <= 0);
+    if (zeroRateGuests.length > 0) exceptions.push(`${zeroRateGuests.length} guest(s) with £0 rate`);
+    updateStep('exceptions', { status: 'done', result: exceptions.length > 0 ? `${exceptions.length} warning(s): ${exceptions.join('; ')}` : 'All pre-flight checks passed' });
 
     // Step 1: No-shows
     updateStep('no-shows', { status: 'running' });
@@ -134,7 +152,38 @@ export function NightAuditPage() {
     });
     updateStep('post-charges', { status: 'done', result: chargedCount > 0 ? `£${todayRevenue.toFixed(2)} posted for ${chargedCount} room(s)` : 'Already posted — skipped' });
 
-    // Step 4: Housekeeping reset
+    // Step 4: Post package charges (B&B, HB, FB)
+    updateStep('post-packages', { status: 'running' });
+    await sleep(900);
+    let packageCount = 0;
+    inHouseGuests.forEach(b => {
+      const pkg = b.special_requests?.toLowerCase() ?? '';
+      let pkgCharge = 0;
+      let pkgLabel = '';
+      if (pkg.includes('full board') || pkg.includes('fb')) { pkgCharge = 45; pkgLabel = 'Full Board'; }
+      else if (pkg.includes('half board') || pkg.includes('hb')) { pkgCharge = 30; pkgLabel = 'Half Board'; }
+      else if (pkg.includes('b&b') || pkg.includes('bed and breakfast')) { pkgCharge = 15; pkgLabel = 'B&B'; }
+      if (pkgCharge > 0) {
+        packageCount++;
+        const newEntry: FolioEntry = {
+          id: `f-${Date.now()}-pkg-${Math.random().toString(36).slice(2, 6)}`,
+          booking_id: b.id,
+          type: 'charge',
+          category: 'food',
+          description: `${pkgLabel} package — Night audit (${format(today, 'dd/MM/yyyy')})`,
+          amount: pkgCharge,
+          quantity: 1,
+          unit_price: pkgCharge,
+          posted_by: 'Night Audit',
+          posted_at: new Date().toISOString(),
+          is_voided: false,
+        };
+        queryClient.setQueryData<FolioEntry[]>(['folio', b.id], old => [...(old ?? []), newEntry]);
+      }
+    });
+    updateStep('post-packages', { status: 'done', result: packageCount > 0 ? `${packageCount} package charge(s) posted` : 'No packages to post' });
+
+    // Step 5: Housekeeping reset
     updateStep('housekeeping', { status: 'running' });
     await sleep(1000);
     occupiedRooms.forEach(r => {
@@ -142,7 +191,15 @@ export function NightAuditPage() {
     });
     updateStep('housekeeping', { status: 'done', result: `${occupiedRooms.length} room(s) set to dirty` });
 
-    // Step 5: Generate report
+    // Step 7: Advance business date
+    updateStep('advance-date', { status: 'running' });
+    await sleep(700);
+    const nextDate = new Date(today);
+    nextDate.setDate(nextDate.getDate() + 1);
+    setBusinessDate(format(nextDate, 'yyyy-MM-dd'));
+    updateStep('advance-date', { status: 'done', result: `Business date advanced to ${format(nextDate, 'dd/MM/yyyy')}` });
+
+    // Step 8: Generate report
     updateStep('report', { status: 'running' });
     await sleep(1200);
     updateStep('report', { status: 'done', result: `Report generated — ${occupancyRate}% occupancy, £${todayRevenue.toFixed(2)} revenue` });

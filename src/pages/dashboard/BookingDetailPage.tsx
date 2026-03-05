@@ -149,6 +149,39 @@ export function BookingDetailPage() {
   const [clSelectedCompany, setClSelectedCompany] = useState('');
   const [clSelectedEntryIds, setClSelectedEntryIds] = useState<Set<string>>(new Set());
 
+  // Folio routing rules
+  const [folioRoutingRules, setFolioRoutingRules] = useState<{ category: FolioChargeCategory; target: 'guest' | 'company' }[]>([
+    { category: 'room', target: 'company' },
+    { category: 'tax', target: 'company' },
+    { category: 'food', target: 'guest' },
+    { category: 'beverage', target: 'guest' },
+    { category: 'spa', target: 'guest' },
+    { category: 'laundry', target: 'guest' },
+    { category: 'damage', target: 'guest' },
+    { category: 'phone', target: 'guest' },
+    { category: 'parking', target: 'guest' },
+    { category: 'other', target: 'guest' },
+  ]);
+  const [showRoutingRules, setShowRoutingRules] = useState(false);
+
+  // Split payment state
+  const [showSplitPayment, setShowSplitPayment] = useState(false);
+  const [splitParts, setSplitParts] = useState<{ amount: string; method: PaymentMethod }[]>([
+    { amount: '', method: 'card' },
+    { amount: '', method: 'cash' },
+  ]);
+
+  // Upsell suggestions at check-in
+  const [showUpsellDialog, setShowUpsellDialog] = useState(false);
+  const upsellSuggestions = [
+    { id: 'upgrade', label: 'Room Upgrade', desc: 'Upgrade to next room category', price: 35 },
+    { id: 'breakfast', label: 'Add Breakfast', desc: 'Full English breakfast per night', price: 15 },
+    { id: 'late-checkout', label: 'Late Check-out', desc: 'Guaranteed 2pm check-out', price: 25 },
+    { id: 'parking', label: 'Parking Pass', desc: 'On-site parking for full stay', price: 10 },
+    { id: 'welcome', label: 'Welcome Package', desc: 'Champagne & chocolates in room', price: 45 },
+  ];
+  const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
+
   // Stripe payment state
   const [stripeInstance, setStripeInstance] = useState<Stripe | null>(null);
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
@@ -529,16 +562,14 @@ export function BookingDetailPage() {
                   setShowCheckoutBlockDialog(true);
                   return;
                 }
-                // Check-in: trigger key card encoding first
-                if (action.next === 'checked_in' && keyCard.config.auto_encode_on_checkin) {
+                // Check-in: show upsell suggestions first
+                if (action.next === 'checked_in') {
                   if (!booking.room_id) {
                     toast.error('Please assign a room before checking in');
                     return;
                   }
-                  setEncodedCards([]);
-                  setIsMasterKeyMode(false);
-                  keyCard.resetEncoding();
-                  setShowKeyCardModal(true);
+                  setSelectedUpsells(new Set());
+                  setShowUpsellDialog(true);
                   return;
                 }
                 updateStatus.mutate({ bookingId: booking.id, status: action.next });
@@ -1352,8 +1383,69 @@ export function BookingDetailPage() {
                     City Ledger
                   </button>
                 )}
+                <button
+                  onClick={() => setShowRoutingRules(!showRoutingRules)}
+                  className={cn(
+                    'px-2 py-0.5 rounded text-[9px] font-body font-semibold transition-all leading-tight',
+                    showRoutingRules
+                      ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                      : 'bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20',
+                  )}
+                >
+                  Routing
+                </button>
+                <button
+                  onClick={() => setShowSplitPayment(true)}
+                  className="px-2 py-0.5 rounded text-[9px] font-body font-semibold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all leading-tight"
+                >
+                  Split Pay
+                </button>
               </div>
             </CardHeader>
+
+            {/* Folio Routing Rules Panel */}
+            {showRoutingRules && (
+              <div className="mx-4 mb-2 p-3 rounded-xl border border-purple-500/20 bg-purple-500/5">
+                <p className="text-[11px] text-purple-300 font-body font-semibold mb-2">Auto-Route Charges by Category</p>
+                <div className="space-y-1.5">
+                  {folioRoutingRules.map((rule, idx) => (
+                    <div key={rule.category} className="flex items-center justify-between">
+                      <span className="text-[10px] text-silver font-body capitalize">{rule.category}</span>
+                      <select
+                        value={rule.target}
+                        onChange={(e) => {
+                          const updated = [...folioRoutingRules];
+                          updated[idx] = { ...rule, target: e.target.value as 'guest' | 'company' };
+                          setFolioRoutingRules(updated);
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded bg-midnight/50 border border-white/10 text-silver font-body"
+                      >
+                        <option value="guest">Guest Folio</option>
+                        <option value="company">Company Folio</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    // Apply routing rules to existing unrouted charges
+                    const next = new Set(companyEntryIds);
+                    folio.entries.filter(e => !e.is_voided && e.type === 'charge').forEach(entry => {
+                      const rule = folioRoutingRules.find(r => r.category === entry.category);
+                      if (rule?.target === 'company') next.add(entry.id);
+                      else next.delete(entry.id);
+                    });
+                    setCompanyEntryIds(next);
+                    toast.success('Routing rules applied');
+                    setShowRoutingRules(false);
+                  }}
+                  className="mt-2 w-full px-3 py-1.5 rounded-lg text-[10px] font-body font-semibold bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/20 transition-all"
+                >
+                  Apply Routing Rules
+                </button>
+              </div>
+            )}
+
             <CardContent className="space-y-3">
               {/* Summary — shows totals for active folio tab */}
               {(() => {
@@ -2459,6 +2551,195 @@ export function BookingDetailPage() {
           </div>
         );
       })()}
+
+      {/* ============================== */}
+      {/* Split Payment Dialog            */}
+      {/* ============================== */}
+      {showSplitPayment && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-charcoal/60 backdrop-blur-sm">
+          <div className="bg-midnight border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-white font-display text-lg mb-1">Split Payment</h3>
+            <p className="text-steel text-xs font-body mb-4">
+              Balance: £{Math.max(0, folio.balance).toFixed(2)} — split across multiple methods
+            </p>
+            <div className="space-y-3">
+              {splitParts.map((part, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-[10px] text-steel font-body w-6">#{i + 1}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Amount"
+                    value={part.amount}
+                    onChange={(e) => {
+                      const n = [...splitParts];
+                      n[i] = { ...part, amount: e.target.value };
+                      setSplitParts(n);
+                    }}
+                    className="flex-1 px-3 py-2 rounded-lg bg-charcoal/50 border border-white/10 text-white text-xs font-body"
+                  />
+                  <select
+                    value={part.method}
+                    onChange={(e) => {
+                      const n = [...splitParts];
+                      n[i] = { ...part, method: e.target.value as PaymentMethod };
+                      setSplitParts(n);
+                    }}
+                    className="px-2 py-2 rounded-lg bg-charcoal/50 border border-white/10 text-silver text-xs font-body"
+                  >
+                    <option value="card">Card</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Transfer</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {splitParts.length > 2 && (
+                    <button onClick={() => setSplitParts(splitParts.filter((_, j) => j !== i))} className="text-steel hover:text-red-400 transition-colors">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {splitParts.length < 5 && (
+              <button
+                onClick={() => setSplitParts([...splitParts, { amount: '', method: 'card' }])}
+                className="mt-2 text-[10px] text-gold font-body hover:underline"
+              >
+                + Add Split
+              </button>
+            )}
+            {(() => {
+              const splitTotal = splitParts.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+              const diff = folio.balance - splitTotal;
+              return (
+                <p className={cn('text-[10px] font-body mt-2', Math.abs(diff) < 0.01 ? 'text-emerald-400' : 'text-amber-400')}>
+                  Split total: £{splitTotal.toFixed(2)} {Math.abs(diff) >= 0.01 && `(${diff > 0 ? 'remaining' : 'over'}: £${Math.abs(diff).toFixed(2)})`}
+                </p>
+              );
+            })()}
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowSplitPayment(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  splitParts.forEach(part => {
+                    const amt = Number(part.amount);
+                    if (amt > 0) {
+                      folio.postPayment.mutate({
+                        amount: amt,
+                        payment_method: part.method,
+                        description: `Split payment (${part.method})`,
+                      });
+                    }
+                  });
+                  toast.success('Split payments posted');
+                  setShowSplitPayment(false);
+                  setSplitParts([{ amount: '', method: 'card' }, { amount: '', method: 'cash' }]);
+                }}
+                disabled={splitParts.every(p => !p.amount || Number(p.amount) <= 0)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-cyan-400 hover:bg-cyan-300 transition-all disabled:opacity-40"
+              >
+                Post Split Payments
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* Upsell Dialog at Check-in       */}
+      {/* ============================== */}
+      {showUpsellDialog && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-charcoal/60 backdrop-blur-sm">
+          <div className="bg-midnight border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-white font-display text-lg mb-1">Check-in Upsell Opportunities</h3>
+            <p className="text-steel text-xs font-body mb-4">
+              Suggest add-ons to enhance the guest experience
+            </p>
+            <div className="space-y-2">
+              {upsellSuggestions.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    const next = new Set(selectedUpsells);
+                    if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                    setSelectedUpsells(next);
+                  }}
+                  className={cn(
+                    'w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left',
+                    selectedUpsells.has(item.id)
+                      ? 'bg-gold/10 border-gold/30 text-gold'
+                      : 'bg-white/[0.03] border-white/[0.06] text-silver hover:border-white/15',
+                  )}
+                >
+                  <div>
+                    <p className="text-sm font-body font-semibold">{item.label}</p>
+                    <p className="text-[10px] text-steel font-body">{item.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-body font-semibold">£{item.price}</span>
+                    {selectedUpsells.has(item.id) && <CheckCircle size={16} className="text-gold" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+            {selectedUpsells.size > 0 && (
+              <p className="text-[10px] text-gold font-body mt-2">
+                Upsell total: £{upsellSuggestions.filter(u => selectedUpsells.has(u.id)).reduce((s, u) => s + u.price, 0)}
+              </p>
+            )}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => {
+                  setShowUpsellDialog(false);
+                  // Proceed to key card or check-in directly
+                  if (keyCard.config.auto_encode_on_checkin) {
+                    setEncodedCards([]);
+                    setIsMasterKeyMode(false);
+                    keyCard.resetEncoding();
+                    setShowKeyCardModal(true);
+                  } else {
+                    updateStatus.mutate({ bookingId: booking.id, status: 'checked_in' });
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              >
+                Skip & Check In
+              </button>
+              <button
+                onClick={() => {
+                  // Post upsell charges to folio
+                  upsellSuggestions.filter(u => selectedUpsells.has(u.id)).forEach(item => {
+                    folio.postCharge.mutate({
+                      category: item.id === 'breakfast' ? 'food' : item.id === 'parking' ? 'parking' : 'other',
+                      description: `Upsell: ${item.label}`,
+                      quantity: 1,
+                      unit_price: item.price,
+                    });
+                  });
+                  toast.success(`${selectedUpsells.size} upsell(s) added to folio`);
+                  setShowUpsellDialog(false);
+                  // Proceed to key card or check-in directly
+                  if (keyCard.config.auto_encode_on_checkin) {
+                    setEncodedCards([]);
+                    setIsMasterKeyMode(false);
+                    keyCard.resetEncoding();
+                    setShowKeyCardModal(true);
+                  } else {
+                    updateStatus.mutate({ bookingId: booking.id, status: 'checked_in' });
+                  }
+                }}
+                disabled={selectedUpsells.size === 0}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-gold hover:bg-gold/90 transition-all disabled:opacity-40"
+              >
+                Add & Check In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================== */}
       {/* Key Card Encoding Modal        */}

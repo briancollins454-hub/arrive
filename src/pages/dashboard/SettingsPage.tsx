@@ -12,6 +12,8 @@ import {
   UserPlus, Trash2, Edit2, Check, X, Moon, Key, Mail,
   CreditCard, Smartphone, Wifi, Signal, Receipt, Ban, Plus,
   ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
+  CalendarClock, Network, BookOpen, ShieldCheck, Download,
+  FileDown, UserX, AlertCircle,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -19,6 +21,7 @@ import { useKeyCard, KEY_CARD_PROVIDERS } from '@/hooks/useKeyCard';
 import { KeyCardModal } from '@/components/dashboard/KeyCardModal';
 import type { KeyCardProvider, KeyCardType } from '@/hooks/useKeyCard';
 import { cn } from '@/lib/utils';
+import { exportCSV } from '@/lib/exportUtils';
 import { format } from 'date-fns';
 import { ROLE_DEFINITIONS, PERMISSION_GROUPS, getRoleLabel, getRoleColor } from '@/lib/roles';
 import type { Permission } from '@/lib/roles';
@@ -99,11 +102,15 @@ const initialStaff: DemoStaffMember[] = [
 const settingsTabs = [
   { id: 'property', label: 'Property', icon: Building },
   { id: 'operations', label: 'Operations', icon: Clock },
+  { id: 'business-date', label: 'Business Date', icon: CalendarClock },
+  { id: 'departments', label: 'Departments', icon: Network },
+  { id: 'gl-codes', label: 'GL Codes', icon: BookOpen },
   { id: 'taxes', label: 'Taxes', icon: Receipt },
   { id: 'policies', label: 'Policies', icon: Ban },
   { id: 'users', label: 'Users & Access', icon: Users },
   { id: 'night-audit', label: 'Night Audit', icon: Moon },
   { id: 'key-cards', label: 'Key Cards', icon: Key },
+  { id: 'gdpr', label: 'GDPR & Privacy', icon: ShieldCheck },
   { id: 'branding', label: 'Branding', icon: Palette },
 ] as const;
 
@@ -217,6 +224,55 @@ export function SettingsPage() {
     },
   ]);
   const [showAddPolicy, setShowAddPolicy] = useState(false);
+
+  // Business date management
+  const [businessDate, setBusinessDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const [advanceTime, setAdvanceTime] = useState('00:00');
+
+  // Departments
+  const [departments, setDepartments] = useState([
+    { id: 'dept-1', name: 'Front Office', code: 'FO', head: 'Tom Parker', active: true },
+    { id: 'dept-2', name: 'Housekeeping', code: 'HK', head: 'Jake Evans', active: true },
+    { id: 'dept-3', name: 'Food & Beverage', code: 'FB', head: '', active: true },
+    { id: 'dept-4', name: 'Maintenance', code: 'MT', head: 'Mark Taylor', active: true },
+    { id: 'dept-5', name: 'Finance', code: 'FN', head: 'Nina Patel', active: true },
+    { id: 'dept-6', name: 'Spa & Wellness', code: 'SP', head: '', active: true },
+    { id: 'dept-7', name: 'Concierge', code: 'CN', head: 'Emma Clark', active: true },
+    { id: 'dept-8', name: 'Revenue Management', code: 'RM', head: 'James Wilson', active: true },
+  ]);
+  const [showAddDept, setShowAddDept] = useState(false);
+  const [newDept, setNewDept] = useState({ name: '', code: '', head: '' });
+
+  // GL Codes (General Ledger / Nominal Codes)
+  const [glCodes, setGlCodes] = useState([
+    { id: 'gl-1', code: '4000', name: 'Room Revenue', category: 'room' as FolioChargeCategory, department: 'Front Office', active: true },
+    { id: 'gl-2', code: '4100', name: 'Food Revenue', category: 'food' as FolioChargeCategory, department: 'Food & Beverage', active: true },
+    { id: 'gl-3', code: '4200', name: 'Beverage Revenue', category: 'beverage' as FolioChargeCategory, department: 'Food & Beverage', active: true },
+    { id: 'gl-4', code: '4300', name: 'Spa Revenue', category: 'spa' as FolioChargeCategory, department: 'Spa & Wellness', active: true },
+    { id: 'gl-5', code: '4400', name: 'Laundry Revenue', category: 'laundry' as FolioChargeCategory, department: 'Housekeeping', active: true },
+    { id: 'gl-6', code: '4500', name: 'Telephone Revenue', category: 'telephone' as FolioChargeCategory, department: 'Front Office', active: true },
+    { id: 'gl-7', code: '4600', name: 'Parking Revenue', category: 'parking' as FolioChargeCategory, department: 'Front Office', active: true },
+    { id: 'gl-8', code: '4700', name: 'Minibar Revenue', category: 'minibar' as FolioChargeCategory, department: 'Food & Beverage', active: true },
+    { id: 'gl-9', code: '4900', name: 'Miscellaneous Revenue', category: 'other' as FolioChargeCategory, department: 'Finance', active: true },
+    { id: 'gl-10', code: '2100', name: 'VAT Output', category: 'room' as FolioChargeCategory, department: 'Finance', active: true },
+    { id: 'gl-11', code: '1200', name: 'Accounts Receivable', category: 'other' as FolioChargeCategory, department: 'Finance', active: true },
+  ]);
+  const [showAddGL, setShowAddGL] = useState(false);
+  const [newGL, setNewGL] = useState({ code: '', name: '', category: 'room' as FolioChargeCategory, department: '' });
+
+  // GDPR & Privacy
+  const [gdprSettings, setGdprSettings] = useState({
+    consent_required: true,
+    marketing_opt_in: false,
+    data_retention_months: 24,
+    auto_purge_enabled: true,
+    cookie_consent_enabled: true,
+    right_to_erasure_enabled: true,
+    data_export_format: 'json' as 'json' | 'csv',
+    dpo_email: 'privacy@arrive-hotel.com',
+    privacy_policy_url: 'https://arrivebooking.online/privacy',
+  });
 
   const { register, handleSubmit } = useForm<SettingsFormValues>({
     values: property ? {
@@ -503,6 +559,321 @@ export function SettingsPage() {
             <Button type="submit"><Save size={16} className="mr-2" />Save Operations Settings</Button>
           </div>
         </form>
+      )}
+
+      {/* ============================== */}
+      {/* Business Date Tab              */}
+      {/* ============================== */}
+      {activeTab === 'business-date' && (
+        <div className="space-y-6">
+          <Card variant="dark">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CalendarClock size={18} className="text-teal" /> Business Date Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <p className="text-xs text-steel font-body leading-relaxed">
+                The business date determines which operational day the hotel is currently in. 
+                Night audit advances this date. You can also manually advance it in special circumstances.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label variant="dark">Current Business Date</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      variant="dark"
+                      type="date"
+                      value={businessDate}
+                      onChange={e => setBusinessDate(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline-dark"
+                      size="sm"
+                      onClick={() => {
+                        const next = new Date(businessDate);
+                        next.setDate(next.getDate() + 1);
+                        setBusinessDate(format(next, 'yyyy-MM-dd'));
+                        toast.success(`Business date advanced to ${format(next, 'EEEE, MMMM d, yyyy')}`);
+                      }}
+                    >
+                      Advance →
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-steel/60 font-body mt-1">
+                    Displayed as: {format(new Date(businessDate + 'T12:00:00'), 'EEEE, MMMM d, yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <Label variant="dark">System Date</Label>
+                  <Input variant="dark" value={format(new Date(), 'yyyy-MM-dd')} disabled />
+                  <p className="text-[11px] text-steel/60 font-body mt-1">
+                    Server clock — cannot be modified
+                  </p>
+                </div>
+              </div>
+
+              <Separator variant="dark" />
+
+              {/* Auto-advance toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                <div>
+                  <p className="text-sm text-white font-body font-medium">Auto-advance After Night Audit</p>
+                  <p className="text-xs text-steel font-body mt-0.5">
+                    Automatically advance the business date when the night audit completes
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAutoAdvance(!autoAdvance)}
+                  className={cn('relative w-11 h-6 rounded-full transition-colors', autoAdvance ? 'bg-teal' : 'bg-white/[0.1]')}
+                >
+                  <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow', autoAdvance ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                </button>
+              </div>
+
+              {autoAdvance && (
+                <div className="pl-3 border-l-2 border-teal/20">
+                  <Label variant="dark">Advance Time</Label>
+                  <Input
+                    variant="dark"
+                    type="time"
+                    value={advanceTime}
+                    onChange={e => setAdvanceTime(e.target.value)}
+                    className="max-w-[200px]"
+                  />
+                  <p className="text-[11px] text-steel/60 font-body mt-1">
+                    Should match night audit run time
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card variant="dark">
+            <CardHeader><CardTitle className="text-white text-base">Business Date History</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[
+                  { date: format(new Date(), 'yyyy-MM-dd'), method: 'Night Audit', by: 'System', time: '00:15' },
+                  { date: format(new Date(Date.now() - 86400000), 'yyyy-MM-dd'), method: 'Night Audit', by: 'System', time: '00:12' },
+                  { date: format(new Date(Date.now() - 172800000), 'yyyy-MM-dd'), method: 'Manual', by: 'Alex Thompson', time: '23:45' },
+                ].map((entry, i) => (
+                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] text-xs font-body">
+                    <span className="text-white font-medium">{entry.date}</span>
+                    <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold border', entry.method === 'Night Audit' ? 'text-teal bg-teal/10 border-teal/20' : 'text-amber-400 bg-amber-400/10 border-amber-400/20')}>{entry.method}</span>
+                    <span className="text-steel">by {entry.by}</span>
+                    <span className="text-steel/60 ml-auto">at {entry.time}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={() => toast.success('Business date settings saved')}><Save size={16} className="mr-2" />Save Settings</Button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* Departments Tab                */}
+      {/* ============================== */}
+      {activeTab === 'departments' && (
+        <div className="space-y-6">
+          <Card variant="dark">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Network size={18} className="text-teal" /> Hotel Departments
+              </CardTitle>
+              <button
+                onClick={() => setShowAddDept(!showAddDept)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium bg-teal/10 text-teal border border-teal/20 hover:bg-teal/20 transition-all"
+              >
+                <Plus size={14} /> Add Department
+              </button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-steel font-body">
+                Departments are used for cost centre assignment, GL code mapping, staff allocation, and reporting.
+              </p>
+
+              {showAddDept && (
+                <div className="card-dark space-y-3 border border-teal/20">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label variant="dark">Department Name</Label>
+                      <Input variant="dark" placeholder="e.g. Security" value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label variant="dark">Code</Label>
+                      <Input variant="dark" placeholder="e.g. SC" maxLength={4} value={newDept.code} onChange={e => setNewDept({ ...newDept, code: e.target.value.toUpperCase() })} />
+                    </div>
+                    <div>
+                      <Label variant="dark">Head of Department</Label>
+                      <Input variant="dark" placeholder="Staff name" value={newDept.head} onChange={e => setNewDept({ ...newDept, head: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => {
+                      if (!newDept.name || !newDept.code) { toast.error('Name and code are required'); return; }
+                      setDepartments([...departments, { id: `dept-${Date.now()}`, name: newDept.name, code: newDept.code, head: newDept.head, active: true }]);
+                      setNewDept({ name: '', code: '', head: '' });
+                      setShowAddDept(false);
+                      toast.success('Department added');
+                    }}>
+                      <Check size={14} className="mr-1" /> Save
+                    </Button>
+                    <Button variant="outline-dark" size="sm" onClick={() => setShowAddDept(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {departments.map(dept => (
+                  <div key={dept.id} className={cn('card-dark flex items-center justify-between', !dept.active && 'opacity-50')}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-teal/10 border border-teal/20 flex items-center justify-center text-xs font-display font-bold text-teal">
+                        {dept.code}
+                      </div>
+                      <div>
+                        <p className="text-sm font-body font-medium text-white">{dept.name}</p>
+                        <p className="text-xs text-steel font-body">{dept.head || 'No head assigned'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setDepartments(departments.map(d => d.id === dept.id ? { ...d, active: !d.active } : d))}
+                        className={cn('text-[10px] font-body font-semibold px-2 py-1 rounded-full border', dept.active ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-steel bg-white/[0.03] border-white/[0.06]')}
+                      >
+                        {dept.active ? 'Active' : 'Disabled'}
+                      </button>
+                      <button onClick={() => { setDepartments(departments.filter(d => d.id !== dept.id)); toast.success('Department removed'); }} className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* GL Codes Tab                   */}
+      {/* ============================== */}
+      {activeTab === 'gl-codes' && (
+        <div className="space-y-6">
+          <Card variant="dark">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white flex items-center gap-2">
+                <BookOpen size={18} className="text-teal" /> General Ledger Codes
+              </CardTitle>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const rows = glCodes.map(gl => ({ Code: gl.code, Name: gl.name, Category: gl.category, Department: gl.department, Active: gl.active ? 'Yes' : 'No' }));
+                    exportCSV(rows, `gl-codes-${format(new Date(), 'yyyy-MM-dd')}`);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium border border-white/[0.08] bg-white/[0.03] text-steel hover:text-silver hover:bg-white/[0.06] transition-all"
+                >
+                  <Download size={13} /> Export
+                </button>
+                <button
+                  onClick={() => setShowAddGL(!showAddGL)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium bg-teal/10 text-teal border border-teal/20 hover:bg-teal/20 transition-all"
+                >
+                  <Plus size={14} /> Add Code
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-steel font-body">
+                Map charge categories to nominal ledger codes for accounting exports. These codes appear in financial reports and can be used for integration with Sage, Xero, QuickBooks, etc.
+              </p>
+
+              {showAddGL && (
+                <div className="card-dark space-y-3 border border-teal/20">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label variant="dark">Nominal Code</Label>
+                      <Input variant="dark" placeholder="e.g. 4000" value={newGL.code} onChange={e => setNewGL({ ...newGL, code: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label variant="dark">Description</Label>
+                      <Input variant="dark" placeholder="e.g. Room Revenue" value={newGL.name} onChange={e => setNewGL({ ...newGL, name: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label variant="dark">Charge Category</Label>
+                      <select value={newGL.category} onChange={e => setNewGL({ ...newGL, category: e.target.value as FolioChargeCategory })} className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-charcoal border border-white/[0.06]">
+                        {['room', 'food', 'beverage', 'spa', 'minibar', 'laundry', 'telephone', 'parking', 'other'].map(c => (
+                          <option key={c} value={c} className="capitalize">{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label variant="dark">Department</Label>
+                      <select value={newGL.department} onChange={e => setNewGL({ ...newGL, department: e.target.value })} className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-charcoal border border-white/[0.06]">
+                        <option value="">Select department</option>
+                        {departments.filter(d => d.active).map(d => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => {
+                      if (!newGL.code || !newGL.name) { toast.error('Code and description are required'); return; }
+                      setGlCodes([...glCodes, { id: `gl-${Date.now()}`, ...newGL, active: true }]);
+                      setNewGL({ code: '', name: '', category: 'room', department: '' });
+                      setShowAddGL(false);
+                      toast.success('GL code added');
+                    }}>
+                      <Check size={14} className="mr-1" /> Save
+                    </Button>
+                    <Button variant="outline-dark" size="sm" onClick={() => setShowAddGL(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-white/[0.08]">
+                      <th className="text-left text-[10px] text-steel uppercase p-3">Code</th>
+                      <th className="text-left text-[10px] text-steel uppercase p-3">Description</th>
+                      <th className="text-left text-[10px] text-steel uppercase p-3">Category</th>
+                      <th className="text-left text-[10px] text-steel uppercase p-3">Department</th>
+                      <th className="text-right text-[10px] text-steel uppercase p-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {glCodes.map(gl => (
+                      <tr key={gl.id} className={cn('border-b border-white/[0.04] hover:bg-white/[0.02]', !gl.active && 'opacity-50')}>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded bg-white/[0.06] text-gold font-mono text-[11px] font-semibold">{gl.code}</span></td>
+                        <td className="p-3 text-silver">{gl.name}</td>
+                        <td className="p-3 text-steel capitalize">{gl.category}</td>
+                        <td className="p-3 text-steel">{gl.department || '—'}</td>
+                        <td className="p-3 text-right">
+                          <div className="flex justify-end gap-1">
+                            <button onClick={() => setGlCodes(glCodes.map(g => g.id === gl.id ? { ...g, active: !g.active } : g))} className={cn('text-[10px] font-semibold px-2 py-1 rounded-full border', gl.active ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-steel bg-white/[0.03] border-white/[0.06]')}>
+                              {gl.active ? 'Active' : 'Off'}
+                            </button>
+                            <button onClick={() => { setGlCodes(glCodes.filter(g => g.id !== gl.id)); toast.success('GL code removed'); }} className="p-1 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* ============================== */}
@@ -1650,6 +2021,169 @@ export function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* GDPR & Privacy Tab             */}
+      {/* ============================== */}
+      {activeTab === 'gdpr' && (
+        <div className="space-y-6">
+          <Card variant="dark">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <ShieldCheck size={18} className="text-teal" /> Data Protection & GDPR Compliance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <p className="text-xs text-steel font-body leading-relaxed">
+                Configure how guest personal data is collected, stored, and managed in compliance with GDPR, UK DPA 2018, and other data protection regulations.
+              </p>
+
+              {/* Consent */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                <div>
+                  <p className="text-sm text-white font-body font-medium">Require Guest Consent at Booking</p>
+                  <p className="text-xs text-steel font-body mt-0.5">Guests must explicitly consent to data processing during reservation</p>
+                </div>
+                <button
+                  onClick={() => setGdprSettings({ ...gdprSettings, consent_required: !gdprSettings.consent_required })}
+                  className={cn('relative w-11 h-6 rounded-full transition-colors', gdprSettings.consent_required ? 'bg-teal' : 'bg-white/[0.1]')}
+                >
+                  <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow', gdprSettings.consent_required ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                <div>
+                  <p className="text-sm text-white font-body font-medium">Marketing Opt-in (default)</p>
+                  <p className="text-xs text-steel font-body mt-0.5">Pre-check marketing opt-in for new guests (not recommended under GDPR)</p>
+                </div>
+                <button
+                  onClick={() => setGdprSettings({ ...gdprSettings, marketing_opt_in: !gdprSettings.marketing_opt_in })}
+                  className={cn('relative w-11 h-6 rounded-full transition-colors', gdprSettings.marketing_opt_in ? 'bg-teal' : 'bg-white/[0.1]')}
+                >
+                  <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow', gdprSettings.marketing_opt_in ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                </button>
+              </div>
+
+              <Separator variant="dark" />
+
+              {/* Data Retention */}
+              <h4 className="text-sm font-body font-semibold text-white flex items-center gap-2">
+                <Clock size={14} className="text-teal" /> Data Retention
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label variant="dark">Guest Data Retention Period</Label>
+                  <select
+                    value={gdprSettings.data_retention_months}
+                    onChange={e => setGdprSettings({ ...gdprSettings, data_retention_months: parseInt(e.target.value) })}
+                    className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-charcoal border border-white/[0.06]"
+                  >
+                    <option value="6">6 months</option>
+                    <option value="12">12 months</option>
+                    <option value="24">24 months</option>
+                    <option value="36">36 months</option>
+                    <option value="60">5 years</option>
+                    <option value="84">7 years (tax compliance)</option>
+                  </select>
+                  <p className="text-[11px] text-steel/60 font-body mt-1">
+                    Guest PII is anonymised after this period
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <div className="flex items-center justify-between w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                    <div>
+                      <p className="text-sm text-white font-body font-medium">Auto-purge Expired Data</p>
+                      <p className="text-xs text-steel font-body mt-0.5">Automatically anonymise after retention period</p>
+                    </div>
+                    <button
+                      onClick={() => setGdprSettings({ ...gdprSettings, auto_purge_enabled: !gdprSettings.auto_purge_enabled })}
+                      className={cn('relative w-11 h-6 rounded-full transition-colors', gdprSettings.auto_purge_enabled ? 'bg-teal' : 'bg-white/[0.1]')}
+                    >
+                      <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow', gdprSettings.auto_purge_enabled ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <Separator variant="dark" />
+
+              {/* Right to Erasure & Data Export */}
+              <h4 className="text-sm font-body font-semibold text-white flex items-center gap-2">
+                <UserX size={14} className="text-amber-400" /> Right to Erasure & Data Portability
+              </h4>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                <div>
+                  <p className="text-sm text-white font-body font-medium">Enable Right to Erasure</p>
+                  <p className="text-xs text-steel font-body mt-0.5">Allow guest data deletion requests from the Guest Profile page</p>
+                </div>
+                <button
+                  onClick={() => setGdprSettings({ ...gdprSettings, right_to_erasure_enabled: !gdprSettings.right_to_erasure_enabled })}
+                  className={cn('relative w-11 h-6 rounded-full transition-colors', gdprSettings.right_to_erasure_enabled ? 'bg-teal' : 'bg-white/[0.1]')}
+                >
+                  <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow', gdprSettings.right_to_erasure_enabled ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label variant="dark">Data Export Format</Label>
+                  <select
+                    value={gdprSettings.data_export_format}
+                    onChange={e => setGdprSettings({ ...gdprSettings, data_export_format: e.target.value as 'json' | 'csv' })}
+                    className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-charcoal border border-white/[0.06]"
+                  >
+                    <option value="json">JSON (machine-readable)</option>
+                    <option value="csv">CSV (spreadsheet-friendly)</option>
+                  </select>
+                </div>
+                <div>
+                  <Label variant="dark">Data Protection Officer Email</Label>
+                  <Input variant="dark" value={gdprSettings.dpo_email} onChange={e => setGdprSettings({ ...gdprSettings, dpo_email: e.target.value })} />
+                </div>
+              </div>
+
+              <Separator variant="dark" />
+
+              {/* Quick Actions */}
+              <h4 className="text-sm font-body font-semibold text-white flex items-center gap-2">
+                <AlertCircle size={14} className="text-gold" /> Quick Actions
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => toast.success('Data audit report generated — check Downloads')}
+                  className="flex items-center gap-2 p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] text-sm text-silver font-body transition-all text-left"
+                >
+                  <FileDown size={16} className="text-teal" />
+                  <div>
+                    <p className="font-medium text-white text-xs">Generate Data Audit Report</p>
+                    <p className="text-[11px] text-steel">List all stored personal data</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => toast.success('Consent log exported')}
+                  className="flex items-center gap-2 p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] text-sm text-silver font-body transition-all text-left"
+                >
+                  <Download size={16} className="text-teal" />
+                  <div>
+                    <p className="font-medium text-white text-xs">Export Consent Log</p>
+                    <p className="text-[11px] text-steel">Download all guest consent records</p>
+                  </div>
+                </button>
+              </div>
+
+              <div>
+                <Label variant="dark">Privacy Policy URL</Label>
+                <Input variant="dark" value={gdprSettings.privacy_policy_url} onChange={e => setGdprSettings({ ...gdprSettings, privacy_policy_url: e.target.value })} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={() => toast.success('GDPR settings saved')}><Save size={16} className="mr-2" />Save Privacy Settings</Button>
+          </div>
         </div>
       )}
 

@@ -3,10 +3,14 @@ import {
   SprayCan, CheckCircle2, Sparkles, AlertTriangle,
   Eye, Clock, BedDouble, ArrowUpDown, LogOut, Wrench,
   ShieldCheck, Ban, ChevronDown, ChevronUp, MessageSquare,
+  Users, AlertCircle, Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRooms } from '@/hooks/useRooms';
 import { useBookings } from '@/hooks/useBookings';
+import { exportCSV } from '@/lib/exportUtils';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 import type { Room, HousekeepingStatus } from '@/types';
 
 // ============================================================
@@ -117,6 +121,17 @@ export function HousekeepingPage() {
   const { bookings } = useBookings();
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [sortBy, setSortBy] = useState<'room' | 'floor'>('room');
+
+  // Attendant assignment
+  const [attendants] = useState([
+    { id: 'att-1', name: 'Maria Santos', section: 'Floors 1-2', rooms_assigned: 8, rooms_completed: 5 },
+    { id: 'att-2', name: 'Anna Kowalski', section: 'Floors 3-4', rooms_assigned: 7, rooms_completed: 3 },
+    { id: 'att-3', name: 'Priya Sharma', section: 'Floors 5-6', rooms_assigned: 6, rooms_completed: 6 },
+    { id: 'att-4', name: 'Elena Popov', section: 'Suites', rooms_assigned: 4, rooms_completed: 1 },
+  ]);
+  const [roomAssignments] = useState<Record<string, string>>({});
+  const [showAttendantPanel, setShowAttendantPanel] = useState(false);
+  const [showDiscrepancy, setShowDiscrepancy] = useState(false);
 
   // Refusal dialog state
   const [refusalDialog, setRefusalDialog] = useState<{ open: boolean; roomId: string; roomNumber: string }>({
@@ -240,6 +255,45 @@ export function HousekeepingPage() {
           <ArrowUpDown size={14} />
           Sort: {sortBy === 'room' ? 'Room №' : 'Floor'}
         </button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setShowAttendantPanel(!showAttendantPanel)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border text-xs font-body transition-all duration-200 touch-manipulation',
+              showAttendantPanel ? 'bg-teal/10 border-teal/20 text-teal' : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-steel hover:text-silver'
+            )}
+          >
+            <Users size={14} />
+            Attendants
+          </button>
+          <button
+            onClick={() => setShowDiscrepancy(!showDiscrepancy)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border text-xs font-body transition-all duration-200 touch-manipulation',
+              showDiscrepancy ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-steel hover:text-silver'
+            )}
+          >
+            <AlertCircle size={14} />
+            Discrepancy
+          </button>
+          <button
+            onClick={() => {
+              const rows = rooms.map(r => ({
+                'Room': r.room_number,
+                'Floor': r.floor ?? '',
+                'Status': r.status,
+                'HK Status': r.housekeeping_status,
+                'Attendant': roomAssignments[r.id] ?? 'Unassigned',
+                'Notes': r.notes ?? '',
+              }));
+              exportCSV(rows, `housekeeping-${format(new Date(), 'yyyy-MM-dd')}`);
+              toast.success('Housekeeping report exported');
+            }}
+            className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-steel hover:text-silver text-xs font-body transition-all duration-200 touch-manipulation"
+          >
+            <Download size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -276,6 +330,95 @@ export function HousekeepingPage() {
           );
         })}
       </div>
+
+      {/* Attendant Assignment Panel */}
+      {showAttendantPanel && (
+        <div className="relative glass-panel rounded-xl p-4 sm:p-5 border border-teal/20">
+          <h3 className="text-sm font-display font-semibold text-white mb-3 flex items-center gap-2">
+            <Users size={15} className="text-teal" />
+            Attendant Assignments
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {attendants.map(att => {
+              const progressPct = att.rooms_assigned > 0 ? (att.rooms_completed / att.rooms_assigned) * 100 : 0;
+              return (
+                <div key={att.id} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-teal/10 border border-teal/20 flex items-center justify-center text-[10px] font-display font-bold text-teal">
+                      {att.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <p className="text-xs font-body font-medium text-white">{att.name}</p>
+                      <p className="text-[10px] text-steel font-body">{att.section}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full bg-white/[0.06]">
+                      <div className={cn('h-full rounded-full transition-all', progressPct === 100 ? 'bg-emerald-400' : 'bg-teal')} style={{ width: `${progressPct}%` }} />
+                    </div>
+                    <span className="text-[10px] text-steel font-body">{att.rooms_completed}/{att.rooms_assigned}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <select
+              className="input-dark text-xs py-1.5 px-3 rounded-xl bg-charcoal border border-white/[0.06] flex-1 max-w-[200px]"
+              onChange={(e) => {
+                const att = attendants.find(a => a.id === e.target.value);
+                if (att) toast.success(`Selected ${att.name} — click rooms to assign`);
+              }}
+            >
+              <option value="">Select attendant to assign</option>
+              {attendants.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <p className="text-[11px] text-steel font-body">Select attendant, then click rooms to assign</p>
+          </div>
+        </div>
+      )}
+
+      {/* Discrepancy Report */}
+      {showDiscrepancy && (
+        <div className="relative glass-panel rounded-xl p-4 sm:p-5 border border-amber-500/20">
+          <h3 className="text-sm font-display font-semibold text-white mb-3 flex items-center gap-2">
+            <AlertCircle size={15} className="text-amber-400" />
+            Room Discrepancy Report
+          </h3>
+          <p className="text-xs text-steel font-body mb-3">
+            Rooms where PMS status and housekeeping status don't match — requires investigation.
+          </p>
+          {(() => {
+            const discrepancies = rooms.filter(r => {
+              // Occupied in PMS but clean/inspected in HK (should be occupied)
+              if (r.status === 'occupied' && (r.housekeeping_status === 'clean' || r.housekeeping_status === 'inspected')) return true;
+              // Available in PMS but dirty in HK (should be clean)
+              if (r.status === 'available' && r.housekeeping_status === 'dirty') return true;
+              return false;
+            });
+            if (discrepancies.length === 0) {
+              return (
+                <div className="text-center py-6">
+                  <CheckCircle2 size={24} className="mx-auto text-emerald-400 mb-2" />
+                  <p className="text-xs text-emerald-400 font-body">No discrepancies found — all rooms match</p>
+                </div>
+              );
+            }
+            return (
+              <div className="space-y-1.5">
+                {discrepancies.map(r => (
+                  <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-amber-500/[0.03] border border-amber-500/10 text-xs font-body">
+                    <span className="text-white font-semibold">Room {r.room_number}</span>
+                    <span className="text-steel">PMS: <span className="text-amber-400 capitalize">{r.status}</span></span>
+                    <span className="text-steel">HK: <span className="text-amber-400 capitalize">{r.housekeeping_status}</span></span>
+                    <span className="text-steel/60 ml-auto italic">Needs inspection</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Sections */}
       {sectionOrder.map((key) => {

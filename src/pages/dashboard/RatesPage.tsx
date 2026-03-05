@@ -8,11 +8,46 @@ import { Card, CardContent } from '@/components/ui/Card';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/Dialog';
-import { Plus, Calendar, Edit, Trash2, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react';
+import { Plus, Calendar, Edit, Trash2, ToggleLeft, ToggleRight, AlertTriangle, Tag, Percent, Layers } from 'lucide-react';
 import { format, isAfter, isBefore, isWithinInterval } from 'date-fns';
 import toast from 'react-hot-toast';
+import { cn } from '@/lib/utils';
 import type { RatePeriod } from '@/types';
 import type { RatePeriodFormData } from '@/lib/validators';
+
+// Day-of-week labels
+const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// Promo code type
+interface PromoCode {
+  id: string;
+  code: string;
+  description: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  valid_from: string;
+  valid_until: string;
+  max_uses: number;
+  used_count: number;
+  min_nights: number;
+  is_active: boolean;
+}
+
+// Derived rate plan type
+interface DerivedRatePlan {
+  id: string;
+  name: string;
+  base_rate_id: string;
+  derivation_type: 'percentage' | 'fixed';
+  derivation_value: number;
+  room_type_id: string | null;
+  includes_breakfast: boolean;
+  is_active: boolean;
+}
+
+// DOW pricing adjustment type (used for future API integration)
+type DOWPricing = { id: string; rate_period_id: string; adjustments: Record<number, number> };
+void (0 as unknown as DOWPricing);
 
 export function RatesPage() {
   const { roomTypes, isLoadingTypes } = useRooms();
@@ -23,6 +58,29 @@ export function RatesPage() {
   const [filterRoomType, setFilterRoomType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'periods' | 'derived' | 'dow' | 'promos'>('periods');
+
+  // Promo codes state
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
+    { id: 'promo-1', code: 'WELCOME10', description: '10% off for new guests', discount_type: 'percentage', discount_value: 10, valid_from: '2026-01-01', valid_until: '2026-12-31', max_uses: 100, used_count: 23, min_nights: 2, is_active: true },
+    { id: 'promo-2', code: 'LONGSTAY', description: '£50 off stays of 5+ nights', discount_type: 'fixed', discount_value: 50, valid_from: '2026-01-01', valid_until: '2026-06-30', max_uses: 50, used_count: 8, min_nights: 5, is_active: true },
+    { id: 'promo-3', code: 'SUMMER25', description: '25% summer discount', discount_type: 'percentage', discount_value: 25, valid_from: '2026-06-01', valid_until: '2026-08-31', max_uses: 200, used_count: 0, min_nights: 1, is_active: false },
+  ]);
+  const [showAddPromo, setShowAddPromo] = useState(false);
+  const [newPromo, setNewPromo] = useState({ code: '', description: '', discount_type: 'percentage' as 'percentage' | 'fixed', discount_value: '', valid_from: '', valid_until: '', max_uses: '100', min_nights: '1' });
+
+  // Derived rate plans state
+  const [derivedPlans, setDerivedPlans] = useState<DerivedRatePlan[]>([
+    { id: 'dr-1', name: 'BAR -10%', base_rate_id: '', derivation_type: 'percentage', derivation_value: -10, room_type_id: null, includes_breakfast: false, is_active: true },
+    { id: 'dr-2', name: 'B&B Rate', base_rate_id: '', derivation_type: 'fixed', derivation_value: 25, room_type_id: null, includes_breakfast: true, is_active: true },
+    { id: 'dr-3', name: 'Advance Purchase -15%', base_rate_id: '', derivation_type: 'percentage', derivation_value: -15, room_type_id: null, includes_breakfast: false, is_active: true },
+  ]);
+  const [showAddDerived, setShowAddDerived] = useState(false);
+
+  // DOW pricing adjustments
+  const [dowPricing, setDowPricing] = useState<Record<number, number>>({
+    0: 100, 1: 100, 2: 100, 3: 100, 4: 115, 5: 130, 6: 120,
+  });
 
   if (isLoadingTypes || isLoading) return <PageSpinner />;
 
@@ -165,10 +223,48 @@ export function RatesPage() {
             Manage seasonal rates, pricing rules, and minimum stay requirements
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus size={16} className="mr-2" /> New Rate Period
-        </Button>
+        {activeSubTab === 'periods' && (
+          <Button onClick={openCreate}>
+            <Plus size={16} className="mr-2" /> New Rate Period
+          </Button>
+        )}
+        {activeSubTab === 'promos' && (
+          <Button onClick={() => setShowAddPromo(true)}>
+            <Plus size={16} className="mr-2" /> New Promo Code
+          </Button>
+        )}
+        {activeSubTab === 'derived' && (
+          <Button onClick={() => setShowAddDerived(true)}>
+            <Plus size={16} className="mr-2" /> New Derived Plan
+          </Button>
+        )}
       </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        {([
+          { id: 'periods' as const, label: 'Rate Periods', icon: Calendar },
+          { id: 'derived' as const, label: 'Derived Plans', icon: Layers },
+          { id: 'dow' as const, label: 'Day-of-Week', icon: Percent },
+          { id: 'promos' as const, label: 'Promo Codes', icon: Tag },
+        ]).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSubTab(tab.id)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-body font-medium transition-all whitespace-nowrap',
+              activeSubTab === tab.id
+                ? 'bg-white/[0.1] text-white shadow-sm'
+                : 'text-steel hover:text-silver hover:bg-white/[0.04]'
+            )}
+          >
+            <tab.icon size={14} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeSubTab === 'periods' && (<>
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
@@ -290,6 +386,278 @@ export function RatesPage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      </>)}
+
+      {/* ============================== */}
+      {/* Derived Rate Plans Tab         */}
+      {/* ============================== */}
+      {activeSubTab === 'derived' && (
+        <div className="space-y-4">
+          <p className="text-xs text-steel font-body">
+            Derived rate plans automatically calculate from a base rate (BAR). Instead of setting fixed prices, define an offset or percentage adjustment.
+          </p>
+
+          {showAddDerived && (
+            <Card variant="dark" className="border-teal/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Plan Name</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" placeholder="e.g. B&B Rate" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Derivation Type</label>
+                    <select className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-charcoal border border-white/[0.06]">
+                      <option value="percentage">Percentage (± %)</option>
+                      <option value="fixed">Fixed Amount (± £)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Adjustment Value</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" type="number" placeholder="-10 or +25" />
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-2 text-sm text-silver font-body cursor-pointer pb-2">
+                      <input type="checkbox" className="rounded border-white/20 bg-white/5" />
+                      Includes Breakfast
+                    </label>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => {
+                    setDerivedPlans([...derivedPlans, { id: `dr-${Date.now()}`, name: 'New Plan', base_rate_id: '', derivation_type: 'percentage', derivation_value: 0, room_type_id: null, includes_breakfast: false, is_active: true }]);
+                    setShowAddDerived(false);
+                    toast.success('Derived rate plan created');
+                  }}>
+                    <Plus size={14} className="mr-1" /> Save Plan
+                  </Button>
+                  <Button variant="ghost-dark" size="sm" onClick={() => setShowAddDerived(false)}>Cancel</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-2">
+            {derivedPlans.map(plan => (
+              <Card key={plan.id} variant="dark">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center border text-xs font-display font-bold', plan.is_active ? 'bg-teal/10 border-teal/20 text-teal' : 'bg-white/5 border-white/10 text-steel')}>
+                      <Layers size={16} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-body font-medium text-white">{plan.name}</p>
+                        {plan.includes_breakfast && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-400/10 text-[9px] font-semibold text-amber-400 border border-amber-400/20">B&B</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-steel font-body">
+                        BAR {plan.derivation_value >= 0 ? '+' : ''}{plan.derivation_value}{plan.derivation_type === 'percentage' ? '%' : ''}
+                        {plan.derivation_type === 'fixed' ? ` (£${Math.abs(plan.derivation_value)})` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setDerivedPlans(derivedPlans.map(p => p.id === plan.id ? { ...p, is_active: !p.is_active } : p))}>
+                      {plan.is_active ? <ToggleRight size={20} className="text-emerald-400" /> : <ToggleLeft size={20} className="text-steel" />}
+                    </button>
+                    <button onClick={() => { setDerivedPlans(derivedPlans.filter(p => p.id !== plan.id)); toast.success('Plan deleted'); }} className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* Day-of-Week Pricing Tab        */}
+      {/* ============================== */}
+      {activeSubTab === 'dow' && (
+        <div className="space-y-4">
+          <Card variant="dark">
+            <CardContent className="p-5 space-y-4">
+              <p className="text-xs text-steel font-body">
+                Set day-of-week multipliers applied to all rate periods. 100% = no change, 130% = 30% surcharge. 
+                These multiply your base rate period prices.
+              </p>
+              <div className="grid grid-cols-7 gap-3">
+                {DOW_LABELS.map((day, i) => (
+                  <div key={day} className="text-center space-y-2">
+                    <label className="block text-xs text-steel font-body font-medium">{day}</label>
+                    <input
+                      type="number"
+                      min={50}
+                      max={300}
+                      value={dowPricing[i] ?? 100}
+                      onChange={e => setDowPricing({ ...dowPricing, [i]: parseInt(e.target.value) || 100 })}
+                      className="w-full text-center text-sm py-2 px-1 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white font-body focus:outline-none focus:ring-1 focus:ring-teal/40"
+                    />
+                    <div className={cn('h-1.5 rounded-full mx-auto transition-all', (dowPricing[i] ?? 100) > 100 ? 'bg-gold' : (dowPricing[i] ?? 100) < 100 ? 'bg-blue-400' : 'bg-white/10')} style={{ width: `${Math.min(100, ((dowPricing[i] ?? 100) / 150) * 100)}%` }} />
+                    <p className={cn('text-[10px] font-body', (dowPricing[i] ?? 100) > 100 ? 'text-gold' : (dowPricing[i] ?? 100) < 100 ? 'text-blue-400' : 'text-steel')}>
+                      {(dowPricing[i] ?? 100) === 100 ? 'Base' : `${(dowPricing[i] ?? 100) > 100 ? '+' : ''}${(dowPricing[i] ?? 100) - 100}%`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-white/[0.06]">
+                <button onClick={() => setDowPricing({ 0: 100, 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100 })} className="text-xs text-steel hover:text-silver font-body transition-colors">
+                  Reset All to 100%
+                </button>
+                <Button size="sm" onClick={() => toast.success('Day-of-week pricing saved')}>
+                  Save DOW Pricing
+                </Button>
+              </div>
+
+              {/* Preview with example */}
+              <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-4">
+                <p className="text-[11px] text-steel font-body font-semibold uppercase tracking-wider mb-2">Preview (£150/night base rate)</p>
+                <div className="grid grid-cols-7 gap-2 text-center">
+                  {DOW_LABELS.map((day, i) => (
+                    <div key={day}>
+                      <p className="text-[10px] text-steel font-body">{day}</p>
+                      <p className={cn('text-sm font-display font-bold', (dowPricing[i] ?? 100) > 100 ? 'text-gold' : (dowPricing[i] ?? 100) < 100 ? 'text-blue-400' : 'text-white')}>
+                        £{Math.round(150 * (dowPricing[i] ?? 100) / 100)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* Promo Codes Tab                */}
+      {/* ============================== */}
+      {activeSubTab === 'promos' && (
+        <div className="space-y-4">
+          {/* Add Promo Form */}
+          {showAddPromo && (
+            <Card variant="dark" className="border-teal/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Promo Code</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white uppercase" placeholder="e.g. SUMMER25" value={newPromo.code} onChange={e => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase().replace(/\s/g, '') })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Description</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" placeholder="Summer discount" value={newPromo.description} onChange={e => setNewPromo({ ...newPromo, description: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Discount Type</label>
+                    <select className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-charcoal border border-white/[0.06]" value={newPromo.discount_type} onChange={e => setNewPromo({ ...newPromo, discount_type: e.target.value as 'percentage' | 'fixed' })}>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount (£)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Discount Value</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" type="number" placeholder="10" value={newPromo.discount_value} onChange={e => setNewPromo({ ...newPromo, discount_value: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Valid From</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" type="date" value={newPromo.valid_from} onChange={e => setNewPromo({ ...newPromo, valid_from: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Valid Until</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" type="date" value={newPromo.valid_until} onChange={e => setNewPromo({ ...newPromo, valid_until: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Max Uses</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" type="number" value={newPromo.max_uses} onChange={e => setNewPromo({ ...newPromo, max_uses: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-steel font-body mb-1">Min Nights</label>
+                    <input className="input-dark w-full text-sm py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white" type="number" value={newPromo.min_nights} onChange={e => setNewPromo({ ...newPromo, min_nights: e.target.value })} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => {
+                    if (!newPromo.code) { toast.error('Promo code is required'); return; }
+                    setPromoCodes([...promoCodes, {
+                      id: `promo-${Date.now()}`, code: newPromo.code, description: newPromo.description,
+                      discount_type: newPromo.discount_type, discount_value: parseFloat(newPromo.discount_value) || 0,
+                      valid_from: newPromo.valid_from, valid_until: newPromo.valid_until,
+                      max_uses: parseInt(newPromo.max_uses) || 100, used_count: 0,
+                      min_nights: parseInt(newPromo.min_nights) || 1, is_active: true,
+                    }]);
+                    setNewPromo({ code: '', description: '', discount_type: 'percentage', discount_value: '', valid_from: '', valid_until: '', max_uses: '100', min_nights: '1' });
+                    setShowAddPromo(false);
+                    toast.success('Promo code created');
+                  }}>
+                    <Plus size={14} className="mr-1" /> Create Code
+                  </Button>
+                  <Button variant="ghost-dark" size="sm" onClick={() => setShowAddPromo(false)}>Cancel</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Promo codes list */}
+          <div className="space-y-2">
+            {promoCodes.map(promo => {
+              const usagePct = promo.max_uses > 0 ? (promo.used_count / promo.max_uses) * 100 : 0;
+              return (
+                <Card key={promo.id} variant="dark">
+                  <CardContent className="p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center border text-xs font-display font-bold', promo.is_active ? 'bg-gold/10 border-gold/20 text-gold' : 'bg-white/5 border-white/10 text-steel')}>
+                        <Tag size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded bg-white/[0.06] text-gold font-mono text-xs font-bold">{promo.code}</span>
+                          <p className="text-sm text-silver font-body truncate">{promo.description}</p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-steel font-body">
+                          <span>{promo.discount_type === 'percentage' ? `${promo.discount_value}% off` : `£${promo.discount_value} off`}</span>
+                          <span>·</span>
+                          <span>{promo.min_nights}+ nights</span>
+                          <span>·</span>
+                          <span>{promo.used_count}/{promo.max_uses} used</span>
+                          {promo.valid_from && promo.valid_until && (
+                            <>
+                              <span>·</span>
+                              <span>{format(new Date(promo.valid_from), 'MMM d')} – {format(new Date(promo.valid_until), 'MMM d, yyyy')}</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] w-24">
+                          <div className={cn('h-full rounded-full', usagePct > 80 ? 'bg-red-400' : usagePct > 50 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ width: `${Math.min(100, usagePct)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => setPromoCodes(promoCodes.map(p => p.id === promo.id ? { ...p, is_active: !p.is_active } : p))}>
+                        {promo.is_active ? <ToggleRight size={20} className="text-emerald-400" /> : <ToggleLeft size={20} className="text-steel" />}
+                      </button>
+                      <button onClick={() => { setPromoCodes(promoCodes.filter(p => p.id !== promo.id)); toast.success('Promo code deleted'); }} className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {promoCodes.length === 0 && (
+              <Card variant="dark">
+                <CardContent className="p-8 text-center">
+                  <Tag size={32} className="mx-auto text-steel/30 mb-2" />
+                  <p className="text-sm text-steel font-body">No promo codes yet</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Editor Dialog */}
