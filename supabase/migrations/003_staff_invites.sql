@@ -1,7 +1,23 @@
 -- ============================================================
--- 003 — Staff Invites + permissions column
+-- 003 — Staff Invites + permissions column + missing roles
 -- Enables self-service user management from the dashboard
 -- ============================================================
+
+-- ============================================================
+-- 0. ADD MISSING STAFF ROLES
+--    The original enum only had: owner, manager, receptionist, housekeeping
+--    The app uses 12 roles — add the 8 missing ones.
+-- ============================================================
+
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'general_manager';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'front_office_manager';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'concierge';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'revenue_manager';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'housekeeping_manager';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'maintenance';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'night_auditor';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'finance';
+ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'readonly';
 
 -- ============================================================
 -- 1. STAFF_INVITES TABLE
