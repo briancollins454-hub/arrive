@@ -65,7 +65,9 @@ CREATE POLICY "Staff see own record" ON staff_members
   FOR ALL USING (property_id = get_my_property_id());
 
 CREATE POLICY "Staff see own property folios" ON folio_entries
-  FOR ALL USING (property_id = get_my_property_id());
+  FOR ALL USING (
+    booking_id IN (SELECT id FROM bookings WHERE property_id = get_my_property_id())
+  );
 
 CREATE POLICY "Staff see own property activity" ON activity_log
   FOR ALL USING (property_id = get_my_property_id());
