@@ -44,6 +44,7 @@ import { ManageBookingPage } from '@/pages/booking/ManageBookingPage';
 
 // Pages — Auth & Misc
 import { LoginPage } from '@/pages/LoginPage';
+import { InviteAcceptPage } from '@/pages/InviteAcceptPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 // Layouts
@@ -120,6 +121,7 @@ function App() {
           {/* AUTH                           */}
           {/* ============================== */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
           {/* Landing page */}
           <Route path="/" element={<LoginPage />} />

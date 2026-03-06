@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useProperty } from '@/hooks/useProperty';
+import { useStaff } from '@/hooks/useStaff';
+import type { StaffInvite } from '@/hooks/useStaff';
+import { isDemoMode } from '@/lib/supabase';
 import { PageSpinner } from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -13,7 +16,7 @@ import {
   CreditCard, Smartphone, Wifi, Signal, Receipt, Ban, Plus,
   ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
   CalendarClock, Network, BookOpen, ShieldCheck, Download,
-  FileDown, UserX, AlertCircle,
+  FileDown, UserX, AlertCircle, Copy, Link2, Loader2,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -30,6 +33,18 @@ import type { StaffRole, TaxRule, CancellationPolicy, CancellationPolicyType, Fo
 // ============================================================
 // Types
 // ============================================================
+
+/** Internal display type that maps DB permissions JSONB to arrays */
+interface StaffDisplayMember {
+  id: string;
+  name: string;
+  email: string;
+  role: StaffRole;
+  is_active: boolean;
+  created_at: string;
+  grantedPermissions: Permission[];
+  revokedPermissions: Permission[];
+}
 
 interface SettingsFormValues {
   name: string;
@@ -52,17 +67,24 @@ interface SettingsFormValues {
   accent_color: string;
 }
 
-interface DemoStaffMember {
-  id: string;
-  name: string;
-  email: string;
-  role: StaffRole;
-  is_active: boolean;
-  last_login: string | null;
-  /** Permissions granted beyond the role default */
-  grantedPermissions: Permission[];
-  /** Permissions revoked from the role default */
-  revokedPermissions: Permission[];
+/** Parse the DB permissions JSONB into display arrays */
+function toDisplayMember(s: import('@/types').StaffMember): StaffDisplayMember {
+  const perms = (s.permissions ?? {}) as { granted?: string[]; revoked?: string[] };
+  return {
+    id: s.id,
+    name: s.name,
+    email: s.email,
+    role: s.role as StaffRole,
+    is_active: s.is_active,
+    created_at: s.created_at,
+    grantedPermissions: (perms.granted ?? []) as Permission[],
+    revokedPermissions: (perms.revoked ?? []) as Permission[],
+  };
+}
+
+/** Convert display permission arrays back to DB JSONB format */
+function toDbPermissions(granted: Permission[], revoked: Permission[]): Record<string, unknown> {
+  return { granted, revoked };
 }
 
 interface NightAuditSettings {
@@ -74,26 +96,7 @@ interface NightAuditSettings {
   summary_email_to: string;
 }
 
-// ============================================================
-// Demo data
-// ============================================================
-
-const initialStaff: DemoStaffMember[] = [
-  { id: 's1', name: 'Alex Thompson', email: 'alex@arrive-hotel.com', role: 'owner', is_active: true, last_login: '2026-02-27T08:14:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's2', name: 'Rachel Davies', email: 'rachel@arrive-hotel.com', role: 'general_manager', is_active: true, last_login: '2026-02-27T07:45:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's3', name: 'Tom Parker', email: 'tom@arrive-hotel.com', role: 'front_office_manager', is_active: true, last_login: '2026-02-26T22:30:00Z', grantedPermissions: ['rates.manage'], revokedPermissions: [] },
-  { id: 's4', name: 'Lucy Morgan', email: 'lucy@arrive-hotel.com', role: 'receptionist', is_active: true, last_login: '2026-02-26T14:10:00Z', grantedPermissions: [], revokedPermissions: ['bookings.cancel'] },
-  { id: 's5', name: 'Jake Evans', email: 'jake@arrive-hotel.com', role: 'housekeeping_manager', is_active: true, last_login: '2026-02-27T06:00:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's6', name: 'Sarah Miller', email: 'sarah.m@arrive-hotel.com', role: 'receptionist', is_active: false, last_login: '2026-01-15T09:30:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's7', name: 'James Wilson', email: 'james@arrive-hotel.com', role: 'revenue_manager', is_active: true, last_login: '2026-02-26T16:45:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's8', name: 'Emma Clark', email: 'emma@arrive-hotel.com', role: 'concierge', is_active: true, last_login: '2026-02-27T06:30:00Z', grantedPermissions: ['guests.edit'], revokedPermissions: [] },
-  { id: 's9', name: 'Chris Webb', email: 'chris@arrive-hotel.com', role: 'night_auditor', is_active: true, last_login: '2026-02-27T02:15:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's10', name: 'Nina Patel', email: 'nina@arrive-hotel.com', role: 'finance', is_active: true, last_login: '2026-02-26T11:00:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's11', name: 'Dave Brown', email: 'dave@arrive-hotel.com', role: 'housekeeping', is_active: true, last_login: '2026-02-27T05:50:00Z', grantedPermissions: [], revokedPermissions: [] },
-  { id: 's12', name: 'Mark Taylor', email: 'mark@arrive-hotel.com', role: 'maintenance', is_active: true, last_login: '2026-02-26T09:30:00Z', grantedPermissions: [], revokedPermissions: [] },
-];
-
-// Role permissions & colors now imported from centralized RBAC module
+// Role permissions & colours now imported from centralised RBAC module
 
 // ============================================================
 // Tab Config
@@ -124,13 +127,22 @@ export function SettingsPage() {
   const { property, setProperty } = useProperty();
   const [activeTab, setActiveTab] = useState<TabId>('property');
 
-  // Staff management state
-  const [staff, setStaff] = useState<DemoStaffMember[]>(initialStaff);
+  // Staff management — live Supabase data
+  const {
+    staff: rawStaff, isLoadingStaff,
+    invites, // isLoadingInvites available if needed
+    sendInvite, revokeInvite,
+    updateStaff, toggleActive, deleteStaff, changeRole,
+  } = useStaff();
+  const staff: StaffDisplayMember[] = rawStaff.map(toDisplayMember);
+
+  // Local UI state for user management
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingPermissionsId, setEditingPermissionsId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'receptionist' as StaffRole });
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
   const keyCard = useKeyCard();
   const [showMasterKeyModal, setShowMasterKeyModal] = useState(false);
   const [masterKeyCards, setMasterKeyCards] = useState<import('@/hooks/useKeyCard').KeyCard[]>([]);
@@ -337,106 +349,120 @@ export function SettingsPage() {
     toast.success('Settings saved');
   };
 
-  // Staff handlers
-  const handleAddUser = () => {
+  // Staff handlers — persisted to Supabase
+  const handleAddUser = async () => {
     if (!newUser.name || !newUser.email) { toast.error('Name and email are required'); return; }
-    const id = 's' + (staff.length + 1);
-    setStaff([...staff, { id, name: newUser.name, email: newUser.email, role: newUser.role, is_active: true, last_login: null, grantedPermissions: [], revokedPermissions: [] }]);
-    setNewUser({ name: '', email: '', role: 'receptionist' });
-    setShowAddUser(false);
-    toast.success(`${newUser.name} added as ${getRoleLabel(newUser.role)}`);
+    try {
+      await sendInvite.mutateAsync({ name: newUser.name, email: newUser.email, role: newUser.role });
+      toast.success(`Invite sent to ${newUser.email}`);
+      setNewUser({ name: '', email: '', role: 'receptionist' });
+      setShowAddUser(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+    }
   };
 
   const handleToggleActive = (id: string) => {
     const member = staff.find(s => s.id === id);
-    setStaff(staff.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s));
-    toast.success(`${member?.name} ${member?.is_active ? 'deactivated' : 'activated'}`);
+    if (!member) return;
+    toggleActive.mutate({ id, is_active: !member.is_active });
   };
 
   const handleDeleteUser = (id: string) => {
     const member = staff.find(s => s.id === id);
     if (member?.role === 'owner') { toast.error('Cannot remove owner account'); return; }
-    setStaff(staff.filter(s => s.id !== id));
-    toast.success(`${member?.name} removed`);
+    deleteStaff.mutate(id);
   };
 
   const handleChangeRole = (id: string, role: StaffRole) => {
-    setStaff(staff.map(s => s.id === id ? { ...s, role, grantedPermissions: [], revokedPermissions: [] } : s));
+    changeRole.mutate({ id, role });
     setEditingUserId(null);
-    toast.success('Role updated — custom permissions reset');
+  };
+
+  /** Persist permission changes to Supabase */
+  const persistPermissions = (userId: string, granted: Permission[], revoked: Permission[]) => {
+    updateStaff.mutate({ id: userId, permissions: toDbPermissions(granted, revoked) as Record<string, boolean> });
   };
 
   /** Toggle a single permission for a specific user — cycles: role-default → granted/revoked → back */
   const handleTogglePermission = (userId: string, permission: Permission) => {
-    setStaff(staff.map(s => {
-      if (s.id !== userId) return s;
-      const rolePerms = ROLE_DEFINITIONS[s.role].permissions;
-      const isRoleDefault = rolePerms.includes(permission);
-      const isGranted = s.grantedPermissions.includes(permission);
-      const isRevoked = s.revokedPermissions.includes(permission);
+    const member = staff.find(s => s.id === userId);
+    if (!member) return;
+    const rolePerms = ROLE_DEFINITIONS[member.role].permissions;
+    const isRoleDefault = rolePerms.includes(permission);
+    const isGranted = member.grantedPermissions.includes(permission);
+    const isRevoked = member.revokedPermissions.includes(permission);
 
-      if (isRoleDefault) {
-        // Default ON → toggle to revoked (OFF)
-        if (!isRevoked) {
-          return { ...s, revokedPermissions: [...s.revokedPermissions, permission] };
-        }
-        // Was revoked → restore to role default (ON)
-        return { ...s, revokedPermissions: s.revokedPermissions.filter(p => p !== permission) };
+    let newGranted = [...member.grantedPermissions];
+    let newRevoked = [...member.revokedPermissions];
+
+    if (isRoleDefault) {
+      if (!isRevoked) {
+        newRevoked.push(permission);
       } else {
-        // Default OFF → toggle to granted (ON)
-        if (!isGranted) {
-          return { ...s, grantedPermissions: [...s.grantedPermissions, permission] };
-        }
-        // Was granted → remove override (OFF)
-        return { ...s, grantedPermissions: s.grantedPermissions.filter(p => p !== permission) };
+        newRevoked = newRevoked.filter(p => p !== permission);
       }
-    }));
+    } else {
+      if (!isGranted) {
+        newGranted.push(permission);
+      } else {
+        newGranted = newGranted.filter(p => p !== permission);
+      }
+    }
+    persistPermissions(userId, newGranted, newRevoked);
   };
 
   /** Grant all permissions in a group */
   const handleGrantGroup = (userId: string, permissions: Permission[]) => {
-    setStaff(staff.map(s => {
-      if (s.id !== userId) return s;
-      const rolePerms = ROLE_DEFINITIONS[s.role].permissions;
-      let newGranted = [...s.grantedPermissions];
-      let newRevoked = [...s.revokedPermissions];
-      for (const p of permissions) {
-        const isDefault = rolePerms.includes(p);
-        if (isDefault) {
-          newRevoked = newRevoked.filter(r => r !== p);
-        } else if (!newGranted.includes(p)) {
-          newGranted.push(p);
-        }
+    const member = staff.find(s => s.id === userId);
+    if (!member) return;
+    const rolePerms = ROLE_DEFINITIONS[member.role].permissions;
+    const newGranted = [...member.grantedPermissions];
+    let newRevoked = [...member.revokedPermissions];
+    for (const p of permissions) {
+      const isDefault = rolePerms.includes(p);
+      if (isDefault) {
+        newRevoked = newRevoked.filter(r => r !== p);
+      } else if (!newGranted.includes(p)) {
+        newGranted.push(p);
       }
-      return { ...s, grantedPermissions: newGranted, revokedPermissions: newRevoked };
-    }));
+    }
+    persistPermissions(userId, newGranted, newRevoked);
     toast.success('Group permissions granted');
   };
 
   /** Revoke all permissions in a group */
   const handleRevokeGroup = (userId: string, permissions: Permission[]) => {
-    setStaff(staff.map(s => {
-      if (s.id !== userId) return s;
-      const rolePerms = ROLE_DEFINITIONS[s.role].permissions;
-      let newGranted = [...s.grantedPermissions];
-      let newRevoked = [...s.revokedPermissions];
-      for (const p of permissions) {
-        const isDefault = rolePerms.includes(p);
-        if (isDefault && !newRevoked.includes(p)) {
-          newRevoked.push(p);
-        } else if (!isDefault) {
-          newGranted = newGranted.filter(g => g !== p);
-        }
+    const member = staff.find(s => s.id === userId);
+    if (!member) return;
+    const rolePerms = ROLE_DEFINITIONS[member.role].permissions;
+    let newGranted = [...member.grantedPermissions];
+    const newRevoked = [...member.revokedPermissions];
+    for (const p of permissions) {
+      const isDefault = rolePerms.includes(p);
+      if (isDefault && !newRevoked.includes(p)) {
+        newRevoked.push(p);
+      } else if (!isDefault) {
+        newGranted = newGranted.filter(g => g !== p);
       }
-      return { ...s, grantedPermissions: newGranted, revokedPermissions: newRevoked };
-    }));
+    }
+    persistPermissions(userId, newGranted, newRevoked);
     toast.success('Group permissions revoked');
   };
 
   /** Reset all custom overrides for a user back to role defaults */
   const handleResetPermissions = (userId: string) => {
-    setStaff(staff.map(s => s.id === userId ? { ...s, grantedPermissions: [], revokedPermissions: [] } : s));
+    persistPermissions(userId, [], []);
     toast.success('Permissions reset to role defaults');
+  };
+
+  /** Copy invite link to clipboard */
+  const handleCopyInviteLink = (invite: StaffInvite) => {
+    const url = `${window.location.origin}/invite/${invite.token}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInviteId(invite.id);
+    toast.success('Invite link copied');
+    setTimeout(() => setCopiedInviteId(null), 2000);
   };
 
   const toggleGroup = (label: string) => {
@@ -882,9 +908,12 @@ export function SettingsPage() {
       {activeTab === 'users' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-steel font-body">{staff.filter(s => s.is_active).length} active users</p>
-            <Button onClick={() => setShowAddUser(!showAddUser)}>
-              <UserPlus size={16} className="mr-2" />Add User
+            <p className="text-sm text-steel font-body">
+              {isLoadingStaff ? 'Loading…' : `${staff.filter(s => s.is_active).length} active users`}
+              {invites.length > 0 && <span className="text-gold ml-2">· {invites.length} pending invite{invites.length !== 1 ? 's' : ''}</span>}
+            </p>
+            <Button onClick={() => setShowAddUser(!showAddUser)} disabled={sendInvite.isPending}>
+              <UserPlus size={16} className="mr-2" />{isDemoMode ? 'Add User' : 'Invite User'}
             </Button>
           </div>
 
@@ -892,7 +921,7 @@ export function SettingsPage() {
             <Card variant="dark" className="animate-in slide-in-from-top-2 duration-200">
               <CardHeader>
                 <CardTitle className="text-white text-base flex items-center gap-2">
-                  <UserPlus size={16} className="text-teal" /> Add New User
+                  <UserPlus size={16} className="text-teal" /> {isDemoMode ? 'Add New User' : 'Invite New User'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -914,14 +943,70 @@ export function SettingsPage() {
                     </select>
                   </div>
                 </div>
+                {!isDemoMode && (
+                  <p className="text-[11px] text-steel/60 font-body">
+                    An invite link will be generated. Share it with the user — they'll create a password and get access.
+                  </p>
+                )}
                 <div className="flex justify-end gap-2">
                   <Button variant="ghost-dark" onClick={() => setShowAddUser(false)}>Cancel</Button>
-                  <Button onClick={handleAddUser}><Check size={14} className="mr-1" /> Add User</Button>
+                  <Button onClick={handleAddUser} disabled={sendInvite.isPending}>
+                    {sendInvite.isPending ? <><Loader2 size={14} className="mr-1 animate-spin" /> Sending…</> : <><Check size={14} className="mr-1" /> {isDemoMode ? 'Add User' : 'Send Invite'}</>}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
+          {/* ── Pending Invites ────────────────────────────────────── */}
+          {invites.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-gold/80 font-body font-semibold flex items-center gap-1.5">
+                <Link2 size={12} /> Pending Invites
+              </p>
+              {invites.map(inv => (
+                <Card key={inv.id} variant="dark" className="border-gold/10">
+                  <CardContent className="py-3">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold font-display text-sm shrink-0">
+                        {inv.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-body font-medium text-sm truncate">{inv.name}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="flex items-center gap-1 text-xs text-steel font-body"><Mail size={11} /> {inv.email}</span>
+                          <span className="text-[10px] text-gold bg-gold/10 border border-gold/20 px-1.5 py-0.5 rounded-full font-body">
+                            {getRoleLabel(inv.role as StaffRole)}
+                          </span>
+                          <span className="text-[10px] text-steel/50 font-body">
+                            Expires {new Date(inv.expires_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleCopyInviteLink(inv)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body text-teal hover:bg-teal/10 border border-teal/20 transition-all"
+                          title="Copy invite link"
+                        >
+                          {copiedInviteId === inv.id ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy Link</>}
+                        </button>
+                        <button
+                          onClick={() => revokeInvite.mutate(inv.id)}
+                          className="p-2 rounded-lg text-steel hover:text-red-400 hover:bg-red-400/10 transition-all"
+                          title="Revoke invite"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* ── Staff Members ──────────────────────────────────────── */}
           <div className="space-y-3">
             {staff.map(member => (
               <Card key={member.id} variant="dark" className={cn(!member.is_active && 'opacity-50')}>
@@ -939,8 +1024,8 @@ export function SettingsPage() {
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="flex items-center gap-1 text-xs text-steel font-body"><Mail size={11} /> {member.email}</span>
-                        {member.last_login && (
-                          <span className="text-[11px] text-steel/60 font-body">Last login: {new Date(member.last_login).toLocaleDateString()}</span>
+                        {member.created_at && (
+                          <span className="text-[11px] text-steel/60 font-body">Added {new Date(member.created_at).toLocaleDateString()}</span>
                         )}
                       </div>
                     </div>

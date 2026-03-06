@@ -68,6 +68,20 @@ export function useAuth() {
       if (property) {
         setProperty(property);
       }
+    } else {
+      // No staff_members row — check if user has a pending invite to accept
+      const { data: authUser } = await supabase.auth.getUser();
+      const inviteToken = authUser?.user?.user_metadata?.invite_token;
+      if (inviteToken) {
+        const { data: result } = await supabase.rpc('accept_invite', {
+          invite_token: inviteToken,
+          new_user_id: userId,
+        });
+        if (result?.success) {
+          // Retry loading staff after accepting
+          await loadStaffAndProperty(userId);
+        }
+      }
     }
   }
 
