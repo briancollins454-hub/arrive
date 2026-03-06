@@ -16,6 +16,7 @@ import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRBAC } from '@/hooks/useRBAC';
+import { useAppStore } from '@/store/useAppStore';
 import { isDemoMode } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import type { StaffRole } from '@/types';
@@ -339,6 +340,8 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
   const location = useLocation();
   const show = isMobile || !collapsed; // mobile drawer always expanded
   const { currentRole, canAccessRoute, switchRole, roleLabel, roleColor, roleDefinitions } = useRBAC();
+  const staff = useAppStore((s) => s.staff);
+  const user = useAppStore((s) => s.user);
   const [showRolePicker, setShowRolePicker] = useState(false);
 
   // Filter nav sections: only show items the current role can access
@@ -500,11 +503,11 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
         {show && (
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-white/[0.04] to-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/50 to-teal/40 flex items-center justify-center text-[11px] font-bold text-white font-body ring-2 ring-gold/25 shadow-[0_0_16px_rgba(201,168,76,0.2)] animate-breathe">
-              AD
+              {(staff?.name ?? user?.email ?? 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-white font-medium truncate font-body tracking-wide">
-                {isDemoMode ? 'Alex Demo' : 'Manager'}
+                {staff?.name ?? user?.email ?? 'User'}
               </p>
               <p className={cn('text-[10px] truncate font-body font-semibold', roleColor)}>
                 {roleLabel}
