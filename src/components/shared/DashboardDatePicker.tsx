@@ -169,7 +169,7 @@ export const DashboardDatePicker: FC<DashboardDatePickerProps> = ({
   const allPresets = presets.includes('custom') ? presets : [...presets, 'custom'] as PresetPeriod[];
 
   return (
-    <div className={cn('flex items-center gap-1.5 flex-wrap', className)} ref={calRef}>
+    <div className={cn('relative flex items-center gap-1.5 flex-wrap', className)} ref={calRef}>
       {/* Preset buttons */}
       {allPresets.map(p => (
         <button
@@ -201,10 +201,11 @@ export const DashboardDatePicker: FC<DashboardDatePickerProps> = ({
       {showCalendar && (
         <div className={cn(
           'absolute top-full mt-2 z-50 p-4 rounded-xl shadow-xl animate-fade-in w-[300px]',
+          'left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0',
           isDark
             ? 'bg-[#0f1724] border border-white/10'
             : 'bg-white border border-charcoal/10 shadow-lg',
-        )} style={{ right: 0 }}>
+        )}>
           {/* Header */}
           <div className="flex items-center justify-between mb-3">
             <button
