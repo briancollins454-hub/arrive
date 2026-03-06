@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/shared/Logo';
 import { PropertySwitcher } from '@/components/dashboard/PropertySwitcher';
 import { useProperty } from '@/hooks/useProperty';
+import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRBAC } from '@/hooks/useRBAC';
 import { isDemoMode } from '@/lib/supabase';
@@ -87,6 +88,8 @@ export function DashboardLayout() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  // Initialize auth — loads staff + property from Supabase on session restore
+  useAuth();
   const { property } = useProperty();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const navigate = useNavigate();

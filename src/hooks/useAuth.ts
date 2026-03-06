@@ -49,24 +49,44 @@ export function useAuth() {
   async function loadStaffAndProperty(userId: string) {
     if (isDemoMode) return;
 
-    const { data: staff } = await supabase
+    console.log('[Arrivé Auth] Loading staff for user:', userId);
+
+    const { data: staff, error: staffError } = await supabase
       .from('staff_members')
       .select('*')
       .eq('id', userId)
       .single();
 
+    console.log('[Arrivé Auth] Staff result:', staff, 'Error:', staffError);
+
     if (staff) {
       setStaff(staff);
       setCurrentRole(staff.role as StaffRole);
 
-      const { data: property } = await supabase
+      // Load permission overrides from the staff row
+      const perms = (staff.permissions ?? {}) as { granted?: string[]; revoked?: string[] };
+      setPermissionOverrides({
+        granted: (perms.granted ?? []) as Permission[],
+        revoked: (perms.revoked ?? []) as Permission[],
+      });
+
+      const { data: property, error: propError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', staff.property_id)
         .single();
 
+      console.log('[Arrivé Auth] Property result:', property, 'Error:', propError);
+
       if (property) {
         setProperty(property);
+        // Also populate the properties array so useProperty works in live mode
+        const setProperties = useAppStore.getState().setProperties;
+        const setActivePropertyId = useAppStore.getState().setActivePropertyId;
+        setProperties([property]);
+        setActivePropertyId(property.id);
+      } else {
+        console.error('[Arrivé Auth] Property not found for property_id:', staff.property_id);
       }
     } else {
       // No staff_members row — check if user has a pending invite to accept

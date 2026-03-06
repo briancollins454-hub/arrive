@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { isDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode } from '@/lib/supabase';
 import type { Property } from '@/types';
 
 /** Demo properties — multi-hotel portfolio for demonstration */
@@ -137,12 +138,48 @@ export function useProperty() {
   const setProperty = useAppStore((s) => s.setProperty);
   const setProperties = useAppStore((s) => s.setProperties);
   const setActivePropertyId = useAppStore((s) => s.setActivePropertyId);
+  const user = useAppStore((s) => s.user);
+
+  // Self-healing: if authenticated in live mode but property is missing, load it once
+  const triedLoading = useRef(false);
+  useEffect(() => {
+    if (isDemoMode || !user || property || triedLoading.current) return;
+    triedLoading.current = true;
+
+    let cancelled = false;
+    (async () => {
+      // Load staff → property for the authenticated user
+      const { data: staff } = await supabase
+        .from('staff_members')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (cancelled || !staff) return;
+
+      const { data: prop } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', staff.property_id)
+        .single();
+
+      if (cancelled || !prop) return;
+
+      setProperty(prop);
+      setProperties([prop]);
+      setActivePropertyId(prop.id);
+    })();
+
+    return () => { cancelled = true; };
+  }, [isDemoMode, user, property, setProperty, setProperties, setActivePropertyId]);
 
   const allProperties = isDemoMode ? demoProperties : properties;
   const activeId = isDemoMode ? (activePropertyId ?? 'demo-property-id') : activePropertyId;
+  // In live mode, always fall back to the single `property` from the store
+  // (set by useAuth's loadStaffAndProperty) if the properties array is empty
   const activeProperty = activeId
-    ? allProperties.find((p) => p.id === activeId) ?? allProperties[0] ?? null
-    : allProperties[0] ?? property;
+    ? allProperties.find((p) => p.id === activeId) ?? allProperties[0] ?? property ?? null
+    : allProperties[0] ?? property ?? null;
 
   const isGroupView = activeId === null || activeId === 'all';
   const hasMultipleProperties = allProperties.length > 1;

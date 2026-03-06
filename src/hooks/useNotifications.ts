@@ -37,15 +37,17 @@ export function useNotifications() {
     queryKey: ['notifications', queryKeyPropId],
     queryFn: async () => {
       if (isDemoMode) return demoNotifications;
+      if (!propertyId) return []; // No property loaded yet — skip live query
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('property_id', queryKeyPropId)
+        .eq('property_id', propertyId)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
       return data as Notification[];
     },
+    enabled: isDemoMode || !!propertyId,
   });
 
   const markRead = useMutation({
