@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { format, subDays, differenceInDays, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import type { BookingSource, Booking, FolioEntry } from '@/types';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 interface OTAChannel {
   id: BookingSource;
   name: string;
@@ -38,34 +40,29 @@ const OTA_CHANNELS: OTAChannel[] = [
   { id: 'phone', name: 'Phone / Walk-in', logo: 'PH', color: '#64748b', commissionRate: 0, connected: true, lastSync: new Date(), status: 'active' },
 ];
 
-function getChannelStats(bookings: Booking[], folioEntries: FolioEntry[], channelId: BookingSource) {
+function getChannelStats(bookings: Booking[], folioEntries: FolioEntry[], channelId: BookingSource, range: DateRange) {
   const channelBookings = bookings.filter(b =>
     b.source === channelId && b.status !== 'cancelled' && b.status !== 'no_show'
   );
   const channelBookingIds = new Set(channelBookings.map(b => b.id));
   const channelCharges = folioEntries.filter(e => channelBookingIds.has(e.booking_id) && e.type === 'charge' && !e.is_voided);
 
-  const now = new Date();
-  const mStart = startOfMonth(now);
-  const mEnd = endOfMonth(now);
-  const last30 = subDays(now, 30);
+  const rStart = startOfDay(range.start);
+  const rEnd = endOfDay(range.end);
 
   // Filter by stay dates (check-in/check-out overlap) not created_at
   const thisMonth = channelBookings.filter(b => {
     const ci = parseISO(b.check_in);
     const co = parseISO(b.check_out);
-    return ci <= mEnd && co >= mStart;
+    return ci <= rEnd && co >= rStart;
   });
 
-  const recent = channelBookings.filter(b => {
-    const ci = parseISO(b.check_in);
-    return ci >= last30;
-  });
+  const recent = thisMonth;
 
   const totalRevenue = channelCharges.reduce((s, e) => s + e.amount, 0);
   const monthCharges = channelCharges.filter(e => {
     const d = parseISO(e.posted_at);
-    return isWithinInterval(d, { start: mStart, end: mEnd });
+    return isWithinInterval(d, { start: rStart, end: rEnd });
   });
   const monthRevenue = monthCharges.reduce((s, e) => s + e.amount, 0);
   const avgRate = channelBookings.length > 0
@@ -95,6 +92,7 @@ export function ChannelManagerPage() {
   const { allEntries: folioEntries } = useAllFolios((bookings ?? []).map(b => b.id));
   const [activeTab, setActiveTab] = useState<ViewTab>('connections');
   const [syncingChannel, setSyncingChannel] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));
 
   const allBookings = bookings ?? [];
   const allRoomTypes = roomTypes ?? [];
@@ -106,9 +104,9 @@ export function ChannelManagerPage() {
   const channelPerformance = useMemo(() => {
     return OTA_CHANNELS.map(ch => ({
       ...ch,
-      stats: getChannelStats(allBookings, allFolioEntries, ch.id),
+      stats: getChannelStats(allBookings, allFolioEntries, ch.id, dateRange),
     }));
-  }, [allBookings, allFolioEntries]);
+  }, [allBookings, allFolioEntries, dateRange]);
 
   const totalMonthRevenue = channelPerformance.reduce((s, c) => s + c.stats.monthRevenue, 0);
   const totalBookingsCount = channelPerformance.reduce((s, c) => s + c.stats.totalBookings, 0);
@@ -179,6 +177,15 @@ export function ChannelManagerPage() {
             Sync All
           </Button>
         </div>
+      </div>
+
+      {/* Date Range Picker */}
+      <div>
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['week', 'month', 'quarter', 'year']}
+        />
       </div>
 
       {/* Quick KPIs */}

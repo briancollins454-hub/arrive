@@ -12,9 +12,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/Dialog';
 import { BookingForm } from '@/components/dashboard/BookingForm';
-import { Plus, Search, List, LayoutGrid, LogIn, LogOut as LogOutIcon, Printer, CalendarDays, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Plus, Search, List, LayoutGrid, LogIn, LogOut as LogOutIcon, Printer, Download } from 'lucide-react';
 import { exportCSV } from '@/lib/exportUtils';
-import { isSameDay, format, differenceInDays, addDays, subDays } from 'date-fns';
+import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { BookingFormData } from '@/lib/validators';
 import type { BookingStatus } from '@/types';
@@ -23,6 +23,8 @@ import { useKeyCard } from '@/hooks/useKeyCard';
 import { KeyCardModal } from '@/components/dashboard/KeyCardModal';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 const STATUS_FILTERS: { label: string; value: BookingStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -45,8 +47,8 @@ export function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all');
   const [showNewBooking, setShowNewBooking] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'rooms'>('list');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const isToday = isSameDay(selectedDate, new Date());
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('today'));
+
   const keyCard = useKeyCard();
   const [showKeyCardModal, setShowKeyCardModal] = useState(false);
   const [keyCardBookingId, setKeyCardBookingId] = useState<string | null>(null);
@@ -62,14 +64,25 @@ export function BookingsPage() {
   if (isLoading || isLoadingRooms) return <PageSpinner />;
 
   const filtered = bookings.filter((b) => {
-    // Arrivals / Departures view filter — uses selectedDate
+    // Arrivals / Departures view filter — uses dateRange
     if (viewParam === 'arrivals') {
-      if (!isSameDay(new Date(b.check_in), selectedDate)) return false;
+      const ci = new Date(b.check_in);
+      if (!isWithinInterval(ci, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })) return false;
       if (b.status === 'cancelled' || b.status === 'no_show') return false;
     }
     if (viewParam === 'departures') {
-      if (!isSameDay(new Date(b.check_out), selectedDate)) return false;
+      const co = new Date(b.check_out);
+      if (!isWithinInterval(co, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })) return false;
       if (b.status !== 'checked_in' && b.status !== 'checked_out') return false;
+    }
+    // General list view — filter by date range
+    if (!viewParam) {
+      const ci = new Date(b.check_in);
+      const co = new Date(b.check_out);
+      const inRange = isWithinInterval(ci, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })
+        || isWithinInterval(co, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })
+        || (ci <= startOfDay(dateRange.start) && co >= endOfDay(dateRange.end));
+      if (!inRange) return false;
     }
 
     const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
@@ -194,9 +207,9 @@ export function BookingsPage() {
           </h1>
           <p className="text-sm text-steel font-body tracking-wide">
             {viewParam === 'arrivals'
-              ? `${filtered.length} arriving ${isToday ? 'today' : format(selectedDate, 'EEE, d MMM')}`
+              ? `${filtered.length} arriving – ${dateRange.label}`
               : viewParam === 'departures'
-              ? `${filtered.length} departing ${isToday ? 'today' : format(selectedDate, 'EEE, d MMM')}`
+              ? `${filtered.length} departing – ${dateRange.label}`
               : `${bookings.length} total bookings`}
           </p>
         </div>
@@ -293,74 +306,14 @@ export function BookingsPage() {
         </div>
       </div>
 
-      {/* Date Picker — shown for Arrivals/Departures views */}
-      {viewParam && (
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setSelectedDate(d => subDays(d, 1))}
-              className="p-2 rounded-xl text-steel hover:text-white hover:bg-white/[0.06] transition-all duration-200"
-              title="Previous day"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            <div className="relative">
-              <input
-                type="date"
-                value={format(selectedDate, 'yyyy-MM-dd')}
-                onChange={(e) => e.target.value && setSelectedDate(new Date(e.target.value + 'T12:00:00'))}
-                className="input-dark px-3 py-2 rounded-xl text-sm font-body w-[180px] text-center cursor-pointer [color-scheme:dark]"
-              />
-            </div>
-
-            <button
-              onClick={() => setSelectedDate(d => addDays(d, 1))}
-              className="p-2 rounded-xl text-steel hover:text-white hover:bg-white/[0.06] transition-all duration-200"
-              title="Next day"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          {!isToday && (
-            <button
-              onClick={() => setSelectedDate(new Date())}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-body font-semibold text-teal bg-teal/10 border border-teal/20 hover:bg-teal/20 transition-all duration-200"
-            >
-              <CalendarDays size={13} />
-              Today
-            </button>
-          )}
-
-          {/* Quick day shortcuts */}
-          <div className="flex items-center gap-1 ml-2">
-            {[-2, -1, 0, 1, 2, 3].map((offset) => {
-              const d = addDays(new Date(), offset);
-              const isSelected = isSameDay(d, selectedDate);
-              const isTodayChip = offset === 0;
-              return (
-                <button
-                  key={offset}
-                  onClick={() => setSelectedDate(d)}
-                  className={cn(
-                    'px-2.5 py-1.5 rounded-lg text-[11px] font-body transition-all duration-200 min-w-[52px] text-center',
-                    isSelected
-                      ? 'bg-gold/20 text-gold font-semibold border border-gold/25 shadow-[0_0_8px_rgba(201,168,76,0.1)]'
-                      : 'text-steel hover:text-silver hover:bg-white/[0.04]',
-                    isTodayChip && !isSelected && 'text-teal/80'
-                  )}
-                >
-                  <div className="leading-tight">
-                    <div className="text-[9px] uppercase tracking-wide">{format(d, 'EEE')}</div>
-                    <div>{format(d, 'd MMM')}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Date Picker — always shown */}
+      <div className="mb-6">
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['today', 'week', 'month', 'year']}
+        />
+      </div>
 
       {/* Room Map View */}
       {viewMode === 'rooms' && !viewParam && (

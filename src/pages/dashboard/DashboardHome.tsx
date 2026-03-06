@@ -22,8 +22,10 @@ import {
 import { BookingForm } from '@/components/dashboard/BookingForm';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { isSameDay, subDays, format, differenceInDays } from 'date-fns';
+import { subDays, format, differenceInDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import type { BookingFormData } from '@/lib/validators';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 // Mini bar chart for weekly revenue
 function RevenueChart({ data }: { data: { label: string; value: number; max: number }[] }) {
@@ -115,28 +117,28 @@ export function DashboardHome() {
   const [showKeyCardModal, setShowKeyCardModal] = useState(false);
   const [keyCardBookingId, setKeyCardBookingId] = useState<string | null>(null);
   const [encodedCards, setEncodedCards] = useState<import('@/hooks/useKeyCard').KeyCard[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('today'));
 
   // All hooks (useMemo) MUST be called before any early return to satisfy React's rules of hooks
   const today = new Date();
   const todayKey = format(today, 'yyyy-MM-dd');
-  const yesterday = subDays(today, 1);
 
   const todayRevenue = useMemo(() => {
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const tomorrowDate = new Date(todayDate);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const rangeStart = startOfDay(dateRange.start);
+    const rangeEnd = endOfDay(dateRange.end);
     return folioEntries
-      .filter(e => e.type === 'charge' && !e.is_voided && new Date(e.posted_at) >= todayDate && new Date(e.posted_at) < tomorrowDate)
+      .filter(e => e.type === 'charge' && !e.is_voided && new Date(e.posted_at) >= rangeStart && new Date(e.posted_at) <= rangeEnd)
       .reduce((sum, e) => sum + e.amount, 0);
-  }, [folioEntries, todayKey]);
+  }, [folioEntries, dateRange]);
 
   const yesterdayRevenue = useMemo(() => {
-    const yDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const rangeDays = differenceInDays(dateRange.end, dateRange.start) + 1;
+    const prevEnd = subDays(dateRange.start, 1);
+    const prevStart = subDays(dateRange.start, rangeDays);
     return folioEntries
-      .filter(e => e.type === 'charge' && !e.is_voided && new Date(e.posted_at) >= yDate && new Date(e.posted_at) < todayDate)
+      .filter(e => e.type === 'charge' && !e.is_voided && new Date(e.posted_at) >= startOfDay(prevStart) && new Date(e.posted_at) <= endOfDay(prevEnd))
       .reduce((sum, e) => sum + e.amount, 0);
-  }, [folioEntries, todayKey]);
+  }, [folioEntries, dateRange]);
 
   const weeklyRevenue = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, i) => {
@@ -174,10 +176,16 @@ export function DashboardHome() {
   const occupancy = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   const todayArrivals = bookings.filter(
-    (b) => isSameDay(new Date(b.check_in), today) && b.status !== 'cancelled' && b.status !== 'no_show'
+    (b) => {
+      const ci = new Date(b.check_in);
+      return isWithinInterval(ci, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) }) && b.status !== 'cancelled' && b.status !== 'no_show';
+    }
   );
   const todayDepartures = bookings.filter(
-    (b) => isSameDay(new Date(b.check_out), today) && (b.status === 'checked_in' || b.status === 'checked_out')
+    (b) => {
+      const co = new Date(b.check_out);
+      return isWithinInterval(co, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) }) && (b.status === 'checked_in' || b.status === 'checked_out');
+    }
   );
 
   const revenueChange = yesterdayRevenue > 0
@@ -199,7 +207,7 @@ export function DashboardHome() {
 
   const stats = [
     { label: 'Occupancy', value: `${occupancy}%`, icon: BedDouble, color: 'text-teal' as const, accent: 'bg-teal/10', ringValue: occupancy },
-    { label: 'Revenue Today', value: formatCurrency(todayRevenue), icon: TrendingUp, color: 'text-gold' as const, accent: 'bg-gold/10', change: revenueChange },
+    { label: 'Revenue', value: formatCurrency(todayRevenue), icon: TrendingUp, color: 'text-gold' as const, accent: 'bg-gold/10', change: revenueChange },
     { label: 'Arrivals', value: String(todayArrivals.length), icon: LogIn, color: 'text-teal-light' as const, accent: 'bg-teal/10' },
     { label: 'Departures', value: String(todayDepartures.length), icon: LogOutIcon, color: 'text-silver' as const, accent: 'bg-white/5' },
   ];
@@ -255,6 +263,13 @@ export function DashboardHome() {
             <Plus size={16} className="mr-2" />
             New Booking
           </Button>
+        </div>
+        <div className="mt-3">
+          <DashboardDatePicker
+            value={dateRange}
+            onChange={setDateRange}
+            presets={['today', 'week', 'month', 'year']}
+          />
         </div>
       </div>
 

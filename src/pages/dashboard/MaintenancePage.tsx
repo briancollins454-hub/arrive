@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO, addDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import {
   Wrench, Plus, X, CheckCircle, Clock, AlertTriangle, AlertCircle,
   ChevronDown, ChevronUp, MapPin, Trash2, CalendarClock, RotateCw,
@@ -10,6 +10,8 @@ import { useWorkOrders } from '@/hooks/useWorkOrders';
 import { useRooms } from '@/hooks/useRooms';
 import toast from 'react-hot-toast';
 import type { WorkOrderStatus, WorkOrderPriority, WorkOrderCategory } from '@/types';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 const statusConfig: Record<WorkOrderStatus, { label: string; color: string; icon: typeof Clock }> = {
   open: { label: 'Open', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: AlertCircle },
@@ -49,10 +51,15 @@ export function MaintenancePage() {
   ]);
   const [showAddPM, setShowAddPM] = useState(false);
   const [newPM, setNewPM] = useState({ task: '', frequency: 'monthly', location: '', assignee: '' });
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));
 
   const allOrders = workOrders ?? [];
   const allRooms = rooms ?? [];
-  const filtered = filter === 'all' ? allOrders : allOrders.filter(w => w.status === filter);
+  const dateFiltered = allOrders.filter(w => {
+    const created = parseISO(w.created_at);
+    return isWithinInterval(created, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) });
+  });
+  const filtered = filter === 'all' ? dateFiltered : dateFiltered.filter(w => w.status === filter);
   const sorted = [...filtered].sort((a, b) => {
     const priOrder: Record<WorkOrderPriority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
     if (a.status === 'completed' && b.status !== 'completed') return 1;
@@ -90,10 +97,10 @@ export function MaintenancePage() {
   };
 
   // Stats
-  const openCount = allOrders.filter(w => w.status === 'open').length;
-  const inProgressCount = allOrders.filter(w => w.status === 'in_progress').length;
-  const completedCount = allOrders.filter(w => w.status === 'completed').length;
-  const urgentCount = allOrders.filter(w => w.priority === 'urgent' && w.status !== 'completed' && w.status !== 'cancelled').length;
+  const openCount = dateFiltered.filter(w => w.status === 'open').length;
+  const inProgressCount = dateFiltered.filter(w => w.status === 'in_progress').length;
+  const completedCount = dateFiltered.filter(w => w.status === 'completed').length;
+  const urgentCount = dateFiltered.filter(w => w.priority === 'urgent' && w.status !== 'completed' && w.status !== 'cancelled').length;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -106,6 +113,15 @@ export function MaintenancePage() {
         <Button variant="teal" onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Work Order
         </Button>
+      </div>
+
+      {/* Date Range Picker */}
+      <div>
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['today', 'week', 'month', 'quarter']}
+        />
       </div>
 
       {/* Stats */}

@@ -2,18 +2,19 @@ import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import {
-  Clock, Plus, ChevronLeft, ChevronRight, Users, CalendarDays,
+  Clock, Plus, Users, CalendarDays,
   Copy, Trash2, UserCircle, Sun, Moon, Sunrise, Coffee,
   Download, AlertTriangle, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  format, addDays, startOfWeek, isSameDay,
-  addWeeks, subWeeks,
+  format, addDays, startOfWeek, isSameDay, subWeeks,
 } from 'date-fns';
 import type { StaffRole } from '@/types';
 import { exportCSV } from '@/lib/exportUtils';
 import { ROLE_DEFINITIONS, getRoleLabel } from '@/lib/roles';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 // ── Shift definitions ────────────────────────────────────────────
 type ShiftType = 'morning' | 'afternoon' | 'night' | 'day_off' | 'holiday';
@@ -110,17 +111,16 @@ const ROLE_COLORS: Record<StaffRole, { bg: string; text: string; border: string 
 
 export function StaffRotaPage() {
   const [staff, setStaff] = useState<StaffWithShifts[]>(() => generateDemoStaff());
-  const [weekOffset, setWeekOffset] = useState(0);
   const [editingCell, setEditingCell] = useState<{ staffId: string; dateKey: string } | null>(null);
   const [roleFilter, setRoleFilter] = useState<StaffRole | 'all'>('all');
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<StaffRole>('receptionist');
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('week'));
 
   const weekStart = useMemo(() => {
-    const base = startOfWeek(new Date(), { weekStartsOn: 1 });
-    return addWeeks(base, weekOffset);
-  }, [weekOffset]);
+    return startOfWeek(dateRange.start, { weekStartsOn: 1 });
+  }, [dateRange]);
 
   const weekDays = useMemo(() =>
     Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -241,17 +241,11 @@ export function StaffRotaPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Week navigation */}
-          <div className="flex items-center gap-1">
-            <Button variant="outline-dark" size="sm" onClick={() => setWeekOffset(w => w - 1)} aria-label="Previous week">
-              <ChevronLeft size={14} />
-            </Button>
-            <Button variant="outline-dark" size="sm" onClick={() => setWeekOffset(0)}>
-              <CalendarDays size={14} className="mr-1" /> This Week
-            </Button>
-            <Button variant="outline-dark" size="sm" onClick={() => setWeekOffset(w => w + 1)} aria-label="Next week">
-              <ChevronRight size={14} />
-            </Button>
-          </div>
+          <DashboardDatePicker
+            value={dateRange}
+            onChange={setDateRange}
+            presets={['week']}
+          />
 
           {/* Role filter */}
           <div className="flex flex-wrap gap-1 glass-panel rounded-xl p-1">

@@ -9,11 +9,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/Dialog';
 import { Plus, Calendar, Edit, Trash2, ToggleLeft, ToggleRight, AlertTriangle, Tag, Percent, Layers } from 'lucide-react';
-import { format, isAfter, isBefore, isWithinInterval } from 'date-fns';
+import { format, isAfter, isBefore, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import type { RatePeriod } from '@/types';
 import type { RatePeriodFormData } from '@/lib/validators';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 // Day-of-week labels
 const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -59,6 +61,7 @@ export function RatesPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'periods' | 'derived' | 'dow' | 'promos'>('periods');
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('year'));
 
   // Promo codes state
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
@@ -89,6 +92,10 @@ export function RatesPage() {
     if (filterRoomType !== 'all' && rp.room_type_id !== filterRoomType) return false;
     if (filterStatus === 'active' && !rp.is_active) return false;
     if (filterStatus === 'inactive' && rp.is_active) return false;
+    // Date range filter: rate period overlaps selected range
+    const rpStart = parseISO(rp.start_date);
+    const rpEnd = parseISO(rp.end_date);
+    if (rpEnd < startOfDay(dateRange.start) || rpStart > endOfDay(dateRange.end)) return false;
     return true;
   });
 
@@ -238,6 +245,15 @@ export function RatesPage() {
             <Plus size={16} className="mr-2" /> New Derived Plan
           </Button>
         )}
+      </div>
+
+      {/* Date Range Picker */}
+      <div>
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['month', 'quarter', 'year']}
+        />
       </div>
 
       {/* Sub-tabs */}

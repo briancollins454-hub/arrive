@@ -10,8 +10,10 @@ import {
   ChevronDown, ChevronRight, User, Download,
 } from 'lucide-react';
 import { exportCSV } from '@/lib/exportUtils';
-import { format, isToday, isYesterday, startOfDay } from 'date-fns';
+import { format, isToday, isYesterday, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import type { ActivityAction, ActivityLogEntry } from '@/types';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 // ============================================================
 // Icon mapping
@@ -93,11 +95,14 @@ export function ActivityLogPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEntity, setFilterEntity] = useState<string>('all');
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set(['today', 'yesterday']));
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('week'));
 
   if (isLoading) return <PageSpinner />;
 
   // Filter
   const filtered = entries.filter((e) => {
+    const entryDate = new Date(e.created_at);
+    if (!isWithinInterval(entryDate, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })) return false;
     if (filterEntity !== 'all' && e.entity_type !== filterEntity) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -187,6 +192,15 @@ export function ActivityLogPage() {
         >
           <Download size={14} /> Export
         </button>
+      </div>
+
+      {/* Date Range Picker */}
+      <div>
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['today', 'week', 'month', 'year']}
+        />
       </div>
 
       {/* Filter bar */}

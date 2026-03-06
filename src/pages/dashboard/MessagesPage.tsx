@@ -10,14 +10,22 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/Dialog';
 import { Plus, Mail, MessageSquare, Clock, Edit, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 export function MessagesPage() {
   const { messages, templates, isLoadingMessages, sendMessage } = useMessages();
   const [showComposer, setShowComposer] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));
 
   if (isLoadingMessages) return <PageSpinner />;
+
+  const filteredMessages = messages.filter(msg => {
+    const sentDate = new Date(msg.sent_at || msg.created_at);
+    return isWithinInterval(sentDate, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) });
+  });
 
   return (
     <div className="p-6 lg:p-8">
@@ -26,12 +34,21 @@ export function MessagesPage() {
         <div>
           <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Messages</h1>
           <p className="text-sm text-steel font-body">
-            {messages.length} messages · {templates.length} templates
+            {filteredMessages.length} messages · {templates.length} templates
           </p>
         </div>
         <Button onClick={() => setShowComposer(true)}>
           <Plus size={16} className="mr-2" /> New Message
         </Button>
+      </div>
+
+      {/* Date Range Picker */}
+      <div className="mb-6">
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['today', 'week', 'month', 'year']}
+        />
       </div>
 
       <Tabs defaultValue="sent" className="w-full">
@@ -42,13 +59,13 @@ export function MessagesPage() {
 
         {/* Sent Messages Tab */}
         <TabsContent value="sent">
-          {messages.length === 0 ? (
+          {filteredMessages.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-steel font-body">No messages sent yet</p>
+              <p className="text-steel font-body">No messages in this period</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {messages.map((msg) => (
+              {filteredMessages.map((msg) => (
                 <Card key={msg.id} variant="dark">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">

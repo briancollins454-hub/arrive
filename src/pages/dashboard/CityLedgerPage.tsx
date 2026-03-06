@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { exportCSV } from '@/lib/exportUtils';
 import toast from 'react-hot-toast';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 // ============================================================
 // Types
@@ -226,6 +228,15 @@ export function CityLedgerPage() {
     company_name: '', contact_name: '', email: '', phone: '', address: '',
     credit_limit: '', payment_terms: '30', notes: '',
   });
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));
+
+  // Filter invoices by date range
+  const dateFilteredInvoices = useMemo(() => {
+    return invoices.filter(inv => {
+      const posted = parseISO(inv.date_posted);
+      return isWithinInterval(posted, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) });
+    });
+  }, [invoices, dateRange]);
 
   // ── Derived ──
   const filteredAccounts = useMemo(() => {
@@ -238,7 +249,7 @@ export function CityLedgerPage() {
   }, [accounts, search, filterStatus]);
 
   const getAccountInvoices = (accountId: string) =>
-    invoices.filter(inv => inv.account_id === accountId);
+    dateFilteredInvoices.filter(inv => inv.account_id === accountId);
 
   const getAccountBalance = (accountId: string) => {
     const acctInvoices = getAccountInvoices(accountId);
@@ -253,15 +264,15 @@ export function CityLedgerPage() {
   };
 
   // ── Summary stats ──
-  const totalOutstanding = invoices
+  const totalOutstanding = dateFilteredInvoices
     .filter(inv => ['outstanding', 'partially_paid', 'overdue'].includes(inv.status))
     .reduce((sum, inv) => sum + (inv.amount - inv.amount_paid), 0);
 
-  const totalOverdue = invoices
+  const totalOverdue = dateFilteredInvoices
     .filter(inv => inv.status === 'overdue')
     .reduce((sum, inv) => sum + (inv.amount - inv.amount_paid), 0);
 
-  const totalCollected = invoices.reduce((sum, inv) => sum + inv.amount_paid, 0);
+  const totalCollected = dateFilteredInvoices.reduce((sum, inv) => sum + inv.amount_paid, 0);
 
   const activeAccountCount = accounts.filter(a => a.status === 'active').length;
 
@@ -558,6 +569,15 @@ export function CityLedgerPage() {
           })()}
         </div>
       )}
+
+      {/* Date Range Picker */}
+      <div className="relative">
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['week', 'month', 'quarter', 'year']}
+        />
+      </div>
 
       {/* Search & Filter */}
       <div className="relative flex flex-col sm:flex-row gap-3">

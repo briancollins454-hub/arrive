@@ -22,8 +22,10 @@ import {
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { exportCSV, exportPrintablePDF } from '@/lib/exportUtils';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
-type Period = 'today' | 'week' | 'month' | 'year';
+type Period = 'today' | 'week' | 'month' | 'year' | 'custom';
 type ReportType = 'overview' | 'revenue' | 'occupancy' | 'bookings' | 'guests' | 'roomType' | 'annual';
 
 const PERIOD_LABELS: Record<Period, string> = {
@@ -31,6 +33,7 @@ const PERIOD_LABELS: Record<Period, string> = {
   week: 'This Week',
   month: 'This Month',
   year: 'This Year',
+  custom: 'Custom Range',
 };
 
 const REPORT_TYPES: { id: ReportType; label: string; icon: typeof BarChart3; description: string }[] = [
@@ -134,21 +137,7 @@ function computeAnnualData(
   return rows;
 }
 
-function getDateRange(period: Period): { start: Date; end: Date; label: string } {
-  const now = new Date();
-  switch (period) {
-    case 'today':
-      return { start: startOfDay(now), end: endOfDay(now), label: format(now, 'EEEE, MMMM d, yyyy') };
-    case 'week':
-      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }), label: `${format(startOfWeek(now, { weekStartsOn: 1 }), 'MMM d')} — ${format(endOfWeek(now, { weekStartsOn: 1 }), 'MMM d, yyyy')}` };
-    case 'month':
-      return { start: startOfMonth(now), end: endOfMonth(now), label: format(now, 'MMMM yyyy') };
-    case 'year':
-      return { start: startOfYear(now), end: endOfYear(now), label: format(now, 'yyyy') };
-  }
-}
-
-function getPreviousDateRange(period: Period): { start: Date; end: Date } {
+function getPreviousDateRange(period: Period): { start: Date; end: Date } | undefined {
   const now = new Date();
   switch (period) {
     case 'today':
@@ -159,6 +148,8 @@ function getPreviousDateRange(period: Period): { start: Date; end: Date } {
       return { start: startOfMonth(subMonths(now, 1)), end: endOfMonth(subMonths(now, 1)) };
     case 'year':
       return { start: startOfYear(subYears(now, 1)), end: endOfYear(subYears(now, 1)) };
+    default:
+      return undefined;
   }
 }
 
@@ -169,10 +160,20 @@ export function ReportsPage() {
   const { allEntries: allFolioEntries } = useAllFolios(bookings.map(b => b.id));
 
   const [period, setPeriod] = useState<Period>('today');
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('today'));
   const [activeReport, setActiveReport] = useState<ReportType>('overview');
 
-  const { start, end, label: periodLabel } = getDateRange(period);
-  const prev = getPreviousDateRange(period);
+  const handleDateChange = (range: DateRange) => {
+    setDateRange(range);
+    if (range.period !== 'custom') setPeriod(range.period as Period);
+    else setPeriod('custom');
+  };
+
+  const start = dateRange.start;
+  const end = dateRange.end;
+  const periodLabel = dateRange.label;
+  const rangeDays = differenceInDays(dateRange.end, dateRange.start) + 1;
+  const prev = (period !== 'custom' ? getPreviousDateRange(period as Exclude<Period, 'custom'>) : null) ?? { start: subDays(dateRange.start, rangeDays), end: subDays(dateRange.start, 1) };
 
   // Filter bookings for current period
   const periodBookings = useMemo(() =>
@@ -830,21 +831,12 @@ export function ReportsPage() {
       </div>
 
       {/* Period Selector */}
-      <div className="flex items-center gap-2 mb-6">
-        {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={cn(
-              'px-4 py-2 rounded-lg text-xs font-body font-semibold border transition-all',
-              p === period
-                ? 'bg-teal/10 border-teal/30 text-teal'
-                : 'bg-white/[0.04] border-white/[0.08] text-silver hover:bg-white/[0.06]'
-            )}
-          >
-            {PERIOD_LABELS[p]}
-          </button>
-        ))}
+      <div className="mb-6">
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={handleDateChange}
+          presets={['today', 'week', 'month', 'year']}
+        />
       </div>
 
       {/* KPI Cards */}

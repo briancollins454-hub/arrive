@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, isPast } from 'date-fns';
+import { format, parseISO, isPast, startOfDay, endOfDay } from 'date-fns';
 import {
   Users, Plus, Phone, Mail, X, BedDouble, UserPlus, ExternalLink,
   ChevronDown, ChevronUp, Clock, CheckCircle, AlertTriangle, Trash2,
@@ -12,6 +12,8 @@ import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import type { GroupStatus, GroupBooking, Booking, Room } from '@/types';
 import toast from 'react-hot-toast';
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 const statusConfig: Record<GroupStatus, { label: string; color: string; icon: typeof CheckCircle }> = {
   tentative: { label: 'Tentative', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: Clock },
@@ -323,12 +325,18 @@ export function GroupBookingsPage() {
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<GroupStatus | 'all'>('all');
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('year'));
 
   const allGroups = groups ?? [];
   const allBookings = bookings ?? [];
   const allRooms = rooms ?? [];
   const allRoomTypes = (roomTypes ?? []).map(rt => ({ id: rt.id, name: rt.name, base_rate: rt.base_rate }));
-  const filtered = filter === 'all' ? allGroups : allGroups.filter(g => g.status === filter);
+  const filtered = (filter === 'all' ? allGroups : allGroups.filter(g => g.status === filter))
+    .filter(g => {
+      const ci = parseISO(g.check_in);
+      const co = parseISO(g.check_out);
+      return ci <= endOfDay(dateRange.end) && co >= startOfDay(dateRange.start);
+    });
 
   // Assign a room within a group — creates a booking and links it
   const handleAssignRoom = (group: GroupBooking, guestRow: GuestRow) => {
@@ -432,6 +440,15 @@ export function GroupBookingsPage() {
         <Button variant="teal" onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Group
         </Button>
+      </div>
+
+      {/* Date Range Picker */}
+      <div>
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['month', 'quarter', 'year']}
+        />
       </div>
 
       {/* Filters */}

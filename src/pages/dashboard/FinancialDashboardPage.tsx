@@ -13,51 +13,13 @@ import {
 } from 'lucide-react';
 import type { FolioEntry } from '@/types';
 import {
-  format, subDays, subMonths, startOfMonth, endOfMonth, startOfWeek,
+  format, subDays, subMonths, startOfMonth, endOfMonth,
   isWithinInterval, differenceInDays, getDaysInMonth, parseISO,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { exportCSV } from '@/lib/exportUtils';
-
-type Period = 'week' | 'month' | 'quarter' | 'year';
-
-function getPeriodRange(period: Period): { start: Date; end: Date; prevStart: Date; prevEnd: Date; label: string } {
-  const now = new Date();
-  switch (period) {
-    case 'week': {
-      const start = startOfWeek(now, { weekStartsOn: 1 });
-      const end = now;
-      const prevStart = subDays(start, 7);
-      const prevEnd = subDays(end, 7);
-      return { start, end, prevStart, prevEnd, label: 'This Week' };
-    }
-    case 'month': {
-      const start = startOfMonth(now);
-      const end = now;
-      const prev = subMonths(now, 1);
-      const prevStart = startOfMonth(prev);
-      // Use same elapsed-day window for fair comparison (not full prev month)
-      const dayOfMonth = now.getDate();
-      const prevEndDate = new Date(prev.getFullYear(), prev.getMonth(), Math.min(dayOfMonth, endOfMonth(prev).getDate()));
-      return { start, end, prevStart, prevEnd: prevEndDate, label: format(now, 'MMMM yyyy') };
-    }
-    case 'quarter': {
-      const qMonth = Math.floor(now.getMonth() / 3) * 3;
-      const start = new Date(now.getFullYear(), qMonth, 1);
-      const end = now;
-      const prevStart = subMonths(start, 3);
-      const prevEnd = subMonths(end, 3);
-      return { start, end, prevStart, prevEnd, label: `Q${Math.floor(qMonth / 3) + 1} ${now.getFullYear()}` };
-    }
-    case 'year': {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const end = now;
-      const prevStart = new Date(now.getFullYear() - 1, 0, 1);
-      const prevEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      return { start, end, prevStart, prevEnd, label: `${now.getFullYear()}` };
-    }
-  }
-}
+import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
+import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
 function calcChange(current: number, previous: number): { pct: number; positive: boolean } {
   if (previous === 0) return { pct: current > 0 ? 100 : 0, positive: current >= 0 };
@@ -70,14 +32,23 @@ export function FinancialDashboardPage() {
   const { rooms, roomTypes } = useRooms();
   const { property } = useProperty();
   const { allEntries: allFolios } = useAllFolios((bookings ?? []).map(b => b.id));
-  const [period, setPeriod] = useState<Period>('month');
+  const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));
+
+  const handleDateChange = (range: DateRange) => {
+    setDateRange(range);
+  };
 
   const allBookings = bookings ?? [];
   const allRooms = rooms ?? [];
   const allRoomTypes = roomTypes ?? [];
   const allEntries: FolioEntry[] = allFolios;
 
-  const { start, end, prevStart, prevEnd, label: periodLabel } = getPeriodRange(period);
+  const start = dateRange.start;
+  const end = dateRange.end;
+  const periodLabel = dateRange.label;
+  const rangeDays = differenceInDays(end, start) + 1;
+  const prevEnd = subDays(start, 1);
+  const prevStart = subDays(start, rangeDays);
   const totalSellableRooms = allRooms.filter(r => r.status !== 'maintenance' && r.status !== 'blocked').length;
   const daysInPeriod = Math.max(1, differenceInDays(end, start) + 1);
 
@@ -349,20 +320,11 @@ export function FinancialDashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* Period selector */}
-          <div className="flex gap-1 glass-panel rounded-xl p-1">
-            {(['week', 'month', 'quarter', 'year'] as Period[]).map(p => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-body font-medium transition-all duration-200',
-                  period === p ? 'bg-gold/15 text-gold' : 'text-steel hover:text-silver hover:bg-white/[0.04]'
-                )}
-              >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
-            ))}
-          </div>
+          <DashboardDatePicker
+            value={dateRange}
+            onChange={handleDateChange}
+            presets={['week', 'month', 'quarter', 'year']}
+          />
           <Button variant="outline-dark" size="sm" onClick={handleExportCSV}>
             <Download size={14} className="mr-1.5" /> Export
           </Button>
