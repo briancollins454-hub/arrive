@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useRooms } from '@/hooks/useRooms';
 import { useBookings } from '@/hooks/useBookings';
+import { isDemoMode } from '@/lib/supabase';
 import { exportCSV } from '@/lib/exportUtils';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -122,13 +123,13 @@ export function HousekeepingPage() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [sortBy, setSortBy] = useState<'room' | 'floor'>('room');
 
-  // Attendant assignment
-  const [attendants] = useState([
+  // Attendant assignment (demo data only — live mode shows empty until real attendants configured)
+  const [attendants] = useState(isDemoMode ? [
     { id: 'att-1', name: 'Maria Santos', section: 'Floors 1-2', rooms_assigned: 8, rooms_completed: 5 },
     { id: 'att-2', name: 'Anna Kowalski', section: 'Floors 3-4', rooms_assigned: 7, rooms_completed: 3 },
     { id: 'att-3', name: 'Priya Sharma', section: 'Floors 5-6', rooms_assigned: 6, rooms_completed: 6 },
     { id: 'att-4', name: 'Elena Popov', section: 'Suites', rooms_assigned: 4, rooms_completed: 1 },
-  ]);
+  ] : []);
   const [roomAssignments] = useState<Record<string, string>>({});
   const [showAttendantPanel, setShowAttendantPanel] = useState(false);
   const [showDiscrepancy, setShowDiscrepancy] = useState(false);
