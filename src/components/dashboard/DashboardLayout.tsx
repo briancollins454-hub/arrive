@@ -161,7 +161,7 @@ export function DashboardLayout() {
       {/* Mobile Sidebar — slide-over drawer */}
       <aside
         aria-label="Mobile sidebar"
-        aria-hidden={!mobileOpen}
+        inert={!mobileOpen ? true : undefined}
         className={cn(
         'fixed inset-y-0 left-0 z-40 flex flex-col w-[280px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
