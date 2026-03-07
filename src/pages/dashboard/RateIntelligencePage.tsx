@@ -8,6 +8,7 @@ import {
   Shield, Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isDemoMode } from '@/lib/supabase';
 
 // ── Simulated competitor data ─────────────────────────────────────
 type Competitor = {
@@ -19,14 +20,14 @@ type Competitor = {
   source: string;
 };
 
-const COMPETITORS: Competitor[] = [
+const COMPETITORS: Competitor[] = isDemoMode ? [
   { name: 'The Grand Metropolitan', stars: 5, avgRate: 245, occupancy: 82, rateChange7d: 5.2, source: 'Booking.com' },
   { name: 'Park View Suites', stars: 4, avgRate: 198, occupancy: 74, rateChange7d: -2.1, source: 'Expedia' },
   { name: 'Riverside Boutique Hotel', stars: 4, avgRate: 185, occupancy: 68, rateChange7d: 0, source: 'Direct' },
   { name: 'City Centre Inn', stars: 3, avgRate: 142, occupancy: 91, rateChange7d: 8.3, source: 'Hotels.com' },
   { name: 'The Heritage House', stars: 4, avgRate: 210, occupancy: 77, rateChange7d: 3.1, source: 'Booking.com' },
   { name: 'Luxe Apartments Hotel', stars: 4, avgRate: 175, occupancy: 65, rateChange7d: -4.5, source: 'Expedia' },
-];
+] : [];
 
 type RateRecommendation = {
   id: number;
@@ -81,13 +82,13 @@ function generateRateRecommendations(avgRate: number, occupancy: number): RateRe
   return recs;
 }
 
-const CHANNEL_RATES: ChannelRate[] = [
+const CHANNEL_RATES: ChannelRate[] = isDemoMode ? [
   { channel: 'Direct Website', rate: 189, parity: true, lastChecked: '2 min ago' },
   { channel: 'Booking.com', rate: 195, parity: false, lastChecked: '5 min ago' },
   { channel: 'Expedia', rate: 192, parity: false, lastChecked: '5 min ago' },
   { channel: 'Hotels.com', rate: 194, parity: false, lastChecked: '8 min ago' },
   { channel: 'Agoda', rate: 189, parity: true, lastChecked: '12 min ago' },
-];
+] : [];
 
 export function RateIntelligencePage() {
   const { bookings } = useBookings();

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { exportCSV } from '@/lib/exportUtils';
 import toast from 'react-hot-toast';
+import { isDemoMode } from '@/lib/supabase';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
@@ -194,10 +195,10 @@ export function CityLedgerPage() {
   // Persist accounts in query cache so they survive navigation
   const cachedAccounts = queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']);
   if (!cachedAccounts) {
-    queryClient.setQueryData(['city-ledger-accounts'], demoAccounts);
+    queryClient.setQueryData(['city-ledger-accounts'], isDemoMode ? demoAccounts : []);
   }
   const [accounts, setAccountsLocal] = useState<CityLedgerAccount[]>(
-    () => queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']) ?? demoAccounts
+    () => queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']) ?? (isDemoMode ? demoAccounts : [])
   );
   const setAccounts = (updater: CityLedgerAccount[] | ((prev: CityLedgerAccount[]) => CityLedgerAccount[])) => {
     setAccountsLocal(prev => {
@@ -206,7 +207,7 @@ export function CityLedgerPage() {
       return next;
     });
   };
-  const [invoices, setInvoices] = useState<CityLedgerInvoice[]>(demoInvoices);
+  const [invoices, setInvoices] = useState<CityLedgerInvoice[]>(isDemoMode ? demoInvoices : []);
   const [search, setSearch] = useState('');
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'closed'>('all');

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { format, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import type { BookingSource, Booking, FolioEntry } from '@/types';
+import { isDemoMode } from '@/lib/supabase';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
 interface OTAChannel {
@@ -127,9 +128,9 @@ export function ChannelManagerPage() {
       );
       const effectiveRate = activePeriod ? activePeriod.rate : baseRate;
 
-      // Simulated OTA rates (±5-12% variance)
+      // Simulated OTA rates (±5-12% variance) — only in demo mode
       const channels = OTA_CHANNELS.filter(c => c.connected && c.id !== 'direct' && c.id !== 'phone').map(ch => {
-        const variance = ((ch.id.charCodeAt(0) * 7 + rt.name.length * 13) % 15 - 5) / 100;
+        const variance = isDemoMode ? ((ch.id.charCodeAt(0) * 7 + rt.name.length * 13) % 15 - 5) / 100 : 0;
         const otaRate = Math.round(effectiveRate * (1 + variance));
         const isParity = Math.abs(otaRate - effectiveRate) <= effectiveRate * 0.02;
         return {

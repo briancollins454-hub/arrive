@@ -207,13 +207,13 @@ export const CheckoutForm: FC<CheckoutFormProps> = ({
             <p className="text-sm text-steel font-body mb-3">
               Secure payment processing powered by Stripe. Your card details are encrypted and never stored on our servers.
             </p>
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-body space-y-1">
-              <div className="flex items-center justify-center gap-2 text-emerald-700">
+            <div className="rounded-lg border border-stone/20 bg-stone/5 p-4 text-center text-sm font-body space-y-1">
+              <div className="flex items-center justify-center gap-2 text-charcoal/60">
                 <ShieldCheck size={16} />
-                <span className="font-medium">Demo Mode — No payment required</span>
+                <span className="font-medium">Payment processing is not yet configured</span>
               </div>
-              <p className="text-xs text-emerald-600">
-                Set VITE_STRIPE_PUBLISHABLE_KEY to enable live Stripe checkout.
+              <p className="text-xs text-charcoal/40">
+                Please contact the hotel directly to complete your booking.
               </p>
             </div>
           </>

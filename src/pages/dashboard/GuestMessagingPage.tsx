@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { isDemoMode } from '@/lib/supabase';
 
 
 interface ChatMessage {
@@ -76,7 +77,7 @@ const demoThreads: GuestThread[] = [
 ];
 
 export function GuestMessagingPage() {
-  const [threads, setThreads] = useState(demoThreads);
+  const [threads, setThreads] = useState(isDemoMode ? demoThreads : []);
   const [selectedThread, setSelectedThread] = useState<string>(threads[0]?.bookingId ?? '');
   const [newMessage, setNewMessage] = useState('');
   const [search, setSearch] = useState('');

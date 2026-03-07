@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Lock, Mail, AlertCircle, ArrowRight, BedDouble, BarChart3, MessageSquare, Shield } from 'lucide-react';
+import { isDemoMode } from '@/lib/supabase';
 
 const FEATURES = [
   { icon: BedDouble, title: 'Room Management', desc: 'Real-time room status, types, and availability' },
@@ -154,25 +155,29 @@ export function LoginPage() {
                 </Button>
               </form>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/[0.06]" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="px-3 text-[11px] text-steel font-body bg-charcoal/80 rounded">or</span>
-                </div>
-              </div>
+              {isDemoMode && (
+                <>
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-white/[0.06]" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="px-3 text-[11px] text-steel font-body bg-charcoal/80 rounded">or</span>
+                    </div>
+                  </div>
 
-              <button
-                onClick={handleDemoAccess}
-                className="w-full group flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm font-body border border-gold/20 bg-gradient-to-r from-gold/[0.08] to-gold/[0.04] text-gold hover:from-gold/[0.15] hover:to-gold/[0.08] hover:border-gold/30 hover:shadow-[0_4px_20px_rgba(201,168,76,0.15)] transition-all duration-300">
-                Explore Demo
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
-              </button>
+                  <button
+                    onClick={handleDemoAccess}
+                    className="w-full group flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm font-body border border-gold/20 bg-gradient-to-r from-gold/[0.08] to-gold/[0.04] text-gold hover:from-gold/[0.15] hover:to-gold/[0.08] hover:border-gold/30 hover:shadow-[0_4px_20px_rgba(201,168,76,0.15)] transition-all duration-300">
+                    Explore Demo
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
+                  </button>
 
-              <p className="mt-5 text-center text-[11px] text-steel/40 font-body tracking-wide">
-                Demo mode — full access, no sign-up required
-              </p>
+                  <p className="mt-5 text-center text-[11px] text-steel/40 font-body tracking-wide">
+                    Demo mode — full access, no sign-up required
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

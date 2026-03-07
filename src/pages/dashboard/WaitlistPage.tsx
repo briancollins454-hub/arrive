@@ -11,6 +11,7 @@ import { format, addDays, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRooms } from '@/hooks/useRooms';
 import toast from 'react-hot-toast';
+import { isDemoMode } from '@/lib/supabase';
 import type { WaitlistStatus } from '@/types';
 
 interface WaitlistItem {
@@ -80,7 +81,7 @@ const initialWaitlist: WaitlistItem[] = [
 
 export function WaitlistPage() {
   const { roomTypes } = useRooms();
-  const [waitlist, setWaitlist] = useState<WaitlistItem[]>(initialWaitlist);
+  const [waitlist, setWaitlist] = useState<WaitlistItem[]>(isDemoMode ? initialWaitlist : []);
   const [showAddForm, setShowAddForm] = useState(false);
   const [filter, setFilter] = useState<WaitlistStatus | 'all'>('all');
   const [newEntry, setNewEntry] = useState({

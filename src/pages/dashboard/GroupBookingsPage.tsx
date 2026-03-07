@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useGroupBookings } from '@/hooks/useGroupBookings';
 import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
+import { useProperty } from '@/hooks/useProperty';
 import type { GroupStatus, GroupBooking, Booking, Room } from '@/types';
 import toast from 'react-hot-toast';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
@@ -322,6 +323,7 @@ export function GroupBookingsPage() {
   const { groups, createGroup, updateGroup, deleteGroup } = useGroupBookings();
   const { bookings, createBooking, updateStatus, modifyBooking } = useBookings();
   const { rooms, roomTypes } = useRooms();
+  const { property } = useProperty();
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<GroupStatus | 'all'>('all');
@@ -344,7 +346,7 @@ export function GroupBookingsPage() {
 
     // Create the booking with the correct rate AND room from the start
     createBooking.mutate({
-      property_id: 'demo-property-id',
+      property_id: property?.id ?? 'demo-property-id',
       room_type_id: guestRow.roomTypeId,
       check_in: group.check_in,
       check_out: group.check_out,

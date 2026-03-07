@@ -12,6 +12,7 @@ import { Plus, Calendar, Edit, Trash2, ToggleLeft, ToggleRight, AlertTriangle, T
 import { format, isAfter, isBefore, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { isDemoMode } from '@/lib/supabase';
 import type { RatePeriod } from '@/types';
 import type { RatePeriodFormData } from '@/lib/validators';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
@@ -64,25 +65,27 @@ export function RatesPage() {
   const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('year'));
 
   // Promo codes state
-  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>(isDemoMode ? [
     { id: 'promo-1', code: 'WELCOME10', description: '10% off for new guests', discount_type: 'percentage', discount_value: 10, valid_from: '2026-01-01', valid_until: '2026-12-31', max_uses: 100, used_count: 23, min_nights: 2, is_active: true },
     { id: 'promo-2', code: 'LONGSTAY', description: '£50 off stays of 5+ nights', discount_type: 'fixed', discount_value: 50, valid_from: '2026-01-01', valid_until: '2026-06-30', max_uses: 50, used_count: 8, min_nights: 5, is_active: true },
     { id: 'promo-3', code: 'SUMMER25', description: '25% summer discount', discount_type: 'percentage', discount_value: 25, valid_from: '2026-06-01', valid_until: '2026-08-31', max_uses: 200, used_count: 0, min_nights: 1, is_active: false },
-  ]);
+  ] : []);
   const [showAddPromo, setShowAddPromo] = useState(false);
   const [newPromo, setNewPromo] = useState({ code: '', description: '', discount_type: 'percentage' as 'percentage' | 'fixed', discount_value: '', valid_from: '', valid_until: '', max_uses: '100', min_nights: '1' });
 
   // Derived rate plans state
-  const [derivedPlans, setDerivedPlans] = useState<DerivedRatePlan[]>([
+  const [derivedPlans, setDerivedPlans] = useState<DerivedRatePlan[]>(isDemoMode ? [
     { id: 'dr-1', name: 'BAR -10%', base_rate_id: '', derivation_type: 'percentage', derivation_value: -10, room_type_id: null, includes_breakfast: false, is_active: true },
     { id: 'dr-2', name: 'B&B Rate', base_rate_id: '', derivation_type: 'fixed', derivation_value: 25, room_type_id: null, includes_breakfast: true, is_active: true },
     { id: 'dr-3', name: 'Advance Purchase -15%', base_rate_id: '', derivation_type: 'percentage', derivation_value: -15, room_type_id: null, includes_breakfast: false, is_active: true },
-  ]);
+  ] : []);
   const [showAddDerived, setShowAddDerived] = useState(false);
 
   // DOW pricing adjustments
-  const [dowPricing, setDowPricing] = useState<Record<number, number>>({
+  const [dowPricing, setDowPricing] = useState<Record<number, number>>(isDemoMode ? {
     0: 100, 1: 100, 2: 100, 3: 100, 4: 115, 5: 130, 6: 120,
+  } : {
+    0: 100, 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100,
   });
 
   if (isLoadingTypes || isLoading) return <PageSpinner />;

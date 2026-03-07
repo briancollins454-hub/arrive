@@ -13,6 +13,7 @@ import {
 import type { StaffRole } from '@/types';
 import { exportCSV } from '@/lib/exportUtils';
 import { ROLE_DEFINITIONS, getRoleLabel } from '@/lib/roles';
+import { isDemoMode } from '@/lib/supabase';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
@@ -110,7 +111,7 @@ const ROLE_COLORS: Record<StaffRole, { bg: string; text: string; border: string 
 };
 
 export function StaffRotaPage() {
-  const [staff, setStaff] = useState<StaffWithShifts[]>(() => generateDemoStaff());
+  const [staff, setStaff] = useState<StaffWithShifts[]>(() => isDemoMode ? generateDemoStaff() : []);
   const [editingCell, setEditingCell] = useState<{ staffId: string; dateKey: string } | null>(null);
   const [roleFilter, setRoleFilter] = useState<StaffRole | 'all'>('all');
   const [showAddStaff, setShowAddStaff] = useState(false);

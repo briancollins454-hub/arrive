@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
+import { isDemoMode } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import {
   Brain, TrendingUp, TrendingDown, CheckCircle2,
@@ -71,17 +72,19 @@ function generateSuggestions(occupancy: number, avgRate: number): Suggestion[] {
     description: 'AI predicts 85%+ occupancy this Friday-Sunday. Consider scheduling additional housekeeping and front desk staff.',
     impact: 'Improved guest satisfaction score',
   });
-  suggestions.push({
-    id: id++, priority: 'medium', type: 'guest',
-    title: '3 guests with loyalty history checking in tomorrow',
-    description: 'Returning guests detected. Prepare personalized welcome notes and room upgrades where available.',
-    impact: 'Increased repeat booking probability',
-  });
+  if (isDemoMode) {
+    suggestions.push({
+      id: id++, priority: 'medium', type: 'guest',
+      title: '3 guests with loyalty history checking in tomorrow',
+      description: 'Returning guests detected. Prepare personalized welcome notes and room upgrades where available.',
+      impact: 'Increased repeat booking probability',
+    });
+  }
   if (avgRate < 180) {
     suggestions.push({
       id: id++, priority: 'low', type: 'revenue',
-      title: 'ADR below market average',
-      description: `Average daily rate £${avgRate.toFixed(0)} is below the market average of £195. Review rate parity across OTA channels.`,
+      title: 'ADR below typical range',
+      description: `Average daily rate £${avgRate.toFixed(0)} may have room for optimisation. Review rate parity across OTA channels.`,
       impact: 'Rate optimization opportunity',
     });
   }
@@ -140,7 +143,7 @@ export function AIInsightsPage() {
         </div>
         <div>
           <h1 className="text-3xl font-display text-white tracking-tight">AI Insights</h1>
-          <p className="text-sm text-steel font-body">Powered by predictive analytics · Updated just now</p>
+          <p className="text-sm text-steel font-body">Powered by predictive analytics{!isDemoMode && ' · Forecasts are estimates based on current data'}</p>
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { useWorkOrders } from '@/hooks/useWorkOrders';
 import { useRooms } from '@/hooks/useRooms';
 import toast from 'react-hot-toast';
+import { isDemoMode } from '@/lib/supabase';
 import type { WorkOrderStatus, WorkOrderPriority, WorkOrderCategory } from '@/types';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
@@ -42,13 +43,13 @@ export function MaintenancePage() {
   const [activeTab, setActiveTab] = useState<'reactive' | 'preventive'>('reactive');
 
   // Preventive maintenance schedules
-  const [pmSchedules, setPmSchedules] = useState([
+  const [pmSchedules, setPmSchedules] = useState(isDemoMode ? [
     { id: 'pm-1', task: 'HVAC Filter Replacement', frequency: 'monthly', location: 'All floors', assignee: 'HVAC Team', lastRun: '2026-02-01', nextDue: '2026-03-01', active: true },
     { id: 'pm-2', task: 'Fire Alarm Testing', frequency: 'quarterly', location: 'All areas', assignee: 'Safety Officer', lastRun: '2026-01-15', nextDue: '2026-04-15', active: true },
     { id: 'pm-3', task: 'Elevator Inspection', frequency: 'monthly', location: 'Main building', assignee: 'Otis Engineering', lastRun: '2026-02-10', nextDue: '2026-03-10', active: true },
     { id: 'pm-4', task: 'Pool Pump Servicing', frequency: 'quarterly', location: 'Pool area', assignee: 'Pool Tech', lastRun: '2025-12-01', nextDue: '2026-03-01', active: true },
     { id: 'pm-5', task: 'Generator Load Test', frequency: 'biannual', location: 'Basement', assignee: 'Electrical Team', lastRun: '2025-09-15', nextDue: '2026-03-15', active: false },
-  ]);
+  ] : []);
   const [showAddPM, setShowAddPM] = useState(false);
   const [newPM, setNewPM] = useState({ task: '', frequency: 'monthly', location: '', assignee: '' });
   const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));

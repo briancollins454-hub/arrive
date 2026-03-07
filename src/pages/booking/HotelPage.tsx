@@ -5,7 +5,7 @@ import { BookingBar } from '@/components/booking/BookingBar';
 import { DirectBookingBadge } from '@/components/booking/DirectBookingBadge';
 import { Star, MapPin, Phone, Mail, Wifi, Car, Coffee, Waves } from 'lucide-react';
 
-const HIGHLIGHTS = [
+const DEFAULT_HIGHLIGHTS = [
   { icon: Wifi, label: 'Free Wi-Fi' },
   { icon: Car, label: 'Parking' },
   { icon: Coffee, label: 'Restaurant' },
@@ -17,6 +17,9 @@ export function HotelPage() {
   const { property } = useProperty();
 
   if (!property) return <div className="text-center py-20">Property not found</div>;
+
+  const starRating = (property as { star_rating?: number }).star_rating ?? 4;
+  const highlights = (property as { highlights?: typeof DEFAULT_HIGHLIGHTS }).highlights ?? DEFAULT_HIGHLIGHTS;
 
   return (
     <div>
@@ -50,7 +53,7 @@ export function HotelPage() {
             <div>
               <h3 className="text-xl font-display text-midnight mb-4">Hotel Highlights</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {HIGHLIGHTS.map(({ icon: Icon, label }) => (
+                {highlights.map(({ icon: Icon, label }) => (
                   <div
                     key={label}
                     className="flex flex-col items-center gap-2 p-4 rounded-xl border border-stone/20 bg-stone/5"
@@ -71,11 +74,11 @@ export function HotelPage() {
                     <Star
                       key={i}
                       size={20}
-                      className={i < 4 ? 'fill-gold text-gold' : 'text-stone/30'}
+                      className={i < starRating ? 'fill-gold text-gold' : 'text-stone/30'}
                     />
                   ))}
                 </div>
-                <span className="text-sm text-charcoal/60 font-body">4-star hotel</span>
+                <span className="text-sm text-charcoal/60 font-body">{starRating}-star hotel</span>
               </div>
             </div>
           </div>

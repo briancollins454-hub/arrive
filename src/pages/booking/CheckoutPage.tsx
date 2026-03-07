@@ -11,15 +11,17 @@ import { Separator } from '@/components/ui/Separator';
 import { differenceInDays, format } from 'date-fns';
 import { Calendar, BedDouble, Users, Shield, Tag, Plus, Check } from 'lucide-react';
 import type { CheckoutFormData } from '@/lib/validators';
+import { isDemoMode } from '@/lib/supabase';
 
-// Available add-ons
-const ADDONS = [
+// Available add-ons — shown only in demo mode until managed from DB
+const DEMO_ADDONS = [
   { id: 'breakfast', name: 'Full Breakfast', description: 'Cooked English breakfast each morning', pricePerNight: 15 },
   { id: 'parking', name: 'Parking', description: 'On-site secure parking', pricePerNight: 10 },
   { id: 'late-checkout', name: 'Late Check-out (2pm)', description: 'Guaranteed late departure', priceFlat: 25 },
   { id: 'airport', name: 'Airport Transfer', description: 'Private car to/from airport', priceFlat: 45 },
   { id: 'welcome', name: 'Welcome Package', description: 'Champagne & chocolates in room', priceFlat: 35 },
 ];
+const ADDONS = isDemoMode ? DEMO_ADDONS : [];
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -80,10 +82,10 @@ export function CheckoutPage() {
     setPromoError('');
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
-    // Demo promo codes
-    if (code === 'WELCOME10') {
+    // Demo promo codes — only work in demo mode
+    if (isDemoMode && code === 'WELCOME10') {
       setAppliedPromo({ code, discount: total * 0.10 });
-    } else if (code === 'SAVE20') {
+    } else if (isDemoMode && code === 'SAVE20') {
       setAppliedPromo({ code, discount: 20 });
     } else {
       setPromoError('Invalid promo code');
@@ -108,7 +110,7 @@ export function CheckoutPage() {
 
     // Create the booking in the system
     createBooking.mutate({
-      property_id: property?.id ?? 'demo-property-id',
+      property_id: property?.id ?? '',
       room_type_id: roomTypeId,
       room_id: null,
       check_in: checkIn,

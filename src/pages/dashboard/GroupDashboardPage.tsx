@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useProperty } from '@/hooks/useProperty';
+import { isDemoMode } from '@/lib/supabase';
 import { format } from 'date-fns';
 import type { Property, PropertySummary } from '@/types';
 
@@ -281,15 +282,15 @@ export function GroupDashboardPage() {
           value={`${overallOccupancy}%`}
           sub={`${totals.occupiedRooms}/${totals.totalRooms} rooms`}
           color="teal"
-          trend="+4.2% vs last week"
-        />
-        <MetricCard
+        trend={isDemoMode ? '+4.2% vs last week' : undefined}
+      />
+      <MetricCard
           icon={DollarSign}
           label="Today's Revenue"
           value={formatCurrency(totals.revenue, currency)}
           sub={`ADR: ${formatCurrency(overallAdr, currency)}`}
           color="blue"
-          trend="+8.1% vs yesterday"
+          trend={isDemoMode ? '+8.1% vs yesterday' : undefined}
         />
         <MetricCard
           icon={Users}

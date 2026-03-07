@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { isDemoMode } from '@/lib/supabase';
+import { useProperty } from '@/hooks/useProperty';
 import type { MessageTemplate, MessageTrigger, MessageChannel } from '@/types';
 
 // ============================================================
@@ -68,7 +70,8 @@ const mergeFields = [
 ];
 
 export function EmailTemplatesPage() {
-  const [templates, setTemplates] = useState(demoTemplates);
+  const { property } = useProperty();
+  const [templates, setTemplates] = useState(isDemoMode ? demoTemplates : []);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -90,7 +93,7 @@ export function EmailTemplatesPage() {
       setTemplates(ts => ts.map(t => t.id === editingId ? { ...t, ...form, updated_at: new Date().toISOString() } : t));
     } else {
       setTemplates(ts => [...ts, {
-        id: `tmpl-${Date.now()}`, property_id: 'demo-property-id',
+        id: `tmpl-${Date.now()}`, property_id: property?.id ?? 'demo-property-id',
         ...form, subject: form.subject || null,
         is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       }]);
@@ -116,23 +119,27 @@ export function EmailTemplatesPage() {
 
   // Mock preview — replace merge fields with sample data
   const previewBody = (body: string) => {
+    const pName = property?.name ?? 'Your Hotel';
+    const pAddr = property ? [property.address.line1, property.address.city, property.address.postcode].filter(Boolean).join(', ') : '123 Main Street';
+    const pPhone = property?.contact.phone ?? '+44 0000 000000';
+    const pEmail = property?.contact.email ?? 'info@hotel.com';
     return body
-      .replace(/\{\{guest_name\}\}/g, 'Sarah Mitchell')
-      .replace(/\{\{guest_first_name\}\}/g, 'Sarah')
-      .replace(/\{\{guest_email\}\}/g, 'sarah@email.com')
-      .replace(/\{\{confirmation_code\}\}/g, 'AR-TK82NP')
+      .replace(/\{\{guest_name\}\}/g, 'Jane Doe')
+      .replace(/\{\{guest_first_name\}\}/g, 'Jane')
+      .replace(/\{\{guest_email\}\}/g, 'guest@example.com')
+      .replace(/\{\{confirmation_code\}\}/g, 'AR-SAMPLE')
       .replace(/\{\{check_in_date\}\}/g, '15 March 2026')
       .replace(/\{\{check_out_date\}\}/g, '18 March 2026')
       .replace(/\{\{check_in_time\}\}/g, '3:00 PM')
       .replace(/\{\{check_out_time\}\}/g, '11:00 AM')
       .replace(/\{\{num_nights\}\}/g, '3')
       .replace(/\{\{room_type\}\}/g, 'Deluxe Double')
-      .replace(/\{\{total_amount\}\}/g, '567.00')
-      .replace(/\{\{nightly_rate\}\}/g, '189.00')
-      .replace(/\{\{property_name\}\}/g, 'Arrivé')
-      .replace(/\{\{property_address\}\}/g, '1 Harbour Road, Tenby, SA70 7BP')
-      .replace(/\{\{property_phone\}\}/g, '+44 1834 842000')
-      .replace(/\{\{property_email\}\}/g, 'hello@arrive-hotel.com');
+      .replace(/\{\{total_amount\}\}/g, '450.00')
+      .replace(/\{\{nightly_rate\}\}/g, '150.00')
+      .replace(/\{\{property_name\}\}/g, pName)
+      .replace(/\{\{property_address\}\}/g, pAddr)
+      .replace(/\{\{property_phone\}\}/g, pPhone)
+      .replace(/\{\{property_email\}\}/g, pEmail);
   };
 
   return (
