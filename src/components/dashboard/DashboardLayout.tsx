@@ -72,6 +72,7 @@ const navSections = [
       { to: '/dashboard/email-templates', icon: Mail, label: 'Email Templates' },
       { to: '/dashboard/messages', icon: MessageSquare, label: 'Messages' },
       { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
+      { to: '/dashboard/admin', icon: Shield, label: 'Onboard Hotel' },
     ],
   },
 ];
@@ -161,7 +162,7 @@ export function DashboardLayout() {
       {/* Mobile Sidebar — slide-over drawer */}
       <aside
         aria-label="Mobile sidebar"
-        inert={!mobileOpen ? true : undefined}
+        {...(!mobileOpen ? { inert: '' } as React.HTMLAttributes<HTMLElement> : {})}
         className={cn(
         'fixed inset-y-0 left-0 z-40 flex flex-col w-[280px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full'

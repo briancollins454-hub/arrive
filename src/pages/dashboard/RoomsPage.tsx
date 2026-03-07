@@ -1,22 +1,30 @@
 import { useState, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRooms } from '@/hooks/useRooms';
 import { useBookings } from '@/hooks/useBookings';
 import { RoomTypeEditor } from '@/components/dashboard/RoomTypeEditor';
 import { PageSpinner } from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/Dialog';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/Select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import {
   Plus, BedDouble, Users, Edit, Wrench, Ban, CheckCircle2,
-  AlertTriangle, Filter,
+  AlertTriangle, Filter, DoorOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RoomType, Room, RoomStatus } from '@/types';
-import type { RoomTypeFormData } from '@/lib/validators';
+import type { RoomTypeFormData, RoomFormData } from '@/lib/validators';
+import { roomSchema } from '@/lib/validators';
 
 const statusConfig: Record<RoomStatus, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
   available: { label: 'Available', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle2 },
@@ -27,11 +35,18 @@ const statusConfig: Record<RoomStatus, { label: string; color: string; bg: strin
 };
 
 export function RoomsPage() {
-  const { roomTypes, rooms, isLoadingTypes, createRoomType, updateRoomType, updateRoom } = useRooms();
+  const { roomTypes, rooms, isLoadingTypes, createRoomType, updateRoomType, updateRoom, createRoom } = useRooms();
   const { bookings } = useBookings();
   const [editingRoomType, setEditingRoomType] = useState<RoomType | null>(null);
   const [showNewRoomType, setShowNewRoomType] = useState(false);
+  const [showAddRoom, setShowAddRoom] = useState(false);
   const [statusFilter, setStatusFilter] = useState<RoomStatus | 'all'>('all');
+
+  // Add Room form
+  const roomForm = useForm<RoomFormData>({
+    resolver: zodResolver(roomSchema),
+    defaultValues: { room_number: '', floor: 1, status: 'available', notes: '' },
+  });
 
   // Map room → current guest
   const roomGuestMap = useMemo(() => {
@@ -103,9 +118,14 @@ export function RoomsPage() {
             {roomTypes.length} room types · {rooms.length} rooms
           </p>
         </div>
-        <Button onClick={() => setShowNewRoomType(true)}>
-          <Plus size={16} className="mr-2" /> New Room Type
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline-dark" onClick={() => setShowAddRoom(true)}>
+            <DoorOpen size={16} className="mr-2" /> Add Room
+          </Button>
+          <Button onClick={() => setShowNewRoomType(true)}>
+            <Plus size={16} className="mr-2" /> New Room Type
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="inventory" className="w-full">
@@ -325,6 +345,66 @@ export function RoomsPage() {
             isLoading={createRoomType.isPending || updateRoomType.isPending}
             onCancel={() => { setShowNewRoomType(false); setEditingRoomType(null); }}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Room Dialog */}
+      <Dialog open={showAddRoom} onOpenChange={() => { setShowAddRoom(false); roomForm.reset(); }}>
+        <DialogContent variant="dark" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Add Room</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={roomForm.handleSubmit((data) => {
+              createRoom.mutate(data, {
+                onSuccess: () => { setShowAddRoom(false); roomForm.reset(); },
+              });
+            })}
+            className="space-y-4"
+          >
+            <div>
+              <Label variant="dark">Room Type *</Label>
+              <Select
+                value={roomForm.watch('room_type_id') || ''}
+                onValueChange={(v) => roomForm.setValue('room_type_id', v)}
+              >
+                <SelectTrigger variant="dark">
+                  <SelectValue placeholder="Select room type" />
+                </SelectTrigger>
+                <SelectContent variant="dark">
+                  {roomTypes.map((rt) => (
+                    <SelectItem key={rt.id} value={rt.id}>{rt.name} — £{rt.base_rate}/night</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {roomForm.formState.errors.room_type_id && (
+                <p className="text-xs text-danger mt-1">{roomForm.formState.errors.room_type_id.message}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label variant="dark">Room Number *</Label>
+                <Input variant="dark" placeholder="e.g. 101" {...roomForm.register('room_number')} />
+                {roomForm.formState.errors.room_number && (
+                  <p className="text-xs text-danger mt-1">{roomForm.formState.errors.room_number.message}</p>
+                )}
+              </div>
+              <div>
+                <Label variant="dark">Floor</Label>
+                <Input variant="dark" type="number" min={0} max={99} {...roomForm.register('floor', { valueAsNumber: true })} />
+              </div>
+            </div>
+            <div>
+              <Label variant="dark">Notes</Label>
+              <Input variant="dark" placeholder="e.g. Sea view, corner room" {...roomForm.register('notes')} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="ghost-dark" onClick={() => { setShowAddRoom(false); roomForm.reset(); }}>Cancel</Button>
+              <Button type="submit" disabled={createRoom.isPending}>
+                {createRoom.isPending ? 'Adding...' : 'Add Room'}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

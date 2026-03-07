@@ -166,6 +166,50 @@ export function DashboardHome() {
     );
   }
 
+  // Onboarding: if no room types exist yet, show setup guide
+  const needsSetup = roomTypes.length === 0;
+  if (needsSetup) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[70vh]">
+        <div className="max-w-lg w-full text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold/20 to-teal/10 border border-gold/20 flex items-center justify-center mx-auto">
+            <Sparkles size={28} className="text-gold" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-display text-white mb-2">Welcome to Arrivé</h1>
+            <p className="text-steel font-body">Let's get your hotel set up. Follow these steps to start taking bookings.</p>
+          </div>
+          <div className="text-left space-y-3">
+            {[
+              { step: 1, label: 'Create your room types', desc: 'e.g. Standard Double, Deluxe King, Family Suite', path: '/dashboard/rooms', done: roomTypes.length > 0 },
+              { step: 2, label: 'Add individual rooms', desc: 'e.g. Room 101, 102, 201...', path: '/dashboard/rooms', done: rooms.length > 0 },
+              { step: 3, label: 'Set your rates', desc: 'Standard pricing and seasonal rates', path: '/dashboard/rates', done: false },
+              { step: 4, label: 'Update hotel details', desc: 'Name, address, contact info', path: '/dashboard/settings', done: false },
+              { step: 5, label: 'Invite your staff', desc: 'Receptionists, housekeeping, managers', path: '/dashboard/settings', done: false },
+            ].map((s) => (
+              <button
+                key={s.step}
+                onClick={() => navigate(s.path)}
+                className="w-full flex items-center gap-4 p-4 rounded-xl glass-panel hover:bg-white/[0.04] transition-all text-left group"
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border ${
+                  s.done ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-gold/10 border-gold/20 text-gold'
+                }`}>
+                  {s.step}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-body font-semibold text-white">{s.label}</p>
+                  <p className="text-xs text-steel font-body">{s.desc}</p>
+                </div>
+                <ArrowRight size={14} className="text-steel group-hover:text-gold group-hover:translate-x-1 transition-all" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const todayStr = today.toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });

@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase, isDemoMode } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 import type { Property } from '@/types';
 
 /** Demo properties — multi-hotel portfolio for demonstration */
@@ -194,6 +195,40 @@ export function useProperty() {
     }
   };
 
+  /** Persist property updates to Supabase (live mode) */
+  const updateProperty = useCallback(async (updates: Partial<Property>) => {
+    if (!activeProperty) return;
+    const merged = { ...activeProperty, ...updates, updated_at: new Date().toISOString() };
+    // Optimistic update
+    setProperty(merged);
+
+    if (isDemoMode) {
+      toast.success('Settings saved');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('properties')
+      .update({
+        name: merged.name,
+        slug: merged.slug,
+        description: merged.description,
+        address: merged.address,
+        contact: merged.contact,
+        settings: merged.settings,
+        branding: merged.branding,
+      })
+      .eq('id', activeProperty.id);
+
+    if (error) {
+      toast.error(`Failed to save: ${error.message}`);
+      // Revert
+      setProperty(activeProperty);
+      return;
+    }
+    toast.success('Settings saved');
+  }, [activeProperty, setProperty]);
+
   return {
     property: activeProperty,
     propertyId: activeProperty?.id ?? null,
@@ -204,6 +239,7 @@ export function useProperty() {
     setProperty,
     setProperties,
     switchProperty,
+    updateProperty,
     isDemoMode,
   };
 }

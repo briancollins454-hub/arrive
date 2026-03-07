@@ -34,6 +34,7 @@ import { StaffRotaPage } from '@/pages/dashboard/StaffRotaPage';
 import { WaitlistPage } from '@/pages/dashboard/WaitlistPage';
 import { CityLedgerPage } from '@/pages/dashboard/CityLedgerPage';
 import { GroupDashboardPage } from '@/pages/dashboard/GroupDashboardPage';
+import { AdminPage } from '@/pages/dashboard/AdminPage';
 
 // Pages — Booking Engine
 import { HotelPage } from '@/pages/booking/HotelPage';
@@ -104,6 +105,7 @@ function App() {
             <Route path="waitlist" element={<RequirePermission permission="waitlist.view"><WaitlistPage /></RequirePermission>} />
             <Route path="messages" element={<RequirePermission permission="messages.view"><MessagesPage /></RequirePermission>} />
             <Route path="settings" element={<RequirePermission permission="settings.view"><SettingsPage /></RequirePermission>} />
+            <Route path="admin" element={<AdminPage />} />
           </Route>
 
           {/* ============================== */}

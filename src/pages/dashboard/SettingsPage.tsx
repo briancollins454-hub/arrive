@@ -124,7 +124,7 @@ type TabId = typeof settingsTabs[number]['id'];
 // ============================================================
 
 export function SettingsPage() {
-  const { property, setProperty } = useProperty();
+  const { property, updateProperty } = useProperty();
   const [activeTab, setActiveTab] = useState<TabId>('property');
 
   // Staff management — live Supabase data
@@ -313,8 +313,7 @@ export function SettingsPage() {
 
   const onSubmit = (data: SettingsFormValues) => {
     if (property) {
-      setProperty({
-        ...property,
+      updateProperty({
         name: data.name,
         slug: data.slug,
         description: data.description,
@@ -343,10 +342,8 @@ export function SettingsPage() {
           primary_color: data.primary_color,
           accent_color: data.accent_color,
         },
-        updated_at: new Date().toISOString(),
       });
     }
-    toast.success('Settings saved');
   };
 
   // Staff handlers — persisted to Supabase
