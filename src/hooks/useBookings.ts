@@ -150,16 +150,35 @@ export function useBookings() {
         return newBooking;
       }
 
-      const { data: guest, error: guestError } = await supabase
-        .from('guests')
-        .upsert({
-          property_id: input.property_id, first_name: input.guest.first_name,
-          last_name: input.guest.last_name, email: input.guest.email,
-          phone: input.guest.phone ?? null,
-        }, { onConflict: 'property_id,email' })
-        .select().single();
+      // Find or create guest
+      let guest: Guest;
+      const guestEmail = input.guest.email?.trim() || null;
 
-      if (guestError) throw guestError;
+      if (guestEmail) {
+        // Upsert by (property_id, email) — requires unique partial index
+        const { data, error: guestError } = await supabase
+          .from('guests')
+          .upsert({
+            property_id: input.property_id, first_name: input.guest.first_name,
+            last_name: input.guest.last_name, email: guestEmail,
+            phone: input.guest.phone ?? null,
+          }, { onConflict: 'property_id,email' })
+          .select().single();
+        if (guestError) throw guestError;
+        guest = data as Guest;
+      } else {
+        // No email — always insert a new guest (walk-in / phone)
+        const { data, error: guestError } = await supabase
+          .from('guests')
+          .insert({
+            property_id: input.property_id, first_name: input.guest.first_name,
+            last_name: input.guest.last_name, email: null,
+            phone: input.guest.phone ?? null,
+          })
+          .select().single();
+        if (guestError) throw guestError;
+        guest = data as Guest;
+      }
 
       const nights = Math.ceil(
         (new Date(input.check_out).getTime() - new Date(input.check_in).getTime()) / 86400000
