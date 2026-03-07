@@ -63,10 +63,10 @@ serve(async (req: Request) => {
 
     // Verify user belongs to this property (is on the staff list)
     const { data: staffRecord } = await supabaseAdmin
-      .from('staff')
+      .from('staff_members')
       .select('id')
       .eq('property_id', property_id)
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .eq('is_active', true)
       .single();
 
