@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { isStripeConfigured } from '@/lib/stripe';
+import { isStripeReady } from '@/lib/stripe';
 import { isDemoMode, supabase } from '@/lib/supabase';
 import { useProperty } from './useProperty';
 import { logActivity } from './useActivityLog';
@@ -43,6 +43,7 @@ export function useStripePayment() {
   const [error, setError] = useState<string | null>(null);
 
   const currency = property?.settings?.currency?.toLowerCase() ?? 'gbp';
+  const stripeReady = isStripeReady(property?.stripe_publishable_key);
 
   /**
    * Create a PaymentIntent (server-side via Supabase Edge Function).
@@ -52,7 +53,7 @@ export function useStripePayment() {
     setStatus('creating');
     setError(null);
 
-    if (isDemoMode || !isStripeConfigured) {
+    if (isDemoMode || !stripeReady) {
       // Simulate PaymentIntent creation
       await new Promise(r => setTimeout(r, 600));
       return {
@@ -86,7 +87,7 @@ export function useStripePayment() {
       toast.error(message);
       return null;
     }
-  }, [currency, propertyId]);
+  }, [currency, propertyId, stripeReady]);
 
   /**
    * Simulate a complete payment flow (demo mode).
@@ -216,7 +217,7 @@ export function useStripePayment() {
   return {
     status,
     error,
-    isStripeConfigured,
+    isStripeConfigured: stripeReady,
     createPaymentIntent,
     simulatePayment,
     recordPayment,

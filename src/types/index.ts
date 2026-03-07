@@ -64,6 +64,8 @@ export interface Property {
   settings: PropertySettings;
   branding: PropertyBranding;
   stripe_account_id: string | null;
+  stripe_publishable_key: string | null;
+  stripe_secret_key: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

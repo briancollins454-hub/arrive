@@ -4,31 +4,48 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 // Stripe Configuration
 // ============================================================
 
-const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '';
+/**
+ * Fallback publishable key from env var (optional).
+ * Per-property keys from the DB take priority via getStripeForProperty().
+ */
+const envPublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '';
 
-/** True when Stripe is not configured — use simulated payments */
-export const isStripeConfigured = !!publishableKey;
+/** True when the global env-level Stripe key is set */
+export const isStripeConfigured = !!envPublishableKey;
 
-if (!isStripeConfigured) {
-  console.warn(
-    '[Arrivé] VITE_STRIPE_PUBLISHABLE_KEY is not set. ' +
-    'Payments will be simulated in demo mode. ' +
-    'Set VITE_STRIPE_PUBLISHABLE_KEY in .env.local to enable real payments.'
-  );
+/**
+ * Check whether a specific property has Stripe configured.
+ * Checks the property's own key first, then falls back to the env var.
+ */
+export function isStripeReady(propertyPublishableKey?: string | null): boolean {
+  return !!(propertyPublishableKey || envPublishableKey);
+}
+
+// Cache of Stripe instances keyed by publishable key
+const stripeCache = new Map<string, Promise<Stripe | null>>();
+
+/**
+ * Get a Stripe instance for a specific publishable key.
+ * Caches instances so the same key always returns the same promise.
+ */
+export function getStripeForKey(publishableKey: string): Promise<Stripe | null> {
+  if (!publishableKey) return Promise.resolve(null);
+  let promise = stripeCache.get(publishableKey);
+  if (!promise) {
+    promise = loadStripe(publishableKey);
+    stripeCache.set(publishableKey, promise);
+  }
+  return promise;
 }
 
 /**
- * Lazy-loaded Stripe instance.
- * Returns null when Stripe is not configured (demo mode).
+ * Get a Stripe instance for a property.
+ * Uses the property's publishable key if available, else falls back to env var.
  */
-let stripePromise: Promise<Stripe | null> | null = null;
-
-export function getStripe(): Promise<Stripe | null> {
-  if (!isStripeConfigured) return Promise.resolve(null);
-  if (!stripePromise) {
-    stripePromise = loadStripe(publishableKey);
-  }
-  return stripePromise;
+export function getStripe(propertyPublishableKey?: string | null): Promise<Stripe | null> {
+  const key = propertyPublishableKey || envPublishableKey;
+  if (!key) return Promise.resolve(null);
+  return getStripeForKey(key);
 }
 
 // ============================================================

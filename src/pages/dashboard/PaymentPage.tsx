@@ -12,7 +12,7 @@ import { useProperty } from '@/hooks/useProperty';
 import { useStripePayment } from '@/hooks/useStripePayment';
 import { getFolioBalance } from '@/hooks/useFolios';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { getStripe, isStripeConfigured, stripeDarkAppearance } from '@/lib/stripe';
+import { getStripe, isStripeReady, stripeDarkAppearance } from '@/lib/stripe';
 import type { PaymentMethod, Booking } from '@/types';
 import type { Stripe } from '@stripe/stripe-js';
 
@@ -89,7 +89,7 @@ export function PaymentPage() {
   const queryClient = useQueryClient();
   const { bookings } = useBookings();
   const { rooms } = useRooms();
-  useProperty();
+  const { property } = useProperty();
   const {
     createPaymentIntent,
     simulatePayment,
@@ -126,14 +126,17 @@ export function PaymentPage() {
   const booking = inHouseBookings.find(b => b.id === selectedBooking);
   const balance = booking ? getFolioBalance(queryClient, booking.id) : 0;
 
-  // Load Stripe instance
-  useEffect(() => {
-    if (isStripeConfigured) {
-      getStripe().then(s => setStripeInstance(s));
-    }
-  }, []);
+  // Load Stripe instance using property's publishable key
+  const propertyStripeKey = property?.stripe_publishable_key;
+  const stripeReady = isStripeReady(propertyStripeKey);
 
-  const useRealStripe = isStripeConfigured && stripeInstance && method === 'card';
+  useEffect(() => {
+    if (stripeReady) {
+      getStripe(propertyStripeKey).then(s => setStripeInstance(s));
+    }
+  }, [stripeReady, propertyStripeKey]);
+
+  const useRealStripe = stripeReady && stripeInstance && method === 'card';
 
   const canProcess = (() => {
     if (!selectedBooking || !amount || Number(amount) <= 0) return false;
@@ -406,7 +409,7 @@ export function PaymentPage() {
           )}
 
           <div className="flex items-center justify-center gap-2 text-xs text-silver/50">
-            {isStripeConfigured ? (
+            {stripeReady ? (
               <><ShieldCheck className="w-3 h-3" /><span>Powered by Stripe — payments are processed securely</span></>
             ) : (
               <><Shield className="w-3 h-3" /><span>Demo mode — no real charges will be made</span></>

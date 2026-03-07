@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Lock, CreditCard, ShieldCheck, CheckCircle, Loader2 } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { getStripe, isStripeConfigured, stripeLightAppearance } from '@/lib/stripe';
+import { getStripe, isStripeReady, stripeLightAppearance } from '@/lib/stripe';
 import type { Stripe } from '@stripe/stripe-js';
 
 interface CheckoutFormProps {
@@ -102,7 +102,8 @@ export const CheckoutForm: FC<CheckoutFormProps> = ({
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isStripeConfigured) {
+    // For the public booking checkout, use the global env key
+    if (isStripeReady()) {
       getStripe().then(s => setStripeInstance(s));
     }
   }, []);
@@ -124,8 +125,9 @@ export const CheckoutForm: FC<CheckoutFormProps> = ({
     onSubmit(data, stripePaymentSuccess ?? undefined);
   };
 
-  const showStripeElements = isStripeConfigured && stripeInstance && clientSecret;
-  const paymentReady = !isStripeConfigured || !!stripePaymentSuccess;
+  const stripeActive = isStripeReady();
+  const showStripeElements = stripeActive && stripeInstance && clientSecret;
+  const paymentReady = !stripeActive || !!stripePaymentSuccess;
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">

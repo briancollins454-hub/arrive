@@ -19,7 +19,7 @@ import {
   Lock, Loader2, ShieldCheck, Shield, CheckCircle,
 } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { getStripe, isStripeConfigured, stripeDarkAppearance } from '@/lib/stripe';
+import { getStripe, isStripeReady, stripeDarkAppearance } from '@/lib/stripe';
 import type { Stripe } from '@stripe/stripe-js';
 import { useProperty } from '@/hooks/useProperty';
 import { useKeyCard } from '@/hooks/useKeyCard';
@@ -194,14 +194,17 @@ export function BookingDetailPage() {
     reset: resetStripe,
   } = useStripePayment();
 
-  // Load Stripe instance once
-  useEffect(() => {
-    if (isStripeConfigured) {
-      getStripe().then(s => setStripeInstance(s));
-    }
-  }, []);
+  // Load Stripe instance using the property's publishable key
+  const propertyStripeKey = property?.stripe_publishable_key;
+  const stripeReady = isStripeReady(propertyStripeKey);
 
-  const useRealStripe = isStripeConfigured && stripeInstance && paymentMethod === 'card';
+  useEffect(() => {
+    if (stripeReady) {
+      getStripe(propertyStripeKey).then(s => setStripeInstance(s));
+    }
+  }, [stripeReady, propertyStripeKey]);
+
+  const useRealStripe = stripeReady && stripeInstance && paymentMethod === 'card';
 
   // Create PaymentIntent when card is selected, Stripe is configured, and amount is set
   useEffect(() => {

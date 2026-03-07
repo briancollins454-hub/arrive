@@ -105,6 +105,7 @@ interface NightAuditSettings {
 const settingsTabs = [
   { id: 'property', label: 'Property', icon: Building },
   { id: 'operations', label: 'Operations', icon: Clock },
+  { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'business-date', label: 'Business Date', icon: CalendarClock },
   { id: 'departments', label: 'Departments', icon: Network },
   { id: 'gl-codes', label: 'GL Codes', icon: BookOpen },
@@ -285,6 +286,12 @@ export function SettingsPage() {
     dpo_email: 'privacy@arrive-hotel.com',
     privacy_policy_url: 'https://arrivebooking.online/privacy',
   });
+
+  // Stripe / payments state
+  const [stripePublishableKey, setStripePublishableKey] = useState(property?.stripe_publishable_key ?? '');
+  const [stripeSecretKey, setStripeSecretKey] = useState(property?.stripe_secret_key ?? '');
+  const [stripeSaving, setStripeSaving] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
 
   const { register, handleSubmit } = useForm<SettingsFormValues>({
     values: property ? {
@@ -470,6 +477,40 @@ export function SettingsPage() {
     toast.success('Night audit settings saved');
   };
 
+  const handleSaveStripeKeys = async () => {
+    if (!property) return;
+    // Basic validation
+    if (stripePublishableKey && !stripePublishableKey.startsWith('pk_')) {
+      toast.error('Publishable key must start with pk_test_ or pk_live_');
+      return;
+    }
+    if (stripeSecretKey && !stripeSecretKey.startsWith('sk_')) {
+      toast.error('Secret key must start with sk_test_ or sk_live_');
+      return;
+    }
+    // Warn if mixing test/live
+    if (stripePublishableKey && stripeSecretKey) {
+      const pubIsTest = stripePublishableKey.startsWith('pk_test_');
+      const secIsTest = stripeSecretKey.startsWith('sk_test_');
+      if (pubIsTest !== secIsTest) {
+        toast.error('Both keys must be from the same mode (both test or both live)');
+        return;
+      }
+    }
+    setStripeSaving(true);
+    try {
+      await updateProperty({
+        stripe_publishable_key: stripePublishableKey || null,
+        stripe_secret_key: stripeSecretKey || null,
+      });
+      toast.success('Stripe keys saved');
+    } catch {
+      toast.error('Failed to save Stripe keys');
+    } finally {
+      setStripeSaving(false);
+    }
+  };
+
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
@@ -582,6 +623,116 @@ export function SettingsPage() {
             <Button type="submit"><Save size={16} className="mr-2" />Save Operations Settings</Button>
           </div>
         </form>
+      )}
+
+      {/* ============================== */}
+      {/* Payments Tab                   */}
+      {/* ============================== */}
+      {activeTab === 'payments' && (
+        <div className="space-y-6">
+          <Card variant="dark">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CreditCard size={18} className="text-teal" /> Stripe Payment Processing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <p className="text-xs text-steel font-body leading-relaxed">
+                Connect your Stripe account to accept card payments directly from guest folios.
+                Payments are processed securely through Stripe and deposited to your bank account.
+              </p>
+
+              <Separator variant="dark" />
+
+              {/* Status indicator */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className={cn(
+                  'w-2.5 h-2.5 rounded-full',
+                  stripePublishableKey && stripeSecretKey ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-amber-400'
+                )} />
+                <span className="text-sm font-body text-silver">
+                  {stripePublishableKey && stripeSecretKey
+                    ? stripePublishableKey.startsWith('pk_live_') ? 'Live mode — processing real payments' : 'Test mode — no real charges'
+                    : 'Not connected — payments will be simulated'}
+                </span>
+              </div>
+
+              {/* Setup instructions */}
+              <div className="p-4 rounded-xl bg-teal/5 border border-teal/10">
+                <h4 className="text-xs font-body font-semibold text-teal mb-2">How to get your Stripe keys</h4>
+                <ol className="text-xs text-steel font-body space-y-1 list-decimal list-inside">
+                  <li>Go to <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener noreferrer" className="text-teal underline underline-offset-2 hover:text-teal/80">dashboard.stripe.com</a> and create an account (or log in)</li>
+                  <li>Navigate to <strong className="text-silver">Developers → API keys</strong></li>
+                  <li>Copy your <strong className="text-silver">Publishable key</strong> (starts with pk_)</li>
+                  <li>Copy your <strong className="text-silver">Secret key</strong> (starts with sk_)</li>
+                  <li>Paste both keys below and save</li>
+                </ol>
+              </div>
+
+              <Separator variant="dark" />
+
+              {/* Publishable key */}
+              <div>
+                <Label variant="dark">Publishable Key</Label>
+                <p className="text-[10px] text-steel/60 font-body mb-1.5">Starts with pk_test_ or pk_live_</p>
+                <Input
+                  variant="dark"
+                  placeholder="pk_test_..."
+                  value={stripePublishableKey}
+                  onChange={(e) => setStripePublishableKey(e.target.value.trim())}
+                  spellCheck={false}
+                  autoComplete="off"
+                />
+              </div>
+
+              {/* Secret key */}
+              <div>
+                <Label variant="dark">Secret Key</Label>
+                <p className="text-[10px] text-steel/60 font-body mb-1.5">Starts with sk_test_ or sk_live_ — stored securely, never exposed to guests</p>
+                <div className="relative">
+                  <Input
+                    variant="dark"
+                    type={showSecretKey ? 'text' : 'password'}
+                    placeholder="sk_test_..."
+                    value={stripeSecretKey}
+                    onChange={(e) => setStripeSecretKey(e.target.value.trim())}
+                    spellCheck={false}
+                    autoComplete="off"
+                    className="pr-20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecretKey(!showSecretKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-steel hover:text-silver font-body transition-colors px-2 py-1"
+                  >
+                    {showSecretKey ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Clear keys option */}
+              {(stripePublishableKey || stripeSecretKey) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStripePublishableKey('');
+                    setStripeSecretKey('');
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 font-body underline underline-offset-2 transition-colors"
+                >
+                  Disconnect Stripe (clear keys)
+                </button>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveStripeKeys} disabled={stripeSaving}>
+              {stripeSaving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
+              {stripeSaving ? 'Saving…' : 'Save Payment Settings'}
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* ============================== */}
