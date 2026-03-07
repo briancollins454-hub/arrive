@@ -1956,7 +1956,7 @@ export function BookingDetailPage() {
                   useRealStripe ? (
                     /* Real Stripe Elements */
                     stripeClientSecret ? (
-                      <Elements stripe={stripeInstance} options={{ clientSecret: stripeClientSecret, appearance: stripeDarkAppearance }}>
+                      <Elements key={stripeClientSecret} stripe={stripeInstance} options={{ clientSecret: stripeClientSecret, appearance: stripeDarkAppearance }}>
                         <StripePaymentDialogInner
                           amount={Number(paymentAmount)}
                           onSuccess={handleStripePaymentSuccess}
