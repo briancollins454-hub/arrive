@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProperty } from '@/hooks/useProperty';
 import { useStaff } from '@/hooks/useStaff';
 import type { StaffInvite } from '@/hooks/useStaff';
@@ -292,6 +292,16 @@ export function SettingsPage() {
   const [stripeSecretKey, setStripeSecretKey] = useState(property?.stripe_secret_key ?? '');
   const [stripeSaving, setStripeSaving] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
+
+  // Sync Stripe keys when property loads / changes
+  useEffect(() => {
+    if (property?.stripe_publishable_key !== undefined) {
+      setStripePublishableKey(property.stripe_publishable_key ?? '');
+    }
+    if (property?.stripe_secret_key !== undefined) {
+      setStripeSecretKey(property.stripe_secret_key ?? '');
+    }
+  }, [property?.stripe_publishable_key, property?.stripe_secret_key]);
 
   const { register, handleSubmit } = useForm<SettingsFormValues>({
     values: property ? {

@@ -223,6 +223,9 @@ export function useProperty() {
         contact: merged.contact,
         settings: merged.settings,
         branding: merged.branding,
+        stripe_account_id: merged.stripe_account_id,
+        stripe_publishable_key: merged.stripe_publishable_key,
+        stripe_secret_key: merged.stripe_secret_key,
       })
       .eq('id', activeProperty.id);
 
