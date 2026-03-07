@@ -30,6 +30,7 @@ export const bookingSchema = z.object({
   check_in: z.string().min(1, 'Check-in date is required'),
   check_out: z.string().min(1, 'Check-out date is required'),
   num_guests: z.number().min(1, 'At least 1 guest').max(20),
+  nightly_rate: z.number().min(0, 'Rate cannot be negative').optional(),
   source: z.enum(['direct', 'phone', 'walk_in', 'booking_com', 'expedia', 'hotels_com', 'airbnb', 'agoda', 'tripadvisor', 'travel_agent', 'corporate', 'other']).optional(),
   special_requests: z.string().max(1000).optional().or(z.literal('')),
   internal_notes: z.string().max(1000).optional().or(z.literal('')),
