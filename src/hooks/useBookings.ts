@@ -150,22 +150,45 @@ export function useBookings() {
         return newBooking;
       }
 
-      // Find or create guest
+      // Find or create guest (manual select-then-insert to avoid PostgREST ON CONFLICT limitations)
       let guest: Guest;
       const guestEmail = input.guest.email?.trim() || null;
 
       if (guestEmail) {
-        // Upsert by (property_id, email) — requires unique partial index
-        const { data, error: guestError } = await supabase
+        // Check if guest already exists for this property
+        const { data: existing } = await supabase
           .from('guests')
-          .upsert({
-            property_id: input.property_id, first_name: input.guest.first_name,
-            last_name: input.guest.last_name, email: guestEmail,
-            phone: input.guest.phone ?? null,
-          }, { onConflict: 'property_id,email' })
-          .select().single();
-        if (guestError) throw guestError;
-        guest = data as Guest;
+          .select()
+          .eq('property_id', input.property_id)
+          .eq('email', guestEmail)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing guest details
+          const { data, error: guestError } = await supabase
+            .from('guests')
+            .update({
+              first_name: input.guest.first_name,
+              last_name: input.guest.last_name,
+              phone: input.guest.phone ?? null,
+            })
+            .eq('id', existing.id)
+            .select().single();
+          if (guestError) throw guestError;
+          guest = data as Guest;
+        } else {
+          // Insert new guest
+          const { data, error: guestError } = await supabase
+            .from('guests')
+            .insert({
+              property_id: input.property_id, first_name: input.guest.first_name,
+              last_name: input.guest.last_name, email: guestEmail,
+              phone: input.guest.phone ?? null,
+            })
+            .select().single();
+          if (guestError) throw guestError;
+          guest = data as Guest;
+        }
       } else {
         // No email — always insert a new guest (walk-in / phone)
         const { data, error: guestError } = await supabase
