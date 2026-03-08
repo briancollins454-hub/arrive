@@ -574,8 +574,9 @@ export function CityLedgerPage() {
                                 )}
                               </td>
                               <td className="px-4 sm:px-5 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1">
                                 {inv.status !== 'paid' && inv.status !== 'written_off' && (
-                                  <div className="flex items-center justify-end gap-1">
+                                  <>
                                     <button
                                       onClick={() => { setShowPaymentDialog(inv); setPaymentAmount(String(invBalance)); }}
                                       className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-steel hover:text-emerald-400 transition-all touch-manipulation"
@@ -605,16 +606,17 @@ export function CityLedgerPage() {
                                         <Send size={13} />
                                       </button>
                                     )}
-                                    <button
-                                      onClick={() => deleteInvoice.mutate(inv.id)}
-                                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all touch-manipulation"
-                                      title="Delete invoice"
-                                      aria-label="Delete invoice"
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  </div>
+                                  </>
                                 )}
+                                <button
+                                  onClick={() => deleteInvoice.mutate(inv.id)}
+                                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all touch-manipulation"
+                                  title="Delete invoice"
+                                  aria-label="Delete invoice"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                                </div>
                                 {inv.status === 'paid' && (
                                   <Check size={13} className="text-emerald-400 inline" />
                                 )}
