@@ -155,7 +155,7 @@ export function useProperty() {
 
     let cancelled = false;
     (async () => {
-      // Load staff → property for the authenticated user
+      // Load all properties the user has access to via staff_properties junction table
       const { data: staff } = await supabase
         .from('staff_members')
         .select('*')
@@ -164,17 +164,29 @@ export function useProperty() {
 
       if (cancelled || !staff) return;
 
-      const { data: prop } = await supabase
+      const { data: staffProps } = await supabase
+        .from('staff_properties')
+        .select('property_id, is_primary')
+        .eq('staff_id', user.id);
+
+      const propertyIds = staffProps?.map((sp: { property_id: string }) => sp.property_id) ?? [staff.property_id];
+      const primaryPropId = staffProps?.find((sp: { is_primary: boolean }) => sp.is_primary)?.property_id ?? staff.property_id;
+
+      if (propertyIds.length === 0) {
+        propertyIds.push(staff.property_id);
+      }
+
+      const { data: allProps } = await supabase
         .from('properties')
         .select('*')
-        .eq('id', staff.property_id)
-        .single();
+        .in('id', propertyIds);
 
-      if (cancelled || !prop) return;
+      if (cancelled || !allProps || allProps.length === 0) return;
 
-      setProperty(prop);
-      setProperties([prop]);
-      setActivePropertyId(prop.id);
+      const primaryProp = allProps.find(p => p.id === primaryPropId) ?? allProps[0]!;
+      setProperty(primaryProp);
+      setProperties(allProps);
+      setActivePropertyId(primaryProp.id);
     })();
 
     return () => { cancelled = true; };
@@ -238,6 +250,77 @@ export function useProperty() {
     toast.success('Settings saved');
   }, [activeProperty, setProperty]);
 
+  /** Create a new property and link it to the current user via staff_properties */
+  const createProperty = useCallback(async (details: {
+    name: string;
+    slug: string;
+    description?: string;
+    address?: Property['address'];
+    contact?: Property['contact'];
+  }): Promise<Property | null> => {
+    if (isDemoMode) {
+      const newProp: Property = {
+        id: `demo-${Date.now()}`,
+        name: details.name,
+        slug: details.slug,
+        description: details.description ?? '',
+        address: details.address ?? { line1: '', line2: '', city: '', county: '', postcode: '', country: 'United Kingdom' },
+        contact: details.contact ?? { phone: '', email: '', website: '' },
+        settings: {
+          check_in_time: '15:00', check_out_time: '11:00', currency: 'GBP', timezone: 'Europe/London',
+          cancellation_hours: 48, deposit_percentage: 0, tax_rate: 0.20,
+          allow_same_day_booking: true, max_advance_days: 365,
+        },
+        branding: { primary_color: '#D4A853', accent_color: '#0D9488', logo_url: null, cover_images: [] },
+        stripe_account_id: null, stripe_publishable_key: null, stripe_secret_key: null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const updated = [...allProperties, newProp];
+      setProperties(updated);
+      toast.success(`"${details.name}" created`);
+      return newProp;
+    }
+
+    try {
+      // 1. Insert the new property
+      const { data: newProp, error: propErr } = await supabase.from('properties').insert({
+        name: details.name.trim(),
+        slug: details.slug.trim(),
+        description: details.description?.trim() || null,
+        address: details.address ?? {},
+        contact: details.contact ?? {},
+      }).select('*').single();
+
+      if (propErr || !newProp) throw propErr ?? new Error('Failed to create property');
+
+      // 2. Link current user to the new property via staff_properties
+      if (user) {
+        const currentRole = useAppStore.getState().currentRole ?? 'owner';
+        const { error: linkErr } = await supabase.from('staff_properties').insert({
+          staff_id: user.id,
+          property_id: newProp.id,
+          role: currentRole,
+          is_primary: false,
+        });
+        if (linkErr) {
+          console.error('[Arrivé] Failed to link staff to new property:', linkErr.message);
+        }
+      }
+
+      // 3. Update local state with the new property added to the list
+      const updated = [...allProperties, newProp];
+      setProperties(updated);
+      toast.success(`"${details.name}" created`);
+      return newProp;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create property';
+      toast.error(msg);
+      return null;
+    }
+  }, [allProperties, setProperties, user]);
+
   return {
     property: activeProperty,
     propertyId: activeProperty?.id ?? null,
@@ -249,6 +332,7 @@ export function useProperty() {
     setProperties,
     switchProperty,
     updateProperty,
+    createProperty,
     isDemoMode,
   };
 }

@@ -70,23 +70,51 @@ export function useAuth() {
         revoked: (perms.revoked ?? []) as Permission[],
       });
 
-      const { data: property, error: propError } = await supabase
+      // Load ALL properties this staff member has access to via staff_properties junction
+      const { data: staffProps } = await supabase
+        .from('staff_properties')
+        .select('property_id, is_primary')
+        .eq('staff_id', userId);
+
+      const propertyIds = staffProps?.map((sp: { property_id: string }) => sp.property_id) ?? [staff.property_id];
+      const primaryPropId = staffProps?.find((sp: { is_primary: boolean }) => sp.is_primary)?.property_id ?? staff.property_id;
+
+      // Fallback: if staff_properties is empty, use the single property_id from staff_members
+      if (propertyIds.length === 0) {
+        propertyIds.push(staff.property_id);
+      }
+
+      const { data: allProperties, error: propError } = await supabase
         .from('properties')
         .select('*')
-        .eq('id', staff.property_id)
-        .single();
+        .in('id', propertyIds);
 
-      console.log('[Arrivé Auth] Property result:', property, 'Error:', propError);
+      console.log('[Arrivé Auth] Properties result:', allProperties?.length, 'Error:', propError);
 
-      if (property) {
-        setProperty(property);
-        // Also populate the properties array so useProperty works in live mode
+      if (allProperties && allProperties.length > 0) {
+        const primaryProp = allProperties.find(p => p.id === primaryPropId) ?? allProperties[0]!;
+        setProperty(primaryProp);
         const setProperties = useAppStore.getState().setProperties;
         const setActivePropertyId = useAppStore.getState().setActivePropertyId;
-        setProperties([property]);
-        setActivePropertyId(property.id);
+        setProperties(allProperties);
+        setActivePropertyId(primaryProp.id);
       } else {
-        console.error('[Arrivé Auth] Property not found for property_id:', staff.property_id);
+        // Fallback: try loading just the single property
+        const { data: fallbackProp } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', staff.property_id)
+          .single();
+
+        if (fallbackProp) {
+          setProperty(fallbackProp);
+          const setProperties = useAppStore.getState().setProperties;
+          const setActivePropertyId = useAppStore.getState().setActivePropertyId;
+          setProperties([fallbackProp]);
+          setActivePropertyId(fallbackProp.id);
+        } else {
+          console.error('[Arrivé Auth] No properties found for staff:', userId);
+        }
       }
     } else {
       // No staff_members row — check if user has a pending invite to accept

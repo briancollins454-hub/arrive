@@ -10,7 +10,7 @@
 
 CREATE TABLE IF NOT EXISTS staff_properties (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  staff_id UUID NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+  staff_id UUID NOT NULL REFERENCES staff_members(id) ON DELETE CASCADE,
   property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
   role staff_role NOT NULL DEFAULT 'receptionist',
   is_primary BOOLEAN NOT NULL DEFAULT false,
@@ -31,9 +31,9 @@ CREATE INDEX idx_staff_properties_property ON staff_properties(property_id);
 
 INSERT INTO staff_properties (staff_id, property_id, role, is_primary)
 SELECT id, property_id, role, true
-FROM staff
+FROM staff_members
 WHERE NOT EXISTS (
-  SELECT 1 FROM staff_properties sp WHERE sp.staff_id = staff.id AND sp.property_id = staff.property_id
+  SELECT 1 FROM staff_properties sp WHERE sp.staff_id = staff_members.id AND sp.property_id = staff_members.property_id
 );
 
 -- ============================================================
@@ -53,12 +53,17 @@ CREATE POLICY staff_properties_manage ON staff_properties
   FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM staff
-      WHERE staff.id = auth.uid()
-        AND staff.role IN ('owner', 'general_manager')
-        AND staff.property_id = staff_properties.property_id
+      SELECT 1 FROM staff_members
+      WHERE staff_members.id = auth.uid()
+        AND staff_members.role IN ('owner', 'manager')
+        AND staff_members.property_id = staff_properties.property_id
     )
   );
+
+-- Allow staff to insert their own property links (e.g. when creating a new property)
+CREATE POLICY staff_properties_self_insert ON staff_properties
+  FOR INSERT
+  WITH CHECK (staff_id = auth.uid());
 
 -- ============================================================
 -- VIEW: convenient join for fetching staff with all their properties
@@ -74,7 +79,7 @@ SELECT
   p.slug AS property_slug,
   sp.role,
   sp.is_primary
-FROM staff s
+FROM staff_members s
 JOIN staff_properties sp ON sp.staff_id = s.id
 JOIN properties p ON p.id = sp.property_id
 WHERE s.is_active = true
