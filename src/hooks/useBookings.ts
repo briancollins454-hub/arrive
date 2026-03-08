@@ -221,7 +221,7 @@ export function useBookings() {
 
       // Auto-post room charges to folio
       const rtName = (await supabase.from('room_types').select('name').eq('id', input.room_type_id).single()).data?.name ?? 'Room';
-      await supabase.from('folio_entries').insert({
+      const { error: folioError } = await supabase.from('folio_entries').insert({
         booking_id: inserted.id,
         type: 'charge',
         category: 'room',
@@ -233,6 +233,13 @@ export function useBookings() {
         posted_at: new Date().toISOString(),
         is_voided: false,
       });
+      if (folioError) {
+        console.error('[Arrivé] Failed to post room charges to folio:', folioError);
+        toast.error('Booking created but room charges could not be posted to folio');
+      }
+
+      // Ensure folio cache is fresh
+      queryClient.invalidateQueries({ queryKey: ['folio', inserted.id] });
 
       toast.success('Booking created successfully');
       return inserted as Booking;
@@ -353,7 +360,7 @@ export function useBookings() {
           const rate = booking.nightly_rate ?? 0;
           const { data: rt } = await supabase.from('room_types').select('name').eq('id', booking.room_type_id).single();
           const rtName = rt?.name ?? 'Room';
-          await supabase.from('folio_entries').insert({
+          const { error: folioErr } = await supabase.from('folio_entries').insert({
             booking_id: bookingId,
             type: 'charge',
             category: 'room',
@@ -365,6 +372,7 @@ export function useBookings() {
             posted_at: new Date().toISOString(),
             is_voided: false,
           });
+          if (folioErr) console.error('[Arrivé] Safety-net folio post failed:', folioErr);
         }
       }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useBookings } from '@/hooks/useBookings';
@@ -25,6 +25,7 @@ import { useProperty } from '@/hooks/useProperty';
 import { useKeyCard } from '@/hooks/useKeyCard';
 import { KeyCardModal } from '@/components/dashboard/KeyCardModal';
 import { cn } from '@/lib/utils';
+import { supabase, isDemoMode } from '@/lib/supabase';
 import { getSourceLabel, SOURCE_LABELS } from '@/lib/constants';
 import toast from 'react-hot-toast';
 import type { BookingStatus, BookingSource, FolioChargeCategory, PaymentMethod } from '@/types';
@@ -102,6 +103,42 @@ export function BookingDetailPage() {
   const { property } = useProperty();
   const folio = useFolios(id ?? '');
   const keyCard = useKeyCard();
+
+  // Auto-post room charges if folio is empty (catches bookings created before the fix)
+  const folioAutoPosted = useRef(false);
+  useEffect(() => {
+    if (isDemoMode || folioAutoPosted.current) return;
+    if (folio.isLoading || folio.entries.length > 0) return;
+    const bk = bookings.find(b => b.id === id);
+    if (!bk || isLoading) return;
+    folioAutoPosted.current = true;
+    const nights = Math.max(1, Math.ceil(
+      (new Date(bk.check_out).getTime() - new Date(bk.check_in).getTime()) / 86400000
+    ));
+    const rate = bk.nightly_rate ?? 0;
+    if (rate <= 0) return;
+    supabase.from('room_types').select('name').eq('id', bk.room_type_id).single()
+      .then(({ data: rt }) => {
+        const name = rt?.name ?? 'Room';
+        return supabase.from('folio_entries').insert({
+          booking_id: bk.id,
+          type: 'charge',
+          category: 'room',
+          description: `Room Charge \u2014 ${name} \u00d7 ${nights} night${nights !== 1 ? 's' : ''}`,
+          amount: rate * nights,
+          quantity: nights,
+          unit_price: rate,
+          posted_by: 'System',
+          posted_at: new Date().toISOString(),
+          is_voided: false,
+        });
+      })
+      .then(({ error }) => {
+        if (error) console.error('[Arriv\u00e9] Auto-post folio failed:', error);
+        else qc.invalidateQueries({ queryKey: ['folio', bk.id] });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folio.isLoading, folio.entries.length, bookings, id, isLoading]);
   const qc = useQueryClient();
 
   const [showKeyCardModal, setShowKeyCardModal] = useState(false);
