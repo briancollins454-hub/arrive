@@ -341,7 +341,7 @@ export function BookingDetailPage() {
   const [amendGuestPhone, setAmendGuestPhone] = useState('');
 
   // City ledger company accounts — fetched from DB via hook
-  const { accounts: cityLedgerCompanies_ } = useCityLedger();
+  const { accounts: cityLedgerCompanies_, createInvoice: clCreateInvoice } = useCityLedger();
   const cityLedgerCompanies = cityLedgerCompanies_.map(a => ({ id: a.id, name: a.company_name }));
 
   if (isLoading) return <PageSpinner />;
@@ -2428,6 +2428,9 @@ export function BookingDetailPage() {
                       if (!checkoutCompany) { toast.error('Please select a company account'); return; }
                       if (checkoutCityLedgerIds.size === 0) { toast.error('Select at least one item for the company'); return; }
                       const companyName = cityLedgerCompanies.find(c => c.id === checkoutCompany)?.name ?? 'Company';
+                      const acct = cityLedgerCompanies_.find(a => a.id === checkoutCompany);
+                      const paymentTerms = acct?.payment_terms ?? 30;
+                      const guestFullName = `${booking.guest?.first_name ?? ''} ${booking.guest?.last_name ?? ''}`.trim() || 'Guest';
                       // Post city ledger transfer as a payment
                       folio.postPayment.mutate(
                         {
@@ -2437,6 +2440,22 @@ export function BookingDetailPage() {
                         },
                         {
                           onSuccess: () => {
+                            // Create matching invoice in city ledger
+                            const dueDate = new Date();
+                            dueDate.setDate(dueDate.getDate() + paymentTerms);
+                            clCreateInvoice.mutate({
+                              account_id: checkoutCompany,
+                              invoice_number: `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+                              booking_id: booking.id,
+                              booking_confirmation: booking.confirmation_code ?? '',
+                              guest_name: guestFullName,
+                              description: `Checkout transfer — ${checkoutCityLedgerIds.size} item${checkoutCityLedgerIds.size > 1 ? 's' : ''} from folio`,
+                              amount: cityLedgerTotal,
+                              date_posted: new Date().toISOString(),
+                              due_date: dueDate.toISOString(),
+                              status: 'outstanding',
+                              amount_paid: 0,
+                            });
                             toast.success(`£${cityLedgerTotal.toFixed(2)} transferred to ${companyName}`);
                             // If guest still owes money, open payment dialog
                             if (guestOwes > 0.01) {
@@ -2752,6 +2771,9 @@ export function BookingDetailPage() {
                     if (!clSelectedCompany) { toast.error('Please select a company'); return; }
                     if (clSelectedEntryIds.size === 0) { toast.error('Please select at least one item'); return; }
                     const companyName = cityLedgerCompanies.find(c => c.id === clSelectedCompany)?.name ?? 'Company';
+                    const acct = cityLedgerCompanies_.find(a => a.id === clSelectedCompany);
+                    const paymentTerms = acct?.payment_terms ?? 30;
+                    const guestFullName = `${booking.guest?.first_name ?? ''} ${booking.guest?.last_name ?? ''}`.trim() || 'Guest';
                     folio.postPayment.mutate(
                       {
                         amount: selectedTotal,
@@ -2760,6 +2782,22 @@ export function BookingDetailPage() {
                       },
                       {
                         onSuccess: () => {
+                          // Create matching invoice in city ledger
+                          const dueDate = new Date();
+                          dueDate.setDate(dueDate.getDate() + paymentTerms);
+                          clCreateInvoice.mutate({
+                            account_id: clSelectedCompany,
+                            invoice_number: `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+                            booking_id: booking.id,
+                            booking_confirmation: booking.confirmation_code ?? '',
+                            guest_name: guestFullName,
+                            description: `City Ledger transfer — ${clSelectedEntryIds.size} item${clSelectedEntryIds.size > 1 ? 's' : ''} from folio`,
+                            amount: selectedTotal,
+                            date_posted: new Date().toISOString(),
+                            due_date: dueDate.toISOString(),
+                            status: 'outstanding',
+                            amount_paid: 0,
+                          });
                           toast.success(`£${selectedTotal.toFixed(2)} transferred to ${companyName} city ledger`);
                           setShowCityLedgerDialog(false);
                           setClSelectedCompany('');

@@ -8,95 +8,11 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { exportCSV } from '@/lib/exportUtils';
 import toast from 'react-hot-toast';
-import { isDemoMode } from '@/lib/supabase';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
-import { useCityLedger } from '@/hooks/useCityLedger';
+import { useCityLedger, type CityLedgerInvoice } from '@/hooks/useCityLedger';
 
-// ============================================================
-// Types
-// ============================================================
-
-interface CityLedgerInvoice {
-  id: string;
-  account_id: string;
-  invoice_number: string;
-  booking_confirmation: string;
-  guest_name: string;
-  description: string;
-  amount: number;
-  date_posted: string;
-  due_date: string;
-  status: 'outstanding' | 'partially_paid' | 'paid' | 'overdue' | 'written_off';
-  amount_paid: number;
-}
-
-// ============================================================
-// Demo Data
-// ============================================================
-
-const demoInvoices: CityLedgerInvoice[] = [
-  // Meridian Consulting
-  {
-    id: 'inv-1', account_id: 'cl-1', invoice_number: 'INV-2026-0081',
-    booking_confirmation: 'ARR-2026-041', guest_name: 'Oliver Bennett',
-    description: '3-night stay — Executive Suite, room charges + F&B',
-    amount: 1890, date_posted: '2026-02-18T00:00:00Z', due_date: '2026-03-20T00:00:00Z',
-    status: 'outstanding', amount_paid: 0,
-  },
-  {
-    id: 'inv-2', account_id: 'cl-1', invoice_number: 'INV-2026-0072',
-    booking_confirmation: 'ARR-2026-033', guest_name: 'Emma Whitfield',
-    description: '2-night stay — Deluxe Double, room only',
-    amount: 780, date_posted: '2026-02-05T00:00:00Z', due_date: '2026-03-07T00:00:00Z',
-    status: 'paid', amount_paid: 780,
-  },
-  {
-    id: 'inv-3', account_id: 'cl-1', invoice_number: 'INV-2026-0063',
-    booking_confirmation: 'ARR-2026-028', guest_name: 'James Grant',
-    description: '5-night stay — Penthouse, full billing',
-    amount: 4250, date_posted: '2026-01-20T00:00:00Z', due_date: '2026-02-19T00:00:00Z',
-    status: 'overdue', amount_paid: 0,
-  },
-  // Apex Travel
-  {
-    id: 'inv-4', account_id: 'cl-2', invoice_number: 'INV-2026-0079',
-    booking_confirmation: 'ARR-2026-039', guest_name: 'Sophie Chen',
-    description: '4-night group booking (3 rooms) — Standard rooms',
-    amount: 2340, date_posted: '2026-02-14T00:00:00Z', due_date: '2026-02-28T00:00:00Z',
-    status: 'overdue', amount_paid: 0,
-  },
-  {
-    id: 'inv-5', account_id: 'cl-2', invoice_number: 'INV-2026-0068',
-    booking_confirmation: 'ARR-2026-031', guest_name: 'Mark Williams',
-    description: '1-night stay — Superior Twin, room + parking',
-    amount: 420, date_posted: '2026-01-28T00:00:00Z', due_date: '2026-02-11T00:00:00Z',
-    status: 'paid', amount_paid: 420,
-  },
-  // Sterling & Associates
-  {
-    id: 'inv-6', account_id: 'cl-3', invoice_number: 'INV-2026-0085',
-    booking_confirmation: 'ARR-2026-044', guest_name: 'Sir James Sterling',
-    description: '7-night extended stay — Presidential Suite, all inclusive',
-    amount: 8750, date_posted: '2026-02-24T00:00:00Z', due_date: '2026-04-10T00:00:00Z',
-    status: 'outstanding', amount_paid: 0,
-  },
-  {
-    id: 'inv-7', account_id: 'cl-3', invoice_number: 'INV-2026-0055',
-    booking_confirmation: 'ARR-2026-022', guest_name: 'Victoria Palmer',
-    description: '2-night stay — Junior Suite, room + spa',
-    amount: 1560, date_posted: '2026-01-10T00:00:00Z', due_date: '2026-02-24T00:00:00Z',
-    status: 'partially_paid', amount_paid: 1000,
-  },
-  // Nova Tech
-  {
-    id: 'inv-8', account_id: 'cl-4', invoice_number: 'INV-2025-0047',
-    booking_confirmation: 'ARR-2025-198', guest_name: 'Tom Harris',
-    description: '3-night conference stay — 2 rooms + meeting room',
-    amount: 3200, date_posted: '2025-11-15T00:00:00Z', due_date: '2025-12-15T00:00:00Z',
-    status: 'overdue', amount_paid: 0,
-  },
-];
+// Types are imported from useCityLedger hook
 
 // ============================================================
 // Status helpers
@@ -121,8 +37,7 @@ const invoiceStatusConfig: Record<string, { label: string; color: string; bg: st
 // ============================================================
 
 export function CityLedgerPage() {
-  const { accounts, createAccount, updateAccount } = useCityLedger();
-  const [invoices, setInvoices] = useState<CityLedgerInvoice[]>(isDemoMode ? demoInvoices : []);
+  const { accounts, invoices, createAccount, updateAccount, createInvoice, updateInvoice } = useCityLedger();
   const [search, setSearch] = useState('');
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'closed'>('all');
@@ -225,24 +140,19 @@ export function CityLedgerPage() {
       toast.error(`Payment exceeds outstanding balance of £${remaining.toFixed(2)}`);
       return;
     }
-    setInvoices(prev => prev.map(inv => {
-      if (inv.id !== showPaymentDialog.id) return inv;
-      const newPaid = inv.amount_paid + amount;
-      return {
-        ...inv,
-        amount_paid: newPaid,
-        status: newPaid >= inv.amount ? 'paid' : 'partially_paid',
-      };
-    }));
+    const newPaid = showPaymentDialog.amount_paid + amount;
+    updateInvoice.mutate({
+      id: showPaymentDialog.id,
+      amount_paid: newPaid,
+      status: newPaid >= showPaymentDialog.amount ? 'paid' : 'partially_paid',
+    });
     toast.success(`Payment of £${amount.toFixed(2)} recorded against ${showPaymentDialog.invoice_number}`);
     setShowPaymentDialog(null);
     setPaymentAmount('');
   };
 
   const handleWriteOff = (invoiceId: string) => {
-    setInvoices(prev => prev.map(inv =>
-      inv.id === invoiceId ? { ...inv, status: 'written_off' as const } : inv
-    ));
+    updateInvoice.mutate({ id: invoiceId, status: 'written_off' });
     toast.success('Invoice written off');
   };
 
@@ -252,11 +162,12 @@ export function CityLedgerPage() {
     if (!amount || amount <= 0) { toast.error('Enter a valid credit amount'); return; }
     const remaining = showCreditNote.amount - showCreditNote.amount_paid;
     if (amount > remaining) { toast.error(`Credit exceeds balance of £${remaining.toFixed(2)}`); return; }
+    const cnNumber = `CN-${format(new Date(), 'yyyy')}-${String(Date.now()).slice(-6)}`;
     // Create credit note as a negative invoice
-    const cn: CityLedgerInvoice = {
-      id: `cn-${Date.now()}`,
+    createInvoice.mutate({
       account_id: showCreditNote.account_id,
-      invoice_number: `CN-${format(new Date(), 'yyyy')}-${String(invoices.length + 1).padStart(4, '0')}`,
+      invoice_number: cnNumber,
+      booking_id: null,
       booking_confirmation: showCreditNote.booking_confirmation,
       guest_name: showCreditNote.guest_name,
       description: `Credit Note: ${creditReason || 'Adjustment'} (ref: ${showCreditNote.invoice_number})`,
@@ -265,17 +176,15 @@ export function CityLedgerPage() {
       due_date: new Date().toISOString(),
       status: 'paid',
       amount_paid: -amount,
-    };
+    });
     // Also reduce original invoice balance
-    setInvoices(prev => [
-      ...prev.map(inv => {
-        if (inv.id !== showCreditNote.id) return inv;
-        const newPaid = inv.amount_paid + amount;
-        return { ...inv, amount_paid: newPaid, status: newPaid >= inv.amount ? 'paid' as const : 'partially_paid' as const };
-      }),
-      cn,
-    ]);
-    toast.success(`Credit note ${cn.invoice_number} issued for £${amount.toFixed(2)}`);
+    const newPaid = showCreditNote.amount_paid + amount;
+    updateInvoice.mutate({
+      id: showCreditNote.id,
+      amount_paid: newPaid,
+      status: newPaid >= showCreditNote.amount ? 'paid' : 'partially_paid',
+    });
+    toast.success(`Credit note ${cnNumber} issued for £${amount.toFixed(2)}`);
     setShowCreditNote(null);
     setCreditAmount('');
     setCreditReason('');

@@ -22,6 +22,23 @@ export interface CityLedgerAccount {
   created_at: string;
 }
 
+export interface CityLedgerInvoice {
+  id: string;
+  property_id: string;
+  account_id: string;
+  invoice_number: string;
+  booking_id: string | null;
+  booking_confirmation: string;
+  guest_name: string;
+  description: string;
+  amount: number;
+  date_posted: string;
+  due_date: string;
+  status: 'outstanding' | 'partially_paid' | 'paid' | 'overdue' | 'written_off';
+  amount_paid: number;
+  created_at: string;
+}
+
 // ============================================================
 // Demo data
 // ============================================================
@@ -58,6 +75,73 @@ const demoAccounts: CityLedgerAccount[] = [
     address: '88 Innovation Drive, Birmingham B1 2AA', credit_limit: 10000,
     payment_terms: 30, status: 'suspended', created_at: '2024-06-10T00:00:00Z',
     notes: 'Account suspended — 90-day overdue invoice #INV-2025-0047.',
+  },
+];
+
+const demoInvoices: CityLedgerInvoice[] = [
+  {
+    id: 'inv-1', property_id: 'demo-property-id', account_id: 'cl-1',
+    invoice_number: 'INV-2026-0081', booking_id: null,
+    booking_confirmation: 'ARR-2026-041', guest_name: 'Oliver Bennett',
+    description: '3-night stay — Executive Suite, room charges + F&B',
+    amount: 1890, date_posted: '2026-02-18T00:00:00Z', due_date: '2026-03-20T00:00:00Z',
+    status: 'outstanding', amount_paid: 0, created_at: '2026-02-18T00:00:00Z',
+  },
+  {
+    id: 'inv-2', property_id: 'demo-property-id', account_id: 'cl-1',
+    invoice_number: 'INV-2026-0072', booking_id: null,
+    booking_confirmation: 'ARR-2026-033', guest_name: 'Emma Whitfield',
+    description: '2-night stay — Deluxe Double, room only',
+    amount: 780, date_posted: '2026-02-05T00:00:00Z', due_date: '2026-03-07T00:00:00Z',
+    status: 'paid', amount_paid: 780, created_at: '2026-02-05T00:00:00Z',
+  },
+  {
+    id: 'inv-3', property_id: 'demo-property-id', account_id: 'cl-1',
+    invoice_number: 'INV-2026-0063', booking_id: null,
+    booking_confirmation: 'ARR-2026-028', guest_name: 'James Grant',
+    description: '5-night stay — Penthouse, full billing',
+    amount: 4250, date_posted: '2026-01-20T00:00:00Z', due_date: '2026-02-19T00:00:00Z',
+    status: 'overdue', amount_paid: 0, created_at: '2026-01-20T00:00:00Z',
+  },
+  {
+    id: 'inv-4', property_id: 'demo-property-id', account_id: 'cl-2',
+    invoice_number: 'INV-2026-0079', booking_id: null,
+    booking_confirmation: 'ARR-2026-039', guest_name: 'Sophie Chen',
+    description: '4-night group booking (3 rooms) — Standard rooms',
+    amount: 2340, date_posted: '2026-02-14T00:00:00Z', due_date: '2026-02-28T00:00:00Z',
+    status: 'overdue', amount_paid: 0, created_at: '2026-02-14T00:00:00Z',
+  },
+  {
+    id: 'inv-5', property_id: 'demo-property-id', account_id: 'cl-2',
+    invoice_number: 'INV-2026-0068', booking_id: null,
+    booking_confirmation: 'ARR-2026-031', guest_name: 'Mark Williams',
+    description: '1-night stay — Superior Twin, room + parking',
+    amount: 420, date_posted: '2026-01-28T00:00:00Z', due_date: '2026-02-11T00:00:00Z',
+    status: 'paid', amount_paid: 420, created_at: '2026-01-28T00:00:00Z',
+  },
+  {
+    id: 'inv-6', property_id: 'demo-property-id', account_id: 'cl-3',
+    invoice_number: 'INV-2026-0085', booking_id: null,
+    booking_confirmation: 'ARR-2026-044', guest_name: 'Sir James Sterling',
+    description: '7-night extended stay — Presidential Suite, all inclusive',
+    amount: 8750, date_posted: '2026-02-24T00:00:00Z', due_date: '2026-04-10T00:00:00Z',
+    status: 'outstanding', amount_paid: 0, created_at: '2026-02-24T00:00:00Z',
+  },
+  {
+    id: 'inv-7', property_id: 'demo-property-id', account_id: 'cl-3',
+    invoice_number: 'INV-2026-0055', booking_id: null,
+    booking_confirmation: 'ARR-2026-022', guest_name: 'Victoria Palmer',
+    description: '2-night stay — Junior Suite, room + spa',
+    amount: 1560, date_posted: '2026-01-10T00:00:00Z', due_date: '2026-02-24T00:00:00Z',
+    status: 'partially_paid', amount_paid: 1000, created_at: '2026-01-10T00:00:00Z',
+  },
+  {
+    id: 'inv-8', property_id: 'demo-property-id', account_id: 'cl-4',
+    invoice_number: 'INV-2025-0047', booking_id: null,
+    booking_confirmation: 'ARR-2025-198', guest_name: 'Tom Harris',
+    description: '3-night conference stay — 2 rooms + meeting room',
+    amount: 3200, date_posted: '2025-11-15T00:00:00Z', due_date: '2025-12-15T00:00:00Z',
+    status: 'overdue', amount_paid: 0, created_at: '2025-11-15T00:00:00Z',
   },
 ];
 
@@ -175,11 +259,92 @@ export function useCityLedger() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // ---- Fetch invoices ----
+  const invoicesQuery = useQuery({
+    queryKey: ['city-ledger-invoices', propertyId],
+    queryFn: async () => {
+      if (isDemoMode) return demoInvoices;
+      if (!propertyId) return [];
+      console.log('[Arrivé CL] Fetching invoices for property:', propertyId);
+      const { data, error } = await supabase
+        .from('city_ledger_invoices')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('date_posted', { ascending: false });
+      if (error) { console.error('[Arrivé CL] Invoice fetch error:', error); throw error; }
+      console.log('[Arrivé CL] Fetched', data?.length ?? 0, 'invoices');
+      return (data ?? []) as CityLedgerInvoice[];
+    },
+    enabled: !!propertyId || isDemoMode,
+    staleTime: 30_000,
+  });
+
+  const invoices = invoicesQuery.data ?? [];
+
+  // ---- Create invoice ----
+  const createInvoice = useMutation({
+    mutationFn: async (input: Omit<CityLedgerInvoice, 'id' | 'property_id' | 'created_at'>) => {
+      if (isDemoMode) {
+        const entry: CityLedgerInvoice = {
+          ...input,
+          id: `inv-${Date.now()}`,
+          property_id: 'demo-property-id',
+          created_at: new Date().toISOString(),
+        };
+        qc.setQueryData<CityLedgerInvoice[]>(
+          ['city-ledger-invoices', 'demo-property-id'],
+          (old) => [entry, ...(old ?? [])],
+        );
+        return entry;
+      }
+      if (!propertyId) throw new Error('Property not loaded — please try again');
+      console.log('[Arrivé CL] Creating invoice:', input.invoice_number);
+      const { data, error } = await supabase
+        .from('city_ledger_invoices')
+        .insert({ ...input, property_id: propertyId })
+        .select()
+        .single();
+      if (error) { console.error('[Arrivé CL] Invoice insert error:', error); throw error; }
+      console.log('[Arrivé CL] Invoice created:', data.id, data.invoice_number);
+      return data as CityLedgerInvoice;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['city-ledger-invoices'] });
+    },
+    onError: (e: Error) => toast.error(`Failed to create invoice: ${e.message}`),
+  });
+
+  // ---- Update invoice (payments, status changes) ----
+  const updateInvoice = useMutation({
+    mutationFn: async ({ id, ...rest }: Partial<CityLedgerInvoice> & { id: string }) => {
+      if (isDemoMode) {
+        qc.setQueryData<CityLedgerInvoice[]>(
+          ['city-ledger-invoices', 'demo-property-id'],
+          (old) => (old ?? []).map(inv => inv.id === id ? { ...inv, ...rest } : inv),
+        );
+        return;
+      }
+      const { error } = await supabase
+        .from('city_ledger_invoices')
+        .update(rest)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['city-ledger-invoices'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return {
     accounts,
+    invoices,
     isLoading: accountsQuery.isLoading,
+    isLoadingInvoices: invoicesQuery.isLoading,
     createAccount,
     updateAccount,
     deleteAccount,
+    createInvoice,
+    updateInvoice,
   };
 }
