@@ -35,6 +35,15 @@ export interface PropertyContact {
   website?: string;
 }
 
+export interface PropertyExtrasItem {
+  id: string;
+  label: string;
+  description: string;
+  price: number;
+  category: FolioChargeCategory;
+  active: boolean;
+}
+
 export interface PropertySettings {
   check_in_time: string;
   check_out_time: string;
@@ -45,6 +54,7 @@ export interface PropertySettings {
   tax_rate: number;
   allow_same_day_booking: boolean;
   max_advance_days: number;
+  extras?: PropertyExtrasItem[];
 }
 
 export interface PropertyBranding {

@@ -16,7 +16,7 @@ import {
   CreditCard, Smartphone, Wifi, Signal, Receipt, Ban, Plus,
   ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
   CalendarClock, Network, BookOpen, ShieldCheck, Download,
-  FileDown, UserX, AlertCircle, Copy, Link2, Loader2,
+  FileDown, UserX, AlertCircle, Copy, Link2, Loader2, ShoppingBag,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -28,7 +28,7 @@ import { exportCSV } from '@/lib/exportUtils';
 import { format } from 'date-fns';
 import { ROLE_DEFINITIONS, PERMISSION_GROUPS, getRoleLabel, getRoleColor } from '@/lib/roles';
 import type { Permission } from '@/lib/roles';
-import type { StaffRole, TaxRule, CancellationPolicy, CancellationPolicyType, FolioChargeCategory } from '@/types';
+import type { StaffRole, TaxRule, CancellationPolicy, CancellationPolicyType, FolioChargeCategory, PropertyExtrasItem } from '@/types';
 
 // ============================================================
 // Types
@@ -114,6 +114,7 @@ const settingsTabs = [
   { id: 'users', label: 'Users & Access', icon: Users },
   { id: 'night-audit', label: 'Night Audit', icon: Moon },
   { id: 'key-cards', label: 'Key Cards', icon: Key },
+  { id: 'extras', label: 'Extras & Upsells', icon: ShoppingBag },
   { id: 'gdpr', label: 'GDPR & Privacy', icon: ShieldCheck },
   { id: 'branding', label: 'Branding', icon: Palette },
 ] as const;
@@ -302,6 +303,25 @@ export function SettingsPage() {
       setStripeSecretKey(property.stripe_secret_key ?? '');
     }
   }, [property?.stripe_publishable_key, property?.stripe_secret_key]);
+
+  // Extras / upsells state
+  const defaultExtras: PropertyExtrasItem[] = [
+    { id: 'breakfast', label: 'Breakfast', description: 'Full breakfast per guest per night', price: 15, category: 'food', active: true },
+    { id: 'parking', label: 'Parking', description: 'On-site parking per night', price: 10, category: 'parking', active: true },
+    { id: 'late-checkout', label: 'Late Check-out', description: 'Guaranteed 2pm check-out', price: 25, category: 'other', active: true },
+    { id: 'early-checkin', label: 'Early Check-in', description: 'Check-in from 10am', price: 20, category: 'other', active: true },
+  ];
+  const [extras, setExtras] = useState<PropertyExtrasItem[]>(property?.settings?.extras ?? defaultExtras);
+  const [editingExtraId, setEditingExtraId] = useState<string | null>(null);
+  const [newExtra, setNewExtra] = useState({ label: '', description: '', price: '', category: 'other' as FolioChargeCategory });
+  const [showAddExtra, setShowAddExtra] = useState(false);
+
+  // Sync extras when property loads
+  useEffect(() => {
+    if (property?.settings?.extras) {
+      setExtras(property.settings.extras);
+    }
+  }, [property?.settings?.extras]);
 
   const { register, handleSubmit } = useForm<SettingsFormValues>({
     values: property ? {
@@ -2426,6 +2446,237 @@ export function SettingsPage() {
 
           <div className="flex justify-end">
             <Button onClick={() => toast.success('GDPR settings saved')}><Save size={16} className="mr-2" />Save Privacy Settings</Button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* Extras & Upsells Tab           */}
+      {/* ============================== */}
+      {activeTab === 'extras' && (
+        <div className="space-y-6">
+          <Card variant="dark">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <ShoppingBag size={18} className="text-amber-400" /> Extras & Upsells
+                </CardTitle>
+                <button
+                  onClick={() => { setShowAddExtra(true); setNewExtra({ label: '', description: '', price: '', category: 'other' }); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all"
+                >
+                  <Plus size={14} /> Add Extra
+                </button>
+              </div>
+              <p className="text-xs text-steel font-body mt-1">
+                Configure the extras and upsells available for your property. These appear during check-in and can be added to any in-house guest's folio.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Add new extra form */}
+              {showAddExtra && (
+                <div className="rounded-xl bg-amber-500/5 border border-amber-500/15 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                  <p className="text-xs font-body font-semibold text-amber-300">New Extra</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-steel font-body mb-1">Name *</label>
+                      <input
+                        type="text"
+                        value={newExtra.label}
+                        onChange={e => setNewExtra({ ...newExtra, label: e.target.value })}
+                        placeholder="e.g. Airport Transfer"
+                        className="w-full rounded-lg bg-white/[0.04] border border-white/[0.08] px-3 py-2 text-sm text-white font-body placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-steel font-body mb-1">Price (£) *</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={newExtra.price}
+                        onChange={e => setNewExtra({ ...newExtra, price: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full rounded-lg bg-white/[0.04] border border-white/[0.08] px-3 py-2 text-sm text-white font-body placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-steel font-body mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={newExtra.description}
+                      onChange={e => setNewExtra({ ...newExtra, description: e.target.value })}
+                      placeholder="Short description for staff"
+                      className="w-full rounded-lg bg-white/[0.04] border border-white/[0.08] px-3 py-2 text-sm text-white font-body placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-steel font-body mb-1">Folio Category</label>
+                    <select
+                      value={newExtra.category}
+                      onChange={e => setNewExtra({ ...newExtra, category: e.target.value as FolioChargeCategory })}
+                      className="w-full rounded-lg bg-white/[0.04] border border-white/[0.08] px-3 py-2 text-sm text-white font-body focus:outline-none focus:ring-1 focus:ring-amber-500/30 [&>option]:bg-[#0f1724]"
+                    >
+                      <option value="food">Food & Beverage</option>
+                      <option value="beverage">Minibar / Bar</option>
+                      <option value="spa">Spa & Wellness</option>
+                      <option value="laundry">Laundry</option>
+                      <option value="parking">Parking</option>
+                      <option value="phone">Phone / Comms</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => setShowAddExtra(false)}
+                      className="flex-1 px-3 py-2 rounded-lg text-xs font-body text-steel border border-white/[0.08] hover:bg-white/[0.04] transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!newExtra.label.trim()) { toast.error('Name is required'); return; }
+                        if (!newExtra.price || Number(newExtra.price) <= 0) { toast.error('Price must be greater than 0'); return; }
+                        const item: PropertyExtrasItem = {
+                          id: `ext-${Date.now()}`,
+                          label: newExtra.label.trim(),
+                          description: newExtra.description.trim(),
+                          price: Number(newExtra.price),
+                          category: newExtra.category,
+                          active: true,
+                        };
+                        setExtras(prev => [...prev, item]);
+                        setShowAddExtra(false);
+                        toast.success(`"${item.label}" added`);
+                      }}
+                      className="flex-1 px-3 py-2 rounded-lg text-xs font-body font-semibold text-charcoal bg-amber-400 hover:bg-amber-300 transition-all"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Extras list */}
+              {extras.length === 0 && !showAddExtra && (
+                <p className="text-steel/50 text-xs font-body italic text-center py-6">
+                  No extras configured yet. Click "Add Extra" to get started.
+                </p>
+              )}
+              {extras.map(item => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
+                    item.active
+                      ? 'bg-white/[0.03] border-white/[0.06]'
+                      : 'bg-white/[0.01] border-white/[0.04] opacity-50',
+                  )}
+                >
+                  {/* Toggle active */}
+                  <button
+                    onClick={() => setExtras(prev => prev.map(e => e.id === item.id ? { ...e, active: !e.active } : e))}
+                    className="shrink-0"
+                    title={item.active ? 'Disable' : 'Enable'}
+                  >
+                    {item.active
+                      ? <ToggleRight size={20} className="text-emerald-400" />
+                      : <ToggleLeft size={20} className="text-steel/40" />
+                    }
+                  </button>
+
+                  {editingExtraId === item.id ? (
+                    /* Inline edit mode */
+                    <div className="flex-1 grid grid-cols-4 gap-2 items-center">
+                      <input
+                        type="text"
+                        value={item.label}
+                        onChange={e => setExtras(prev => prev.map(x => x.id === item.id ? { ...x, label: e.target.value } : x))}
+                        className="col-span-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-2 py-1.5 text-xs text-white font-body focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                      />
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={e => setExtras(prev => prev.map(x => x.id === item.id ? { ...x, description: e.target.value } : x))}
+                        className="col-span-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-2 py-1.5 text-xs text-white font-body focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                        placeholder="Description"
+                      />
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={item.price}
+                        onChange={e => setExtras(prev => prev.map(x => x.id === item.id ? { ...x, price: Number(e.target.value) } : x))}
+                        className="col-span-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-2 py-1.5 text-xs text-white font-body focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                      />
+                      <select
+                        value={item.category}
+                        onChange={e => setExtras(prev => prev.map(x => x.id === item.id ? { ...x, category: e.target.value as FolioChargeCategory } : x))}
+                        className="col-span-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-2 py-1.5 text-xs text-white font-body focus:outline-none focus:ring-1 focus:ring-amber-500/30 [&>option]:bg-[#0f1724]"
+                      >
+                        <option value="food">Food</option>
+                        <option value="beverage">Beverage</option>
+                        <option value="spa">Spa</option>
+                        <option value="laundry">Laundry</option>
+                        <option value="parking">Parking</option>
+                        <option value="phone">Phone</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  ) : (
+                    /* Display mode */
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-body font-semibold text-white">{item.label}</p>
+                        <span className="text-[10px] font-body px-1.5 py-0.5 rounded bg-white/[0.06] text-steel capitalize">{item.category}</span>
+                      </div>
+                      {item.description && (
+                        <p className="text-[11px] text-steel font-body mt-0.5 truncate">{item.description}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <span className="text-sm font-display font-semibold text-gold shrink-0">£{item.price.toFixed(2)}</span>
+
+                  {/* Edit / Done */}
+                  <button
+                    onClick={() => setEditingExtraId(editingExtraId === item.id ? null : item.id)}
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-white/[0.06] transition-all"
+                    title={editingExtraId === item.id ? 'Done editing' : 'Edit'}
+                  >
+                    {editingExtraId === item.id
+                      ? <Check size={14} className="text-emerald-400" />
+                      : <Edit2 size={14} className="text-steel" />
+                    }
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => {
+                      setExtras(prev => prev.filter(e => e.id !== item.id));
+                      toast.success(`"${item.label}" removed`);
+                    }}
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-rose-500/10 transition-all"
+                    title="Remove"
+                  >
+                    <Trash2 size={14} className="text-rose-400/60 hover:text-rose-400" />
+                  </button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={async () => {
+              if (!property) return;
+              await updateProperty({
+                settings: { ...property.settings, extras },
+              });
+            }}>
+              <Save size={16} className="mr-2" />Save Extras
+            </Button>
           </div>
         </div>
       )}

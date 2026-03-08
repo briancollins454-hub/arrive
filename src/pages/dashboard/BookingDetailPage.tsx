@@ -208,19 +208,18 @@ export function BookingDetailPage() {
     { amount: '', method: 'cash' },
   ]);
 
-  // Upsell / Extras suggestions — used at check-in AND during stay
+  // Upsell / Extras suggestions — loaded from property settings (configurable per hotel)
   const [showUpsellDialog, setShowUpsellDialog] = useState(false);
   const [upsellMode, setUpsellMode] = useState<'checkin' | 'extras'>('checkin');
-  const upsellSuggestions = [
-    { id: 'upgrade', label: 'Room Upgrade', desc: 'Upgrade to next room category', price: 35, category: 'other' as FolioChargeCategory },
-    { id: 'breakfast', label: 'Add Breakfast', desc: 'Full English breakfast per night', price: 15, category: 'food' as FolioChargeCategory },
-    { id: 'late-checkout', label: 'Late Check-out', desc: 'Guaranteed 2pm check-out', price: 25, category: 'other' as FolioChargeCategory },
-    { id: 'parking', label: 'Parking Pass', desc: 'On-site parking for full stay', price: 10, category: 'parking' as FolioChargeCategory },
-    { id: 'welcome', label: 'Welcome Package', desc: 'Champagne & chocolates in room', price: 45, category: 'other' as FolioChargeCategory },
-    { id: 'minibar', label: 'Minibar Restock', desc: 'Premium minibar package', price: 20, category: 'beverage' as FolioChargeCategory },
-    { id: 'laundry', label: 'Laundry Service', desc: 'Express laundry & pressing', price: 18, category: 'laundry' as FolioChargeCategory },
-    { id: 'spa', label: 'Spa Treatment', desc: 'Relaxation massage or facial', price: 55, category: 'spa' as FolioChargeCategory },
-  ];
+  const upsellSuggestions = (property?.settings?.extras ?? [])
+    .filter((e: { active?: boolean }) => e.active !== false)
+    .map((e: { id: string; label: string; description?: string; price: number; category: string }) => ({
+      id: e.id,
+      label: e.label,
+      desc: e.description ?? '',
+      price: e.price,
+      category: e.category as FolioChargeCategory,
+    }));
   const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
 
   // Checkout settlement — selective city ledger
@@ -2889,6 +2888,11 @@ export function BookingDetailPage() {
               </div>
             </div>
             <div className="space-y-2 mt-4">
+              {upsellSuggestions.length === 0 && (
+                <p className="text-steel/60 text-xs font-body italic text-center py-6">
+                  No extras configured. Go to Settings → Extras &amp; Upsells to add items.
+                </p>
+              )}
               {upsellSuggestions.map(item => (
                 <button
                   key={item.id}
