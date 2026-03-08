@@ -218,6 +218,22 @@ export function useBookings() {
       }).select().single();
 
       if (error) throw error;
+
+      // Auto-post room charges to folio
+      const rtName = (await supabase.from('room_types').select('name').eq('id', input.room_type_id).single()).data?.name ?? 'Room';
+      await supabase.from('folio_entries').insert({
+        booking_id: inserted.id,
+        type: 'charge',
+        category: 'room',
+        description: `Room Charge — ${rtName} × ${nights} night${nights !== 1 ? 's' : ''}`,
+        amount: rate * nights,
+        quantity: nights,
+        unit_price: rate,
+        posted_by: 'System',
+        posted_at: new Date().toISOString(),
+        is_voided: false,
+      });
+
       toast.success('Booking created successfully');
       return inserted as Booking;
     },
@@ -329,12 +345,36 @@ export function useBookings() {
         }
       }
 
+      // Safety net: if checking in and folio is empty, auto-post room charges
+      if (status === 'checked_in' && booking) {
+        const { count } = await supabase.from('folio_entries').select('id', { count: 'exact', head: true }).eq('booking_id', bookingId);
+        if (!count || count === 0) {
+          const nights = Math.ceil((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / 86400000);
+          const rate = booking.nightly_rate ?? 0;
+          const { data: rt } = await supabase.from('room_types').select('name').eq('id', booking.room_type_id).single();
+          const rtName = rt?.name ?? 'Room';
+          await supabase.from('folio_entries').insert({
+            booking_id: bookingId,
+            type: 'charge',
+            category: 'room',
+            description: `Room Charge — ${rtName} × ${nights} night${nights !== 1 ? 's' : ''}`,
+            amount: rate * nights,
+            quantity: nights,
+            unit_price: rate,
+            posted_by: 'System',
+            posted_at: new Date().toISOString(),
+            is_voided: false,
+          });
+        }
+      }
+
       toast.success(`Booking ${status.replace('_', ' ')}`);
     },
     onSuccess: () => {
       if (!isDemoMode) {
         queryClient.invalidateQueries({ queryKey: ['bookings'] });
         queryClient.invalidateQueries({ queryKey: ['rooms'] });
+        queryClient.invalidateQueries({ queryKey: ['folio'] });
       }
     },
     onError: (err: Error) => { toast.error(err.message ?? 'Failed to update status'); },
