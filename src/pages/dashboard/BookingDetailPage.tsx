@@ -16,7 +16,7 @@ import {
   BedDouble, MapPin, Clock, PlusCircle, Pencil,
   CalendarPlus, Hash, Check, X, Printer, MessageSquare, FileText,
   Receipt, Ban, AlertCircle, Building, DollarSign, KeyRound,
-  Lock, Loader2, ShieldCheck, Shield, CheckCircle,
+  Lock, Loader2, ShieldCheck, Shield, CheckCircle, ShoppingBag,
 } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { getStripe, isStripeReady, stripeDarkAppearance } from '@/lib/stripe';
@@ -208,16 +208,25 @@ export function BookingDetailPage() {
     { amount: '', method: 'cash' },
   ]);
 
-  // Upsell suggestions at check-in
+  // Upsell / Extras suggestions — used at check-in AND during stay
   const [showUpsellDialog, setShowUpsellDialog] = useState(false);
+  const [upsellMode, setUpsellMode] = useState<'checkin' | 'extras'>('checkin');
   const upsellSuggestions = [
-    { id: 'upgrade', label: 'Room Upgrade', desc: 'Upgrade to next room category', price: 35 },
-    { id: 'breakfast', label: 'Add Breakfast', desc: 'Full English breakfast per night', price: 15 },
-    { id: 'late-checkout', label: 'Late Check-out', desc: 'Guaranteed 2pm check-out', price: 25 },
-    { id: 'parking', label: 'Parking Pass', desc: 'On-site parking for full stay', price: 10 },
-    { id: 'welcome', label: 'Welcome Package', desc: 'Champagne & chocolates in room', price: 45 },
+    { id: 'upgrade', label: 'Room Upgrade', desc: 'Upgrade to next room category', price: 35, category: 'other' as FolioChargeCategory },
+    { id: 'breakfast', label: 'Add Breakfast', desc: 'Full English breakfast per night', price: 15, category: 'food' as FolioChargeCategory },
+    { id: 'late-checkout', label: 'Late Check-out', desc: 'Guaranteed 2pm check-out', price: 25, category: 'other' as FolioChargeCategory },
+    { id: 'parking', label: 'Parking Pass', desc: 'On-site parking for full stay', price: 10, category: 'parking' as FolioChargeCategory },
+    { id: 'welcome', label: 'Welcome Package', desc: 'Champagne & chocolates in room', price: 45, category: 'other' as FolioChargeCategory },
+    { id: 'minibar', label: 'Minibar Restock', desc: 'Premium minibar package', price: 20, category: 'beverage' as FolioChargeCategory },
+    { id: 'laundry', label: 'Laundry Service', desc: 'Express laundry & pressing', price: 18, category: 'laundry' as FolioChargeCategory },
+    { id: 'spa', label: 'Spa Treatment', desc: 'Relaxation massage or facial', price: 55, category: 'spa' as FolioChargeCategory },
   ];
   const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
+
+  // Checkout settlement — selective city ledger
+  const [checkoutStep, setCheckoutStep] = useState<'summary' | 'split'>('summary');
+  const [checkoutCityLedgerIds, setCheckoutCityLedgerIds] = useState<Set<string>>(new Set());
+  const [checkoutCompany, setCheckoutCompany] = useState('');
 
   // Stripe payment state
   const [stripeInstance, setStripeInstance] = useState<Stripe | null>(null);
@@ -609,6 +618,7 @@ export function BookingDetailPage() {
                     return;
                   }
                   setSelectedUpsells(new Set());
+                  setUpsellMode('checkin');
                   setShowUpsellDialog(true);
                   return;
                 }
@@ -1754,6 +1764,20 @@ export function BookingDetailPage() {
                   </button>
                 </>
               )}
+              {/* Add Extras — available for checked-in guests */}
+              {booking.status === 'checked_in' && (
+                <button
+                  onClick={() => {
+                    setSelectedUpsells(new Set());
+                    setUpsellMode('extras');
+                    setShowUpsellDialog(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-body font-semibold bg-amber-500/5 border border-amber-500/10 text-amber-400 hover:bg-amber-500/10 transition-all text-left"
+                >
+                  <ShoppingBag size={14} />
+                  <span>Add Extras</span>
+                </button>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -2215,29 +2239,48 @@ export function BookingDetailPage() {
         </div>
       )}
 
-      {/* Checkout Blocked — Outstanding Balance Dialog */}
-      {showCheckoutBlockDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Checkout blocked" onClick={() => setShowCheckoutBlockDialog(false)}>
+      {/* Checkout Settlement Dialog — Outstanding Balance */}
+      {showCheckoutBlockDialog && (() => {
+        const unpaidCharges = folio.entries.filter(e => !e.is_voided && e.type === 'charge');
+        const roomCharges = unpaidCharges.filter(e => e.category === 'room');
+        const extraCharges = unpaidCharges.filter(e => e.category !== 'room');
+        const hasExtras = extraCharges.length > 0;
+        const cityLedgerTotal = unpaidCharges.filter(e => checkoutCityLedgerIds.has(e.id)).reduce((s, e) => s + e.amount, 0);
+        const guestOwes = Math.max(0, folio.balance - cityLedgerTotal);
+
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Checkout settlement" onClick={() => { setShowCheckoutBlockDialog(false); setCheckoutStep('summary'); }}>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
-          <div className="relative w-full max-w-md rounded-2xl bg-[#0f1724] border border-white/[0.1] shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-lg rounded-2xl bg-[#0f1724] border border-white/[0.1] shadow-2xl p-6 space-y-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-amber-500/15 flex items-center justify-center">
                 <AlertCircle size={20} className="text-amber-400" />
               </div>
               <div>
-                <h3 className="text-base font-display font-semibold text-white">Outstanding Balance</h3>
-                <p className="text-xs text-steel font-body mt-0.5">This folio must be settled before checkout</p>
+                <h3 className="text-base font-display font-semibold text-white">
+                  {checkoutStep === 'summary' ? 'Outstanding Balance' : 'Split Settlement'}
+                </h3>
+                <p className="text-xs text-steel font-body mt-0.5">
+                  {checkoutStep === 'summary' ? 'This folio must be settled before checkout' : 'Select which items the company pays'}
+                </p>
               </div>
             </div>
 
+            {/* Folio Summary */}
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
               <div className="flex justify-between text-sm font-body">
-                <span className="text-steel">Total Charges</span>
-                <span className="text-white">£{folio.totalCharges.toFixed(2)}</span>
+                <span className="text-steel">Room Charges</span>
+                <span className="text-white">£{roomCharges.reduce((s, e) => s + e.amount, 0).toFixed(2)}</span>
               </div>
+              {hasExtras && (
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-steel">Extras ({extraCharges.length})</span>
+                  <span className="text-white">£{extraCharges.reduce((s, e) => s + e.amount, 0).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm font-body">
                 <span className="text-steel">Payments Received</span>
-                <span className="text-emerald-400">£{folio.totalPayments.toFixed(2)}</span>
+                <span className="text-emerald-400">-£{folio.totalPayments.toFixed(2)}</span>
               </div>
               <Separator variant="dark" />
               <div className="flex justify-between text-sm font-body font-semibold">
@@ -2246,48 +2289,186 @@ export function BookingDetailPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <button
-                onClick={() => {
-                  setShowCheckoutBlockDialog(false);
-                  setPaymentAmount(folio.balance.toFixed(2));
-                  setShowPaymentDialog(true);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all text-left"
-              >
-                <DollarSign size={16} className="text-emerald-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-body font-semibold text-emerald-300">Settle Balance</p>
-                  <p className="text-[11px] text-steel font-body">Record a payment of £{folio.balance.toFixed(2)}</p>
-                </div>
-              </button>
+            {checkoutStep === 'summary' ? (
+              <div className="space-y-2">
+                {/* Pay full balance */}
+                <button
+                  onClick={() => {
+                    setShowCheckoutBlockDialog(false);
+                    setCheckoutStep('summary');
+                    setPaymentAmount(folio.balance.toFixed(2));
+                    setShowPaymentDialog(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all text-left"
+                >
+                  <DollarSign size={16} className="text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-sm font-body font-semibold text-emerald-300">Settle Full Balance</p>
+                    <p className="text-[11px] text-steel font-body">Guest pays £{folio.balance.toFixed(2)}</p>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => {
-                  setShowCheckoutBlockDialog(false);
-                  setClSelectedCompany('');
-                  setClSelectedEntryIds(new Set());
-                  setShowCityLedgerDialog(true);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-left"
-              >
-                <Building size={16} className="text-blue-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-body font-semibold text-blue-300">Transfer to City Ledger</p>
-                  <p className="text-[11px] text-steel font-body">Select items & company to billback</p>
-                </div>
-              </button>
-            </div>
+                {/* Transfer entire balance to city ledger */}
+                <button
+                  onClick={() => {
+                    setShowCheckoutBlockDialog(false);
+                    setCheckoutStep('summary');
+                    setClSelectedCompany('');
+                    setClSelectedEntryIds(new Set(unpaidCharges.map(e => e.id)));
+                    setShowCityLedgerDialog(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-left"
+                >
+                  <Building size={16} className="text-blue-400 shrink-0" />
+                  <div>
+                    <p className="text-sm font-body font-semibold text-blue-300">Transfer All to City Ledger</p>
+                    <p className="text-[11px] text-steel font-body">Company pays full balance of £{folio.balance.toFixed(2)}</p>
+                  </div>
+                </button>
 
-            <button
-              onClick={() => setShowCheckoutBlockDialog(false)}
-              className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-steel border border-white/[0.08] hover:bg-white/[0.04] transition-all"
-            >
-              Cancel
-            </button>
+                {/* Split — company pays room, guest pays extras */}
+                {hasExtras && (
+                  <button
+                    onClick={() => {
+                      setCheckoutStep('split');
+                      // Pre-select room charges for city ledger
+                      setCheckoutCityLedgerIds(new Set(roomCharges.map(e => e.id)));
+                      setCheckoutCompany('');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 transition-all text-left"
+                  >
+                    <Receipt size={16} className="text-purple-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-body font-semibold text-purple-300">Split — Select Items for City Ledger</p>
+                      <p className="text-[11px] text-steel font-body">Choose which charges the company pays vs the guest</p>
+                    </div>
+                  </button>
+                )}
+              </div>
+            ) : (
+              /* Step 2: Split settlement — pick items for city ledger */
+              <div className="space-y-4">
+                {/* Company selector */}
+                <div>
+                  <label className="block text-xs text-steel font-body mb-2">Company Account</label>
+                  <select
+                    value={checkoutCompany}
+                    onChange={e => setCheckoutCompany(e.target.value)}
+                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white font-body focus:outline-none focus:border-blue-500/40 transition-colors [&>option]:bg-[#0f1724] [&>option]:text-white"
+                  >
+                    <option value="">— Select company —</option>
+                    {cityLedgerCompanies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Item list with checkboxes */}
+                <div>
+                  <label className="text-xs text-steel font-body mb-2 block">Company Pays (City Ledger)</label>
+                  <div className="space-y-1 max-h-48 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+                    {unpaidCharges.map(entry => (
+                      <label
+                        key={entry.id}
+                        className={cn(
+                          'flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all',
+                          checkoutCityLedgerIds.has(entry.id)
+                            ? 'bg-blue-500/10 border border-blue-500/20'
+                            : 'border border-transparent hover:bg-white/[0.03]',
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checkoutCityLedgerIds.has(entry.id)}
+                          onChange={() => {
+                            const next = new Set(checkoutCityLedgerIds);
+                            if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id);
+                            setCheckoutCityLedgerIds(next);
+                          }}
+                          className="w-3.5 h-3.5 rounded border-white/20 bg-white/[0.05] text-blue-500 focus:ring-blue-500/30 accent-blue-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-silver font-body truncate">{entry.description}</p>
+                          <p className="text-[10px] text-steel/60 font-body capitalize">{entry.category}</p>
+                        </div>
+                        <span className="text-xs text-white font-body font-medium">£{entry.amount.toFixed(2)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Split summary */}
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 space-y-1.5">
+                  <div className="flex justify-between text-xs font-body">
+                    <span className="text-blue-300">City Ledger ({checkoutCityLedgerIds.size} items)</span>
+                    <span className="text-blue-300 font-semibold">£{cityLedgerTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-body">
+                    <span className="text-amber-300">Guest Pays</span>
+                    <span className="text-amber-300 font-semibold">£{guestOwes.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCheckoutStep('summary')}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel border border-white/[0.08] hover:bg-white/[0.04] transition-all"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!checkoutCompany) { toast.error('Please select a company account'); return; }
+                      if (checkoutCityLedgerIds.size === 0) { toast.error('Select at least one item for the company'); return; }
+                      const companyName = cityLedgerCompanies.find(c => c.id === checkoutCompany)?.name ?? 'Company';
+                      // Post city ledger transfer as a payment
+                      folio.postPayment.mutate(
+                        {
+                          amount: cityLedgerTotal,
+                          payment_method: 'other',
+                          description: `City Ledger — ${companyName} (${checkoutCityLedgerIds.size} item${checkoutCityLedgerIds.size > 1 ? 's' : ''})`,
+                        },
+                        {
+                          onSuccess: () => {
+                            toast.success(`£${cityLedgerTotal.toFixed(2)} transferred to ${companyName}`);
+                            // If guest still owes money, open payment dialog
+                            if (guestOwes > 0.01) {
+                              setShowCheckoutBlockDialog(false);
+                              setCheckoutStep('summary');
+                              setPaymentAmount(guestOwes.toFixed(2));
+                              setShowPaymentDialog(true);
+                            } else {
+                              setShowCheckoutBlockDialog(false);
+                              setCheckoutStep('summary');
+                              // Balance settled — proceed to checkout
+                              updateStatus.mutate({ bookingId: booking.id, status: 'checked_out' });
+                            }
+                          },
+                        }
+                      );
+                    }}
+                    disabled={!checkoutCompany || checkoutCityLedgerIds.size === 0}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-blue-400 hover:bg-blue-300 transition-all disabled:opacity-40"
+                  >
+                    Confirm Split
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {checkoutStep === 'summary' && (
+              <button
+                onClick={() => { setShowCheckoutBlockDialog(false); setCheckoutStep('summary'); }}
+                className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-steel border border-white/[0.08] hover:bg-white/[0.04] transition-all"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Cancellation Policy Dialog */}
       {showCancelDialog && booking && (
@@ -2689,16 +2870,25 @@ export function BookingDetailPage() {
       )}
 
       {/* ============================== */}
-      {/* Upsell Dialog at Check-in       */}
+      {/* Upsell / Extras Dialog          */}
       {/* ============================== */}
       {showUpsellDialog && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-charcoal/60 backdrop-blur-sm">
-          <div className="bg-midnight border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-white font-display text-lg mb-1">Check-in Upsell Opportunities</h3>
-            <p className="text-steel text-xs font-body mb-4">
-              Suggest add-ons to enhance the guest experience
-            </p>
-            <div className="space-y-2">
+          <div className="bg-midnight border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center gap-3 mb-1">
+              <div className={cn('w-9 h-9 rounded-full flex items-center justify-center', upsellMode === 'checkin' ? 'bg-gold/15' : 'bg-amber-500/15')}>
+                {upsellMode === 'checkin' ? <CheckCircle size={18} className="text-gold" /> : <ShoppingBag size={18} className="text-amber-400" />}
+              </div>
+              <div>
+                <h3 className="text-white font-display text-lg">
+                  {upsellMode === 'checkin' ? 'Check-in Upsell Opportunities' : 'Add Extras to Stay'}
+                </h3>
+                <p className="text-steel text-xs font-body">
+                  {upsellMode === 'checkin' ? 'Suggest add-ons to enhance the guest experience' : 'Post additional charges to the guest folio'}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2 mt-4">
               {upsellSuggestions.map(item => (
                 <button
                   key={item.id}
@@ -2727,55 +2917,83 @@ export function BookingDetailPage() {
             </div>
             {selectedUpsells.size > 0 && (
               <p className="text-[10px] text-gold font-body mt-2">
-                Upsell total: £{upsellSuggestions.filter(u => selectedUpsells.has(u.id)).reduce((s, u) => s + u.price, 0)}
+                Total: £{upsellSuggestions.filter(u => selectedUpsells.has(u.id)).reduce((s, u) => s + u.price, 0)}
               </p>
             )}
             <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setShowUpsellDialog(false);
-                  // Proceed to key card or check-in directly
-                  if (keyCard.config.auto_encode_on_checkin) {
-                    setEncodedCards([]);
-                    setIsMasterKeyMode(false);
-                    keyCard.resetEncoding();
-                    setShowKeyCardModal(true);
-                  } else {
-                    updateStatus.mutate({ bookingId: booking.id, status: 'checked_in' });
-                  }
-                }}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-              >
-                Skip & Check In
-              </button>
-              <button
-                onClick={() => {
-                  // Post upsell charges to folio
-                  upsellSuggestions.filter(u => selectedUpsells.has(u.id)).forEach(item => {
-                    folio.postCharge.mutate({
-                      category: item.id === 'breakfast' ? 'food' : item.id === 'parking' ? 'parking' : 'other',
-                      description: `Upsell: ${item.label}`,
-                      quantity: 1,
-                      unit_price: item.price,
-                    });
-                  });
-                  toast.success(`${selectedUpsells.size} upsell(s) added to folio`);
-                  setShowUpsellDialog(false);
-                  // Proceed to key card or check-in directly
-                  if (keyCard.config.auto_encode_on_checkin) {
-                    setEncodedCards([]);
-                    setIsMasterKeyMode(false);
-                    keyCard.resetEncoding();
-                    setShowKeyCardModal(true);
-                  } else {
-                    updateStatus.mutate({ bookingId: booking.id, status: 'checked_in' });
-                  }
-                }}
-                disabled={selectedUpsells.size === 0}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-gold hover:bg-gold/90 transition-all disabled:opacity-40"
-              >
-                Add & Check In
-              </button>
+              {upsellMode === 'checkin' ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowUpsellDialog(false);
+                      if (keyCard.config.auto_encode_on_checkin) {
+                        setEncodedCards([]);
+                        setIsMasterKeyMode(false);
+                        keyCard.resetEncoding();
+                        setShowKeyCardModal(true);
+                      } else {
+                        updateStatus.mutate({ bookingId: booking.id, status: 'checked_in' });
+                      }
+                    }}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                  >
+                    Skip & Check In
+                  </button>
+                  <button
+                    onClick={() => {
+                      upsellSuggestions.filter(u => selectedUpsells.has(u.id)).forEach(item => {
+                        folio.postCharge.mutate({
+                          category: item.category,
+                          description: item.label,
+                          quantity: 1,
+                          unit_price: item.price,
+                        });
+                      });
+                      toast.success(`${selectedUpsells.size} upsell(s) added to folio`);
+                      setShowUpsellDialog(false);
+                      if (keyCard.config.auto_encode_on_checkin) {
+                        setEncodedCards([]);
+                        setIsMasterKeyMode(false);
+                        keyCard.resetEncoding();
+                        setShowKeyCardModal(true);
+                      } else {
+                        updateStatus.mutate({ bookingId: booking.id, status: 'checked_in' });
+                      }
+                    }}
+                    disabled={selectedUpsells.size === 0}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-gold hover:bg-gold/90 transition-all disabled:opacity-40"
+                  >
+                    Add & Check In
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowUpsellDialog(false)}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body text-steel bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      upsellSuggestions.filter(u => selectedUpsells.has(u.id)).forEach(item => {
+                        folio.postCharge.mutate({
+                          category: item.category,
+                          description: item.label,
+                          quantity: 1,
+                          unit_price: item.price,
+                        });
+                      });
+                      toast.success(`${selectedUpsells.size} extra(s) posted to folio`);
+                      setShowUpsellDialog(false);
+                    }}
+                    disabled={selectedUpsells.size === 0}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-charcoal bg-amber-400 hover:bg-amber-300 transition-all disabled:opacity-40"
+                  >
+                    Post to Folio
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
