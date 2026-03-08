@@ -30,37 +30,37 @@ CREATE INDEX IF NOT EXISTS idx_cli_property ON city_ledger_invoices(property_id)
 ALTER TABLE city_ledger_invoices ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: staff members of the same property
-CREATE POLICY "city_ledger_invoices_select"
+CREATE POLICY "cli_select"
   ON city_ledger_invoices FOR SELECT
   USING (
     property_id IN (
-      SELECT property_id FROM staff_members WHERE user_id = auth.uid()
+      SELECT property_id FROM staff_members WHERE id = auth.uid()
     )
   );
 
 -- INSERT
-CREATE POLICY "city_ledger_invoices_insert"
+CREATE POLICY "cli_insert"
   ON city_ledger_invoices FOR INSERT
   WITH CHECK (
     property_id IN (
-      SELECT property_id FROM staff_members WHERE user_id = auth.uid()
+      SELECT property_id FROM staff_members WHERE id = auth.uid()
     )
   );
 
 -- UPDATE
-CREATE POLICY "city_ledger_invoices_update"
+CREATE POLICY "cli_update"
   ON city_ledger_invoices FOR UPDATE
   USING (
     property_id IN (
-      SELECT property_id FROM staff_members WHERE user_id = auth.uid()
+      SELECT property_id FROM staff_members WHERE id = auth.uid()
     )
   );
 
 -- DELETE
-CREATE POLICY "city_ledger_invoices_delete"
+CREATE POLICY "cli_delete"
   ON city_ledger_invoices FOR DELETE
   USING (
     property_id IN (
-      SELECT property_id FROM staff_members WHERE user_id = auth.uid()
+      SELECT property_id FROM staff_members WHERE id = auth.uid()
     )
   );
