@@ -23,6 +23,7 @@ import { getStripe, isStripeReady, stripeDarkAppearance } from '@/lib/stripe';
 import type { Stripe } from '@stripe/stripe-js';
 import { useProperty } from '@/hooks/useProperty';
 import { useKeyCard } from '@/hooks/useKeyCard';
+import { useCityLedger } from '@/hooks/useCityLedger';
 import { KeyCardModal } from '@/components/dashboard/KeyCardModal';
 import { cn } from '@/lib/utils';
 import { supabase, isDemoMode } from '@/lib/supabase';
@@ -324,18 +325,9 @@ export function BookingDetailPage() {
   const [amendGuestEmail, setAmendGuestEmail] = useState('');
   const [amendGuestPhone, setAmendGuestPhone] = useState('');
 
-  // City ledger company accounts — read from shared query cache
-  const cityLedgerCompanies = (() => {
-    const cached = qc.getQueryData<{ id: string; company_name: string }[]>(['city-ledger-accounts']);
-    if (cached) return cached.map(a => ({ id: a.id, name: a.company_name }));
-    // Fallback if cache not yet populated
-    return [
-      { id: 'cl-1', name: 'Meridian Consulting Group' },
-      { id: 'cl-2', name: 'Apex Travel Solutions' },
-      { id: 'cl-3', name: 'Sterling & Associates Law' },
-      { id: 'cl-4', name: 'Nova Tech Industries' },
-    ];
-  })();
+  // City ledger company accounts — fetched from DB via hook
+  const { accounts: cityLedgerCompanies_ } = useCityLedger();
+  const cityLedgerCompanies = cityLedgerCompanies_.map(a => ({ id: a.id, name: a.company_name }));
 
   if (isLoading) return <PageSpinner />;
 

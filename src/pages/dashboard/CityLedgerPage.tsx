@@ -4,7 +4,6 @@ import {
   Mail, Phone, FileText, Clock, AlertTriangle, Check, Trash2,
   TrendingUp, Receipt, Download, Landmark, ReceiptText, Send, Ban,
 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { exportCSV } from '@/lib/exportUtils';
@@ -12,24 +11,11 @@ import toast from 'react-hot-toast';
 import { isDemoMode } from '@/lib/supabase';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
+import { useCityLedger } from '@/hooks/useCityLedger';
 
 // ============================================================
 // Types
 // ============================================================
-
-interface CityLedgerAccount {
-  id: string;
-  company_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
-  address: string;
-  credit_limit: number;
-  payment_terms: number; // days
-  status: 'active' | 'suspended' | 'closed';
-  created_at: string;
-  notes: string;
-}
 
 interface CityLedgerInvoice {
   id: string;
@@ -48,61 +34,6 @@ interface CityLedgerInvoice {
 // ============================================================
 // Demo Data
 // ============================================================
-
-const demoAccounts: CityLedgerAccount[] = [
-  {
-    id: 'cl-1',
-    company_name: 'Meridian Consulting Group',
-    contact_name: 'Catherine Reynolds',
-    email: 'accounts@meridianconsulting.co.uk',
-    phone: '+44 20 7946 0123',
-    address: '45 Canary Wharf, London E14 5AB',
-    credit_limit: 25000,
-    payment_terms: 30,
-    status: 'active',
-    created_at: '2024-01-15T00:00:00Z',
-    notes: 'Preferred corporate client. Direct billing approved.',
-  },
-  {
-    id: 'cl-2',
-    company_name: 'Apex Travel Solutions',
-    contact_name: 'David Chen',
-    email: 'billing@apextravel.com',
-    phone: '+44 20 7946 0456',
-    address: '12 Oxford Street, London W1D 1BS',
-    credit_limit: 15000,
-    payment_terms: 14,
-    status: 'active',
-    created_at: '2024-03-22T00:00:00Z',
-    notes: 'Travel agency. Commission: 10%.',
-  },
-  {
-    id: 'cl-3',
-    company_name: 'Sterling & Associates Law',
-    contact_name: 'Sir James Sterling',
-    email: 'pa@sterlinglaw.co.uk',
-    phone: '+44 20 7946 0789',
-    address: '1 Temple Gardens, London EC4Y 9AY',
-    credit_limit: 50000,
-    payment_terms: 45,
-    status: 'active',
-    created_at: '2023-11-01T00:00:00Z',
-    notes: 'VIP corporate account. Always allocate premium rooms.',
-  },
-  {
-    id: 'cl-4',
-    company_name: 'Nova Tech Industries',
-    contact_name: 'Sarah Mitchell',
-    email: 'finance@novatech.io',
-    phone: '+44 121 496 0100',
-    address: '88 Innovation Drive, Birmingham B1 2AA',
-    credit_limit: 10000,
-    payment_terms: 30,
-    status: 'suspended',
-    created_at: '2024-06-10T00:00:00Z',
-    notes: 'Account suspended — 90-day overdue invoice #INV-2025-0047.',
-  },
-];
 
 const demoInvoices: CityLedgerInvoice[] = [
   // Meridian Consulting
@@ -190,23 +121,7 @@ const invoiceStatusConfig: Record<string, { label: string; color: string; bg: st
 // ============================================================
 
 export function CityLedgerPage() {
-  const queryClient = useQueryClient();
-
-  // Persist accounts in query cache so they survive navigation
-  const cachedAccounts = queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']);
-  if (!cachedAccounts) {
-    queryClient.setQueryData(['city-ledger-accounts'], isDemoMode ? demoAccounts : []);
-  }
-  const [accounts, setAccountsLocal] = useState<CityLedgerAccount[]>(
-    () => queryClient.getQueryData<CityLedgerAccount[]>(['city-ledger-accounts']) ?? (isDemoMode ? demoAccounts : [])
-  );
-  const setAccounts = (updater: CityLedgerAccount[] | ((prev: CityLedgerAccount[]) => CityLedgerAccount[])) => {
-    setAccountsLocal(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      queryClient.setQueryData(['city-ledger-accounts'], next);
-      return next;
-    });
-  };
+  const { accounts, createAccount, updateAccount } = useCityLedger();
   const [invoices, setInvoices] = useState<CityLedgerInvoice[]>(isDemoMode ? demoInvoices : []);
   const [search, setSearch] = useState('');
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
@@ -283,8 +198,7 @@ export function CityLedgerPage() {
       toast.error('Company name is required');
       return;
     }
-    const account: CityLedgerAccount = {
-      id: `cl-${Date.now()}`,
+    createAccount.mutate({
       company_name: newAccount.company_name,
       contact_name: newAccount.contact_name,
       email: newAccount.email,
@@ -293,13 +207,10 @@ export function CityLedgerPage() {
       credit_limit: parseFloat(newAccount.credit_limit) || 10000,
       payment_terms: parseInt(newAccount.payment_terms) || 30,
       status: 'active',
-      created_at: new Date().toISOString(),
       notes: newAccount.notes,
-    };
-    setAccounts(prev => [...prev, account]);
+    });
     setShowAddAccount(false);
     setNewAccount({ company_name: '', contact_name: '', email: '', phone: '', address: '', credit_limit: '', payment_terms: '30', notes: '' });
-    toast.success(`Account created for ${account.company_name}`);
   };
 
   const handlePayment = () => {
@@ -377,10 +288,10 @@ export function CityLedgerPage() {
   };
 
   const handleToggleAccountStatus = (accountId: string) => {
-    setAccounts(prev => prev.map(a => {
-      if (a.id !== accountId) return a;
-      return { ...a, status: a.status === 'active' ? 'suspended' : 'active' };
-    }));
+    const acct = accounts.find(a => a.id === accountId);
+    if (!acct) return;
+    const newStatus = acct.status === 'active' ? 'suspended' as const : 'active' as const;
+    updateAccount.mutate({ id: accountId, status: newStatus });
   };
 
   const handleExport = () => {
