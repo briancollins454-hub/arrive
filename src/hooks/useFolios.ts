@@ -405,7 +405,20 @@ export function useFolios(bookingId: string) {
         return entry;
       }
 
-      const { data, error } = await supabase.from('folio_entries').insert(entry).select().single();
+      const { data, error } = await supabase.from('folio_entries').insert({
+        booking_id: entry.booking_id,
+        type: entry.type,
+        category: entry.category,
+        description: entry.description,
+        amount: entry.amount,
+        quantity: entry.quantity,
+        unit_price: entry.unit_price,
+        payment_method: entry.payment_method,
+        posted_by: entry.posted_by,
+        posted_at: entry.posted_at,
+        is_voided: entry.is_voided,
+        notes: entry.notes,
+      }).select().single();
       if (error) throw error;
       toast.success('Payment recorded');
       return data as FolioEntry;
@@ -452,7 +465,20 @@ export function useFolios(bookingId: string) {
         return entry;
       }
 
-      const { data, error } = await supabase.from('folio_entries').insert(entry).select().single();
+      const { data, error } = await supabase.from('folio_entries').insert({
+        booking_id: entry.booking_id,
+        type: entry.type,
+        category: entry.category,
+        description: entry.description,
+        amount: entry.amount,
+        quantity: entry.quantity,
+        unit_price: entry.unit_price,
+        payment_method: entry.payment_method,
+        posted_by: entry.posted_by,
+        posted_at: entry.posted_at,
+        is_voided: entry.is_voided,
+        notes: entry.notes,
+      }).select().single();
       if (error) throw error;
       toast.success(`Deposit of £${input.amount.toFixed(2)} recorded`);
       return data as FolioEntry;
