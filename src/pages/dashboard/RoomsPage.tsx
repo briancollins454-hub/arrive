@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRooms } from '@/hooks/useRooms';
@@ -19,12 +19,21 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import {
   Plus, BedDouble, Users, Edit, Wrench, Ban, CheckCircle2,
-  AlertTriangle, Filter, DoorOpen,
+  AlertTriangle, Filter, DoorOpen, Layers, Trash2, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RoomType, Room, RoomStatus } from '@/types';
 import type { RoomTypeFormData, RoomFormData } from '@/lib/validators';
 import { roomSchema } from '@/lib/validators';
+
+// --- Floor Setup types ---
+interface FloorRoomGroup {
+  id: string;
+  roomTypeId: string;
+  startNum: string;
+  endNum: string;
+  notes: string;
+}
 
 const statusConfig: Record<RoomStatus, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
   available: { label: 'Available', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle2 },
@@ -35,12 +44,82 @@ const statusConfig: Record<RoomStatus, { label: string; color: string; bg: strin
 };
 
 export function RoomsPage() {
-  const { roomTypes, rooms, isLoadingTypes, createRoomType, updateRoomType, updateRoom, createRoom } = useRooms();
+  const { roomTypes, rooms, isLoadingTypes, createRoomType, updateRoomType, updateRoom, createRoom, createRoomsBulk } = useRooms();
   const { bookings } = useBookings();
   const [editingRoomType, setEditingRoomType] = useState<RoomType | null>(null);
   const [showNewRoomType, setShowNewRoomType] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
+  const [showFloorSetup, setShowFloorSetup] = useState(false);
   const [statusFilter, setStatusFilter] = useState<RoomStatus | 'all'>('all');
+
+  // --- Floor Setup state ---
+  const [floorNum, setFloorNum] = useState(1);
+  const [floorGroups, setFloorGroups] = useState<FloorRoomGroup[]>([
+    { id: '1', roomTypeId: '', startNum: '', endNum: '', notes: '' },
+  ]);
+
+  const addFloorGroup = useCallback(() => {
+    setFloorGroups((prev) => [
+      ...prev,
+      { id: String(Date.now()), roomTypeId: '', startNum: '', endNum: '', notes: '' },
+    ]);
+  }, []);
+
+  const removeFloorGroup = useCallback((id: string) => {
+    setFloorGroups((prev) => prev.length > 1 ? prev.filter((g) => g.id !== id) : prev);
+  }, []);
+
+  const updateFloorGroup = useCallback((id: string, field: keyof FloorRoomGroup, value: string) => {
+    setFloorGroups((prev) => prev.map((g) => g.id === id ? { ...g, [field]: value } : g));
+  }, []);
+
+  const floorRoomPreview = useMemo(() => {
+    const roomsToCreate: { room_number: string; room_type_id: string; floor: number; notes: string }[] = [];
+    for (const g of floorGroups) {
+      if (!g.roomTypeId || !g.startNum || !g.endNum) continue;
+      const start = parseInt(g.startNum, 10);
+      const end = parseInt(g.endNum, 10);
+      if (isNaN(start) || isNaN(end) || start > end) continue;
+      for (let n = start; n <= end; n++) {
+        roomsToCreate.push({
+          room_number: String(n),
+          room_type_id: g.roomTypeId,
+          floor: floorNum,
+          notes: g.notes,
+        });
+      }
+    }
+    return roomsToCreate;
+  }, [floorGroups, floorNum]);
+
+  const existingRoomNumbers = useMemo(() => new Set(rooms.map((r) => r.room_number)), [rooms]);
+
+  const floorConflicts = useMemo(
+    () => floorRoomPreview.filter((r) => existingRoomNumbers.has(r.room_number)),
+    [floorRoomPreview, existingRoomNumbers],
+  );
+
+  const handleFloorSetup = () => {
+    if (floorRoomPreview.length === 0) return;
+    const nonConflicting = floorRoomPreview.filter((r) => !existingRoomNumbers.has(r.room_number));
+    if (nonConflicting.length === 0) return;
+    createRoomsBulk.mutate(
+      nonConflicting.map((r) => ({ ...r, status: 'available' as const })),
+      {
+        onSuccess: () => {
+          setShowFloorSetup(false);
+          setFloorGroups([{ id: '1', roomTypeId: '', startNum: '', endNum: '', notes: '' }]);
+          setFloorNum(1);
+        },
+      },
+    );
+  };
+
+  const resetFloorSetup = () => {
+    setShowFloorSetup(false);
+    setFloorGroups([{ id: '1', roomTypeId: '', startNum: '', endNum: '', notes: '' }]);
+    setFloorNum(1);
+  };
 
   // Add Room form
   const roomForm = useForm<RoomFormData>({
@@ -119,6 +198,9 @@ export function RoomsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline-dark" onClick={() => setShowFloorSetup(true)}>
+            <Layers size={16} className="mr-2" /> Floor Setup
+          </Button>
           <Button variant="outline-dark" onClick={() => setShowAddRoom(true)}>
             <DoorOpen size={16} className="mr-2" /> Add Room
           </Button>
@@ -405,6 +487,168 @@ export function RoomsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floor Setup Dialog */}
+      <Dialog open={showFloorSetup} onOpenChange={(v) => { if (!v) resetFloorSetup(); }}>
+        <DialogContent variant="dark" className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Layers size={20} className="text-gold" />
+              Floor Setup — Bulk Add Rooms
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-xs text-steel font-body -mt-1 mb-4">
+            Define room ranges per room type for an entire floor. E.g. rooms 501–504 as "Sea View Double", 505–508 as "City View Twin".
+          </p>
+
+          {/* Floor number */}
+          <div className="mb-5">
+            <Label variant="dark">Floor Number</Label>
+            <Input
+              variant="dark"
+              type="number"
+              min={0}
+              max={99}
+              value={floorNum}
+              onChange={(e) => setFloorNum(parseInt(e.target.value, 10) || 0)}
+              className="w-28"
+            />
+          </div>
+
+          {/* Room groups */}
+          <div className="space-y-3 mb-5">
+            <div className="flex items-center justify-between">
+              <Label variant="dark" className="text-silver text-xs uppercase tracking-wider">Room Groups</Label>
+              <button
+                onClick={addFloorGroup}
+                className="flex items-center gap-1 text-[11px] font-body font-medium text-gold hover:text-gold/80 transition-colors"
+              >
+                <Plus size={12} /> Add Group
+              </button>
+            </div>
+
+            {floorGroups.map((g, idx) => (
+              <div key={g.id} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-body font-semibold text-steel uppercase tracking-wider">Group {idx + 1}</span>
+                  {floorGroups.length > 1 && (
+                    <button
+                      onClick={() => removeFloorGroup(g.id)}
+                      className="text-steel hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Room type selector */}
+                <div>
+                  <Label variant="dark" className="text-[11px]">Room Type *</Label>
+                  <Select
+                    value={g.roomTypeId || ''}
+                    onValueChange={(v) => updateFloorGroup(g.id, 'roomTypeId', v)}
+                  >
+                    <SelectTrigger variant="dark">
+                      <SelectValue placeholder="Select room type" />
+                    </SelectTrigger>
+                    <SelectContent variant="dark">
+                      {roomTypes.map((rt) => (
+                        <SelectItem key={rt.id} value={rt.id}>{rt.name} — £{rt.base_rate}/night</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Room number range */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label variant="dark" className="text-[11px]">First Room # *</Label>
+                    <Input
+                      variant="dark"
+                      placeholder="e.g. 501"
+                      value={g.startNum}
+                      onChange={(e) => updateFloorGroup(g.id, 'startNum', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label variant="dark" className="text-[11px]">Last Room # *</Label>
+                    <Input
+                      variant="dark"
+                      placeholder="e.g. 504"
+                      value={g.endNum}
+                      onChange={(e) => updateFloorGroup(g.id, 'endNum', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Notes / description */}
+                <div>
+                  <Label variant="dark" className="text-[11px]">Notes (applied to all rooms in this group)</Label>
+                  <Input
+                    variant="dark"
+                    placeholder="e.g. Sea view, balcony"
+                    value={g.notes}
+                    onChange={(e) => updateFloorGroup(g.id, 'notes', e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Preview */}
+          {floorRoomPreview.length > 0 && (
+            <div className="mb-5">
+              <Label variant="dark" className="text-silver text-xs uppercase tracking-wider mb-2 block">
+                Preview — {floorRoomPreview.length} room{floorRoomPreview.length !== 1 ? 's' : ''} to create
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {floorRoomPreview.map((r) => {
+                  const rt = roomTypes.find((t) => t.id === r.room_type_id);
+                  const conflict = existingRoomNumbers.has(r.room_number);
+                  return (
+                    <div
+                      key={r.room_number}
+                      className={cn(
+                        'px-2 py-1 rounded-md text-[11px] font-body font-medium border',
+                        conflict
+                          ? 'bg-red-500/10 border-red-500/20 text-red-400 line-through'
+                          : 'bg-gold/10 border-gold/20 text-gold',
+                      )}
+                      title={conflict ? `Room ${r.room_number} already exists` : `${rt?.name ?? 'Unknown'}${r.notes ? ` · ${r.notes}` : ''}`}
+                    >
+                      {r.room_number}
+                    </div>
+                  );
+                })}
+              </div>
+              {floorConflicts.length > 0 && (
+                <p className="text-[11px] text-red-400 font-body mt-2 flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  {floorConflicts.length} room{floorConflicts.length !== 1 ? 's' : ''} already exist and will be skipped: {floorConflicts.map((r) => r.room_number).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-2 border-t border-white/[0.06]">
+            <Button type="button" variant="ghost-dark" onClick={resetFloorSetup}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleFloorSetup}
+              disabled={createRoomsBulk.isPending || floorRoomPreview.length === 0 || floorRoomPreview.length === floorConflicts.length}
+            >
+              {createRoomsBulk.isPending ? (
+                <><Loader2 size={14} className="animate-spin mr-2" /> Creating...</>
+              ) : (
+                <><Plus size={14} className="mr-2" /> Create {floorRoomPreview.length - floorConflicts.length} Room{floorRoomPreview.length - floorConflicts.length !== 1 ? 's' : ''}</>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

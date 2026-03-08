@@ -3,7 +3,7 @@ import { supabase, isDemoMode } from '@/lib/supabase';
 import { useProperty } from './useProperty';
 import { logActivity } from './useActivityLog';
 import { getDemoRoomTypes, getDemoRooms } from './demoData';
-import type { RoomType, Room, HousekeepingStatus } from '@/types';
+import type { RoomType, Room, RoomStatus, HousekeepingStatus } from '@/types';
 import type { RoomFormData, RoomTypeFormData } from '@/lib/validators';
 import toast from 'react-hot-toast';
 
@@ -242,6 +242,36 @@ export function useRooms() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Bulk create rooms (for floor setup)
+  const createRoomsBulk = useMutation({
+    mutationFn: async (inputs: RoomFormData[]) => {
+      if (inputs.length === 0) return;
+      if (isDemoMode) {
+        const newRooms: Room[] = inputs.map((input, i) => ({
+          id: `r-${Date.now()}-${i}`,
+          property_id: propertyId!,
+          room_type_id: input.room_type_id,
+          room_number: input.room_number,
+          floor: input.floor ?? 1,
+          status: input.status ?? 'available' as RoomStatus,
+          housekeeping_status: 'clean' as const,
+          notes: input.notes ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }));
+        queryClient.setQueryData<Room[]>(['rooms', propertyId], (old) => [...(old ?? []), ...newRooms]);
+        toast.success(`${inputs.length} rooms created`);
+        return;
+      }
+      const rows = inputs.map((input) => ({ ...input, property_id: propertyId! }));
+      const { error } = await supabase.from('rooms').insert(rows);
+      if (error) throw error;
+      toast.success(`${inputs.length} rooms created`);
+    },
+    onSuccess: () => { if (!isDemoMode) queryClient.invalidateQueries({ queryKey: ['rooms'] }); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   return {
     roomTypes: roomTypesQuery.data ?? [],
     rooms: roomsQuery.data ?? [],
@@ -250,6 +280,7 @@ export function useRooms() {
     createRoomType,
     updateRoomType,
     createRoom,
+    createRoomsBulk,
     updateRoom,
     updateHousekeepingStatus,
   };
