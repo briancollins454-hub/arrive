@@ -73,8 +73,12 @@ export function useStripePayment() {
         },
       });
 
-      if (fnError) throw new Error(fnError.message);
-      if (!data?.clientSecret) throw new Error('No client secret returned');
+      if (fnError) {
+        // supabase.functions.invoke returns the response body as data even on error
+        const errorMsg = (data as Record<string, string> | null)?.error ?? fnError.message;
+        throw new Error(errorMsg);
+      }
+      if (!data?.clientSecret) throw new Error(data?.error ?? 'No client secret returned');
 
       return {
         clientSecret: data.clientSecret as string,

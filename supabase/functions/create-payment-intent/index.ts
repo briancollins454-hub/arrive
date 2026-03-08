@@ -93,7 +93,17 @@ serve(async (req: Request) => {
 
     const stripeSecretKey = propData.stripe_secret_key;
 
+    // Enforce minimum amount (Stripe requires >= 30 for GBP, 50 for USD)
+    const minAmount = (currency || 'gbp') === 'gbp' ? 30 : 50;
+    if (amount < minAmount) {
+      return new Response(
+        JSON.stringify({ error: `Amount too small. Minimum is ${minAmount} ${(currency || 'gbp').toUpperCase()} minor units (£${(minAmount / 100).toFixed(2)}).` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create PaymentIntent via Stripe API (direct HTTP — no SDK needed in Deno)
+    // Use explicit card payment method type to avoid needing Klarna/Apple Pay activation
     const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', {
       method: 'POST',
       headers: {
@@ -101,12 +111,12 @@ serve(async (req: Request) => {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        amount: String(amount), // already in pence/cents from the frontend
+        amount: String(amount),
         currency: currency || 'gbp',
         description: description || `Payment for booking ${booking_id}`,
         'metadata[booking_id]': booking_id || '',
         'metadata[property_id]': property_id,
-        'automatic_payment_methods[enabled]': 'true',
+        'payment_method_types[]': 'card',
       }).toString(),
     });
 
