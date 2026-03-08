@@ -262,8 +262,9 @@ export function useBookings() {
             if (b.id !== bookingId) return b;
             const updates: Partial<Booking> = { status: status as BookingStatus };
             if (status === 'checked_in') updates.checked_in_at = new Date().toISOString();
-            if (status === 'checked_out') updates.checked_out_at = new Date().toISOString();
-            if (status === 'cancelled') updates.cancelled_at = new Date().toISOString();
+            if (status === 'checked_out') { updates.checked_out_at = new Date().toISOString(); updates.room_id = null; }
+            if (status === 'cancelled') { updates.cancelled_at = new Date().toISOString(); updates.room_id = null; }
+            if (status === 'no_show') { updates.room_id = null; }
             return { ...b, ...updates, updated_at: new Date().toISOString() };
           })
         );
@@ -335,8 +336,9 @@ export function useBookings() {
       // Real mode
       const updates: Record<string, unknown> = { status };
       if (status === 'checked_in') updates.checked_in_at = new Date().toISOString();
-      if (status === 'checked_out') updates.checked_out_at = new Date().toISOString();
-      if (status === 'cancelled') updates.cancelled_at = new Date().toISOString();
+      if (status === 'checked_out') { updates.checked_out_at = new Date().toISOString(); updates.room_id = null; }
+      if (status === 'cancelled') { updates.cancelled_at = new Date().toISOString(); updates.room_id = null; }
+      if (status === 'no_show') { updates.room_id = null; }
 
       const { error } = await supabase.from('bookings').update(updates).eq('id', bookingId);
       if (error) throw error;
