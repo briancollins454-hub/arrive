@@ -273,7 +273,11 @@ export function useCityLedger() {
         .order('date_posted', { ascending: false });
       if (error) { console.error('[Arrivé CL] Invoice fetch error:', error); throw error; }
       console.log('[Arrivé CL] Fetched', data?.length ?? 0, 'invoices');
-      return (data ?? []) as CityLedgerInvoice[];
+      return (data ?? []).map((inv) => ({
+        ...inv,
+        amount: Number(inv.amount),
+        amount_paid: Number(inv.amount_paid),
+      })) as CityLedgerInvoice[];
     },
     enabled: !!propertyId || isDemoMode,
     staleTime: 30_000,
@@ -314,6 +318,29 @@ export function useCityLedger() {
     onError: (e: Error) => toast.error(`Failed to create invoice: ${e.message}`),
   });
 
+  // ---- Delete invoice ----
+  const deleteInvoice = useMutation({
+    mutationFn: async (id: string) => {
+      if (isDemoMode) {
+        qc.setQueryData<CityLedgerInvoice[]>(
+          ['city-ledger-invoices', 'demo-property-id'],
+          (old) => (old ?? []).filter(inv => inv.id !== id),
+        );
+        return;
+      }
+      const { error } = await supabase
+        .from('city_ledger_invoices')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['city-ledger-invoices'] });
+      toast.success('Invoice deleted');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // ---- Update invoice (payments, status changes) ----
   const updateInvoice = useMutation({
     mutationFn: async ({ id, ...rest }: Partial<CityLedgerInvoice> & { id: string }) => {
@@ -346,5 +373,6 @@ export function useCityLedger() {
     deleteAccount,
     createInvoice,
     updateInvoice,
+    deleteInvoice,
   };
 }

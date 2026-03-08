@@ -37,7 +37,7 @@ const invoiceStatusConfig: Record<string, { label: string; color: string; bg: st
 // ============================================================
 
 export function CityLedgerPage() {
-  const { accounts, invoices, createAccount, updateAccount, createInvoice, updateInvoice } = useCityLedger();
+  const { accounts, invoices, createAccount, updateAccount, createInvoice, updateInvoice, deleteInvoice } = useCityLedger();
   const [search, setSearch] = useState('');
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'closed'>('all');
@@ -84,26 +84,26 @@ export function CityLedgerPage() {
 
   const getAccountBalance = (accountId: string) => {
     const acctInvoices = getAccountInvoices(accountId);
-    return acctInvoices.reduce((sum, inv) => sum + (inv.amount - inv.amount_paid), 0);
+    return acctInvoices.reduce((sum, inv) => sum + (Number(inv.amount) - Number(inv.amount_paid)), 0);
   };
 
   const getAccountOverdue = (accountId: string) => {
     const acctInvoices = getAccountInvoices(accountId);
     return acctInvoices
       .filter(inv => inv.status === 'overdue')
-      .reduce((sum, inv) => sum + (inv.amount - inv.amount_paid), 0);
+      .reduce((sum, inv) => sum + (Number(inv.amount) - Number(inv.amount_paid)), 0);
   };
 
   // ── Summary stats ──
   const totalOutstanding = dateFilteredInvoices
     .filter(inv => ['outstanding', 'partially_paid', 'overdue'].includes(inv.status))
-    .reduce((sum, inv) => sum + (inv.amount - inv.amount_paid), 0);
+    .reduce((sum, inv) => sum + (Number(inv.amount) - Number(inv.amount_paid)), 0);
 
   const totalOverdue = dateFilteredInvoices
     .filter(inv => inv.status === 'overdue')
-    .reduce((sum, inv) => sum + (inv.amount - inv.amount_paid), 0);
+    .reduce((sum, inv) => sum + (Number(inv.amount) - Number(inv.amount_paid)), 0);
 
-  const totalCollected = dateFilteredInvoices.reduce((sum, inv) => sum + inv.amount_paid, 0);
+  const totalCollected = dateFilteredInvoices.reduce((sum, inv) => sum + Number(inv.amount_paid), 0);
 
   const activeAccountCount = accounts.filter(a => a.status === 'active').length;
 
@@ -606,10 +606,10 @@ export function CityLedgerPage() {
                                       </button>
                                     )}
                                     <button
-                                      onClick={() => handleWriteOff(inv.id)}
+                                      onClick={() => deleteInvoice.mutate(inv.id)}
                                       className="p-1.5 rounded-lg hover:bg-red-500/10 text-steel hover:text-red-400 transition-all touch-manipulation"
-                                      title="Write off"
-                                      aria-label="Write off invoice"
+                                      title="Delete invoice"
+                                      aria-label="Delete invoice"
                                     >
                                       <Trash2 size={13} />
                                     </button>
