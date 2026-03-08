@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useBookings } from '@/hooks/useBookings';
@@ -434,8 +434,27 @@ export function BookingDetailPage() {
     }
   };
 
+  // Compute which room IDs are blocked by overlapping bookings for this booking's dates
+  const blockedRoomIds = useMemo(() => {
+    const blocked = new Set<string>();
+    const bkIn = new Date(booking.check_in);
+    const bkOut = new Date(booking.check_out);
+    for (const b of (bookings ?? [])) {
+      if (b.id === booking.id) continue; // don't block against ourselves
+      if (!b.room_id) continue;
+      if (['cancelled', 'no_show', 'checked_out'].includes(b.status)) continue;
+      const ci = new Date(b.check_in);
+      const co = new Date(b.check_out);
+      if (ci < bkOut && co > bkIn) blocked.add(b.room_id);
+    }
+    return blocked;
+  }, [bookings, booking.id, booking.check_in, booking.check_out]);
+
   const availableRoomsForType = rooms.filter(
-    (r) => r.room_type_id === effectiveRoomTypeId && r.status === 'available' && r.housekeeping_status !== 'out_of_order'
+    (r) => r.room_type_id === effectiveRoomTypeId
+      && r.housekeeping_status !== 'out_of_order'
+      && r.status !== 'maintenance' && r.status !== 'blocked'
+      && !blockedRoomIds.has(r.id)
   );
 
   const handleSaveRequests = () => {
@@ -977,7 +996,7 @@ export function BookingDetailPage() {
             <label className="text-[11px] text-steel font-body block mb-1.5">Room Type</label>
             <div className="flex flex-wrap gap-2">
               {roomTypes.filter(rt => rt.is_active).map(rt => {
-                const availCount = rooms.filter(r => r.room_type_id === rt.id && r.status === 'available' && r.housekeeping_status !== 'out_of_order').length;
+                const availCount = rooms.filter(r => r.room_type_id === rt.id && r.housekeeping_status !== 'out_of_order' && r.status !== 'maintenance' && r.status !== 'blocked' && !blockedRoomIds.has(r.id)).length;
                 const isCurrent = rt.id === booking.room_type_id;
                 const isSelected = rt.id === effectiveRoomTypeId;
                 return (
@@ -1051,7 +1070,7 @@ export function BookingDetailPage() {
           <div>
             <label className="text-[11px] text-steel font-body block mb-1.5">Available Rooms</label>
             <div className="flex flex-wrap gap-2">
-              {rooms.filter(r => (r.status === 'available' || r.status === 'reserved') && r.housekeeping_status !== 'out_of_order' && r.id !== booking.room_id).map(r => {
+              {rooms.filter(r => r.housekeeping_status !== 'out_of_order' && r.status !== 'maintenance' && r.status !== 'blocked' && r.id !== booking.room_id && !blockedRoomIds.has(r.id)).map(r => {
                 const rt = roomTypes.find(t => t.id === r.room_type_id);
                 return (
                   <button
