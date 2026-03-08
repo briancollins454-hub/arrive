@@ -212,7 +212,20 @@ export function BookingDetailPage() {
   // Upsell / Extras suggestions — loaded from property settings (configurable per hotel)
   const [showUpsellDialog, setShowUpsellDialog] = useState(false);
   const [upsellMode, setUpsellMode] = useState<'checkin' | 'extras'>('checkin');
-  const upsellSuggestions = (property?.settings?.extras ?? [])
+
+  // Default extras used until the hotel configures their own in Settings → Extras & Upsells
+  const defaultExtras: { id: string; label: string; desc: string; price: number; category: FolioChargeCategory }[] = [
+    { id: 'breakfast', label: 'Add Breakfast', desc: 'Full breakfast per guest per night', price: 15, category: 'food' },
+    { id: 'parking', label: 'Parking Pass', desc: 'On-site parking for full stay', price: 10, category: 'parking' },
+    { id: 'late-checkout', label: 'Late Check-out', desc: 'Guaranteed 2pm check-out', price: 25, category: 'other' },
+    { id: 'early-checkin', label: 'Early Check-in', desc: 'Check-in from 12pm', price: 20, category: 'other' },
+    { id: 'upgrade', label: 'Room Upgrade', desc: 'Upgrade to next room category', price: 35, category: 'other' },
+    { id: 'minibar', label: 'Minibar Restock', desc: 'Premium minibar package', price: 20, category: 'beverage' },
+    { id: 'laundry', label: 'Laundry Service', desc: 'Express laundry & pressing', price: 18, category: 'laundry' },
+    { id: 'spa', label: 'Spa Treatment', desc: 'Relaxation massage or facial', price: 55, category: 'spa' },
+  ];
+
+  const configuredExtras = (property?.settings?.extras ?? [])
     .filter((e: { active?: boolean }) => e.active !== false)
     .map((e: { id: string; label: string; description?: string; price: number; category: string }) => ({
       id: e.id,
@@ -221,6 +234,8 @@ export function BookingDetailPage() {
       price: e.price,
       category: e.category as FolioChargeCategory,
     }));
+
+  const upsellSuggestions = configuredExtras.length > 0 ? configuredExtras : defaultExtras;
   const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
 
   // Checkout settlement — selective city ledger
