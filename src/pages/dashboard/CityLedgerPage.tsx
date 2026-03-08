@@ -84,7 +84,9 @@ export function CityLedgerPage() {
 
   const getAccountBalance = (accountId: string) => {
     const acctInvoices = getAccountInvoices(accountId);
-    return acctInvoices.reduce((sum, inv) => sum + (Number(inv.amount) - Number(inv.amount_paid)), 0);
+    return acctInvoices
+      .filter(inv => inv.status !== 'paid' && inv.status !== 'written_off')
+      .reduce((sum, inv) => sum + (Number(inv.amount) - Number(inv.amount_paid)), 0);
   };
 
   const getAccountOverdue = (accountId: string) => {

@@ -597,8 +597,7 @@ export function useFolios(bookingId: string) {
         const { data: invoices } = await supabase
           .from('city_ledger_invoices')
           .select('id, amount')
-          .eq('booking_id', bookingId)
-          .eq('status', 'outstanding');
+          .eq('booking_id', bookingId);
         if (invoices && invoices.length > 0) {
           // Match by amount (closest match)
           const match = invoices.find(inv => Math.abs(Number(inv.amount) - transferAmount) < 0.01);
