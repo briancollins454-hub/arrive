@@ -301,7 +301,8 @@ export function useFolios(bookingId: string) {
         .eq('booking_id', bookingId)
         .order('posted_at', { ascending: true });
       if (error) throw error;
-      return data as FolioEntry[];
+      // Supabase returns NUMERIC columns as strings — coerce to numbers
+      return (data ?? []).map(e => ({ ...e, amount: Number(e.amount), quantity: Number(e.quantity), unit_price: Number(e.unit_price) })) as FolioEntry[];
     },
     enabled: !!bookingId,
   });
@@ -590,9 +591,9 @@ export function useFolios(bookingId: string) {
   // Computed totals
   const entries = folioQuery.data ?? [];
   const activeEntries = entries.filter((e) => !e.is_voided);
-  const totalCharges = activeEntries.filter((e) => e.type === 'charge' || e.type === 'adjustment').reduce((s, e) => s + e.amount, 0);
-  const totalPayments = activeEntries.filter((e) => e.type === 'payment').reduce((s, e) => s + Math.abs(e.amount), 0);
-  const totalRefunds = activeEntries.filter((e) => e.type === 'refund').reduce((s, e) => s + Math.abs(e.amount), 0);
+  const totalCharges = activeEntries.filter((e) => e.type === 'charge' || e.type === 'adjustment').reduce((s, e) => s + Number(e.amount), 0);
+  const totalPayments = activeEntries.filter((e) => e.type === 'payment').reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
+  const totalRefunds = activeEntries.filter((e) => e.type === 'refund').reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
   const balance = totalCharges - totalPayments + totalRefunds;
 
   return {
@@ -634,7 +635,7 @@ export function useAllFolios(bookingIds: string[]) {
           .eq('booking_id', id)
           .order('posted_at', { ascending: true });
         if (error) throw error;
-        return data as FolioEntry[];
+        return (data ?? []).map(e => ({ ...e, amount: Number(e.amount), quantity: Number(e.quantity), unit_price: Number(e.unit_price) })) as FolioEntry[];
       },
     })),
   });
@@ -653,8 +654,8 @@ export function getFolioBalance(queryClient: QueryClient, bookingId: string): nu
   const entries = queryClient.getQueryData<FolioEntry[]>(['folio', bookingId])
     ?? (isDemoMode ? findDemoFolio(bookingId) : []);
   const active = entries.filter(e => !e.is_voided);
-  const charges = active.filter(e => e.type === 'charge' || e.type === 'adjustment').reduce((s, e) => s + e.amount, 0);
-  const payments = active.filter(e => e.type === 'payment').reduce((s, e) => s + Math.abs(e.amount), 0);
-  const refunds = active.filter(e => e.type === 'refund').reduce((s, e) => s + Math.abs(e.amount), 0);
+  const charges = active.filter(e => e.type === 'charge' || e.type === 'adjustment').reduce((s, e) => s + Number(e.amount), 0);
+  const payments = active.filter(e => e.type === 'payment').reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
+  const refunds = active.filter(e => e.type === 'refund').reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
   return charges - payments + refunds;
 }

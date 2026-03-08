@@ -1508,8 +1508,8 @@ export function BookingDetailPage() {
                 const tabEntries = folio.entries.filter((e) =>
                   folioTab === 'company' ? companyEntryIds.has(e.id) : !companyEntryIds.has(e.id),
                 );
-                const tabCharges = tabEntries.filter((e) => e.type === 'charge' && !e.is_voided).reduce((s, e) => s + e.amount, 0);
-                const tabPayments = tabEntries.filter((e) => e.type === 'payment' && !e.is_voided).reduce((s, e) => s + e.amount, 0);
+                const tabCharges = tabEntries.filter((e) => e.type === 'charge' && !e.is_voided).reduce((s, e) => s + Number(e.amount), 0);
+                const tabPayments = tabEntries.filter((e) => e.type === 'payment' && !e.is_voided).reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
                 const tabBalance = tabCharges - tabPayments;
 
                 return (
@@ -1699,7 +1699,7 @@ export function BookingDetailPage() {
                         // Find the company in folio transfer context
                         const companyCharges = folio.entries
                           .filter(e => !e.is_voided && e.type === 'charge' && companyEntryIds.has(e.id));
-                        const companyTotal = companyCharges.reduce((s, e) => s + e.amount, 0);
+                        const companyTotal = companyCharges.reduce((s, e) => s + Number(e.amount), 0);
                         const w = window.open('', '_blank', 'width=700,height=700');
                         if (!w) { toast.error('Please allow popups'); return; }
                         w.document.write(`<!DOCTYPE html><html><head><title>Company Billing Confirmation</title>
@@ -2251,7 +2251,7 @@ export function BookingDetailPage() {
         const roomCharges = unpaidCharges.filter(e => e.category === 'room');
         const extraCharges = unpaidCharges.filter(e => e.category !== 'room');
         const hasExtras = extraCharges.length > 0;
-        const cityLedgerTotal = unpaidCharges.filter(e => checkoutCityLedgerIds.has(e.id)).reduce((s, e) => s + e.amount, 0);
+        const cityLedgerTotal = unpaidCharges.filter(e => checkoutCityLedgerIds.has(e.id)).reduce((s, e) => s + Number(e.amount), 0);
         const guestOwes = Math.max(0, folio.balance - cityLedgerTotal);
 
         return (
@@ -2276,12 +2276,12 @@ export function BookingDetailPage() {
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
               <div className="flex justify-between text-sm font-body">
                 <span className="text-steel">Room Charges</span>
-                <span className="text-white">£{roomCharges.reduce((s, e) => s + e.amount, 0).toFixed(2)}</span>
+                <span className="text-white">£{roomCharges.reduce((s, e) => s + Number(e.amount), 0).toFixed(2)}</span>
               </div>
               {hasExtras && (
                 <div className="flex justify-between text-sm font-body">
                   <span className="text-steel">Extras ({extraCharges.length})</span>
-                  <span className="text-white">£{extraCharges.reduce((s, e) => s + e.amount, 0).toFixed(2)}</span>
+                  <span className="text-white">£{extraCharges.reduce((s, e) => s + Number(e.amount), 0).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-body">
@@ -2659,7 +2659,7 @@ export function BookingDetailPage() {
         const transferableEntries = folio.entries.filter(e => !e.is_voided && e.type === 'charge');
         const selectedTotal = transferableEntries
           .filter(e => clSelectedEntryIds.has(e.id))
-          .reduce((sum, e) => sum + e.amount, 0);
+          .reduce((sum, e) => sum + Number(e.amount), 0);
         const allSelected = transferableEntries.length > 0 && clSelectedEntryIds.size === transferableEntries.length;
 
         return (
