@@ -238,6 +238,9 @@ export function BookingDetailPage() {
   const upsellSuggestions = configuredExtras.length > 0 ? configuredExtras : defaultExtras;
   const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
 
+  // Void confirmation dialog
+  const [voidConfirmEntry, setVoidConfirmEntry] = useState<import('@/types').FolioEntry | null>(null);
+
   // Checkout settlement — selective city ledger
   const [checkoutStep, setCheckoutStep] = useState<'summary' | 'split'>('summary');
   const [checkoutCityLedgerIds, setCheckoutCityLedgerIds] = useState<Set<string>>(new Set());
@@ -1593,9 +1596,9 @@ export function BookingDetailPage() {
                           <Building size={10} />
                         </button>
                       )}
-                      {!entry.is_voided && entry.posted_by !== 'System' && entry.posted_by !== 'Night Audit' && (
+                      {!entry.is_voided && (
                         <button
-                          onClick={() => folio.voidEntry.mutate(entry.id)}
+                          onClick={() => setVoidConfirmEntry(entry)}
                           title="Void entry"
                           className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-steel/40 hover:text-red-400 transition-colors"
                         >
@@ -2494,6 +2497,53 @@ export function BookingDetailPage() {
         </div>
         );
       })()}
+
+      {/* Void Entry Confirmation Dialog */}
+      {voidConfirmEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Void entry" onClick={() => setVoidConfirmEntry(null)}>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+          <div className="relative w-full max-w-sm rounded-2xl bg-[#0f1724] border border-white/[0.1] shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center">
+                <Ban size={20} className="text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-heading font-bold text-white">Void Entry</h3>
+                <p className="text-xs text-steel/60 font-body">This action cannot be undone</p>
+              </div>
+            </div>
+            <div className="bg-white/[0.03] rounded-lg p-3 space-y-1">
+              <p className="text-xs text-silver font-body font-medium">{voidConfirmEntry.description}</p>
+              <p className="text-xs text-steel/60 font-body">
+                {format(new Date(voidConfirmEntry.posted_at), 'dd MMM yyyy HH:mm')} · {voidConfirmEntry.posted_by}
+              </p>
+              <p className={cn('text-sm font-heading font-bold', voidConfirmEntry.amount < 0 ? 'text-emerald-400' : 'text-white')}>
+                {voidConfirmEntry.amount < 0 ? '-' : ''}£{Math.abs(voidConfirmEntry.amount).toFixed(2)}
+              </p>
+              {(voidConfirmEntry.description?.includes('City Ledger') || voidConfirmEntry.description?.includes('city ledger')) && (
+                <p className="text-[10px] text-amber-400 font-body mt-1">⚠ This will also remove the corresponding city ledger invoice</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setVoidConfirmEntry(null)}
+                className="flex-1 px-4 py-2 rounded-lg text-xs font-body font-semibold bg-white/[0.05] text-steel hover:text-silver hover:bg-white/[0.08] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  folio.voidEntry.mutate(voidConfirmEntry.id);
+                  setVoidConfirmEntry(null);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg text-xs font-body font-semibold bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 transition-colors"
+              >
+                Void Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancellation Policy Dialog */}
       {showCancelDialog && booking && (

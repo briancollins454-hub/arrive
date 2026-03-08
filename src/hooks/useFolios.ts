@@ -565,10 +565,8 @@ export function useFolios(bookingId: string) {
             queryClient.setQueryData(key, bookings.map(b => {
               if (b.id !== bookingId) return b;
               if (voidedEntry.type === 'payment') {
-                // Voiding a payment reduces amount_paid
                 return { ...b, amount_paid: b.amount_paid - Math.abs(voidedEntry.amount) };
               }
-              // Voiding a refund increases amount_paid (restores the refunded amount)
               return { ...b, amount_paid: b.amount_paid + Math.abs(voidedEntry.amount) };
             }));
           }
@@ -577,11 +575,61 @@ export function useFolios(bookingId: string) {
         return;
       }
 
+      // Fetch the entry first so we know the type and description
+      const { data: entryData } = await supabase
+        .from('folio_entries')
+        .select('*')
+        .eq('id', entryId)
+        .single();
+
+      // Void the folio entry
       const { error } = await supabase
         .from('folio_entries')
         .update({ is_voided: true, voided_by: 'Staff', voided_at: new Date().toISOString() })
         .eq('id', entryId);
       if (error) throw error;
+
+      // If this was a city ledger transfer, also remove the matching invoice
+      if (entryData && entryData.type === 'payment' &&
+          (entryData.description?.includes('City Ledger') || entryData.description?.includes('city ledger'))) {
+        const transferAmount = Math.abs(Number(entryData.amount));
+        // Find and delete the matching invoice by booking_id + approximate amount
+        const { data: invoices } = await supabase
+          .from('city_ledger_invoices')
+          .select('id, amount')
+          .eq('booking_id', bookingId)
+          .eq('status', 'outstanding');
+        if (invoices && invoices.length > 0) {
+          // Match by amount (closest match)
+          const match = invoices.find(inv => Math.abs(Number(inv.amount) - transferAmount) < 0.01);
+          if (match) {
+            await supabase.from('city_ledger_invoices').delete().eq('id', match.id);
+            // Invalidate city ledger cache
+            queryClient.invalidateQueries({ queryKey: ['city-ledger-invoices'] });
+          }
+        }
+      }
+
+      // Sync booking.amount_paid in Supabase
+      if (entryData && (entryData.type === 'payment' || entryData.type === 'refund')) {
+        const absAmount = Math.abs(Number(entryData.amount));
+        const { data: booking } = await supabase
+          .from('bookings')
+          .select('amount_paid')
+          .eq('id', bookingId)
+          .single();
+        if (booking) {
+          const newPaid = entryData.type === 'payment'
+            ? Math.max(0, Number(booking.amount_paid) - absAmount)
+            : Number(booking.amount_paid) + absAmount;
+          await supabase
+            .from('bookings')
+            .update({ amount_paid: newPaid })
+            .eq('id', bookingId);
+          queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        }
+      }
+
       toast.success('Entry voided');
     },
     onSuccess: () => { if (!isDemoMode) queryClient.invalidateQueries({ queryKey: ['folio', bookingId] }); },
