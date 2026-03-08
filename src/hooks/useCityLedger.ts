@@ -75,12 +75,14 @@ export function useCityLedger() {
     queryFn: async () => {
       if (isDemoMode) return demoAccounts;
       if (!propertyId) return [];
+      console.log('[Arrivé CL] Fetching city ledger accounts for property:', propertyId);
       const { data, error } = await supabase
         .from('city_ledger_accounts')
         .select('*')
         .eq('property_id', propertyId)
         .order('company_name');
-      if (error) throw error;
+      if (error) { console.error('[Arrivé CL] Fetch error:', error); throw error; }
+      console.log('[Arrivé CL] Fetched', data?.length ?? 0, 'accounts');
       return (data ?? []) as CityLedgerAccount[];
     },
     enabled: !!propertyId || isDemoMode,
@@ -110,12 +112,15 @@ export function useCityLedger() {
         );
         return entry;
       }
+      if (!propertyId) { throw new Error('Property not loaded — please try again'); }
+      console.log('[Arrivé CL] Creating account:', input.company_name, 'for property:', propertyId);
       const { data, error } = await supabase
         .from('city_ledger_accounts')
         .insert({ ...input, property_id: propertyId })
         .select()
         .single();
-      if (error) throw error;
+      if (error) { console.error('[Arrivé CL] Insert error:', error); throw error; }
+      console.log('[Arrivé CL] Account created:', data.id, data.company_name);
       return data as CityLedgerAccount;
     },
     onSuccess: () => {
