@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Bot, Send, Plus, Trash2, MessageSquare, Loader2, Square, Settings2,
-  Eye, EyeOff, ChevronLeft, Sparkles, Database, Zap,
+  Eye, EyeOff, ChevronLeft, Sparkles, Database, Zap, Printer, Copy, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isDemoMode } from '@/lib/supabase';
@@ -9,6 +9,7 @@ import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 import { useAppStore } from '@/store/useAppStore';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ============================================================
 // Local storage key for the Claude API key
@@ -508,9 +509,57 @@ function EmptyConversation({ onSuggest }: { onSuggest: (text: string) => void })
 
 function ChatMessage({ message }: { message: { role: string; content: string; created_at: string } }) {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html>
+<html><head><title>AI Report — Arrivé</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
+  h1, h2, h3 { margin-top: 1.5em; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+  th { background: #f5f5f5; font-weight: 600; }
+  tr:nth-child(even) { background: #fafafa; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 24px; }
+  .header h1 { margin: 0; font-size: 18px; }
+  .header span { color: #888; font-size: 12px; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+<div class="header"><h1>Arrivé AI Report</h1><span>${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
+${message.content
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/_(.+?)_/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+      .replace(/\n\n/g, '<br/><br/>')
+      .replace(/\|(.+)\|\n\|[-|: ]+\|\n((?:\|.+\|\n?)*)/g, (_match: string, header: string, body: string) => {
+        const ths = header.split('|').filter(Boolean).map((h: string) => '<th>' + h.trim() + '</th>').join('');
+        const rows = body.trim().split('\n').map((row: string) => {
+          const tds = row.split('|').filter(Boolean).map((c: string) => '<td>' + c.trim() + '</td>').join('');
+          return '<tr>' + tds + '</tr>';
+        }).join('');
+        return '<table><thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table>';
+      })
+    }
+</body></html>`);
+    printWindow.document.close();
+    printWindow.print();
+  };
 
   return (
-    <div className={cn('flex items-start gap-3 max-w-3xl', isUser && 'ml-auto flex-row-reverse')}>
+    <div className={cn('flex items-start gap-3 max-w-3xl group/msg', isUser && 'ml-auto flex-row-reverse')}>
       <div className={cn(
         'w-8 h-8 rounded-xl flex items-center justify-center shrink-0',
         isUser
@@ -529,9 +578,43 @@ function ChatMessage({ message }: { message: { role: string; content: string; cr
           ? 'bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] border border-gold/10'
           : 'bg-white/[0.03] border border-white/[0.06]'
       )}>
-        <div className="text-sm font-body text-silver leading-relaxed prose prose-invert prose-sm max-w-none">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+        <div className="text-sm font-body text-silver leading-relaxed prose prose-invert prose-sm max-w-none
+          prose-table:border-collapse prose-table:w-full prose-table:my-3
+          prose-th:border prose-th:border-white/10 prose-th:bg-white/[0.04] prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-xs prose-th:font-semibold prose-th:text-silver
+          prose-td:border prose-td:border-white/[0.06] prose-td:px-3 prose-td:py-1.5 prose-td:text-xs prose-td:text-steel
+          prose-tr:even:bg-white/[0.02]
+          prose-h2:text-white prose-h2:text-base prose-h2:mt-0 prose-h2:mb-3
+          prose-h3:text-silver prose-h3:text-sm prose-h3:mt-4 prose-h3:mb-2
+          prose-strong:text-white prose-em:text-steel
+          prose-li:text-steel prose-li:marker:text-steel/40
+          prose-ul:my-2 prose-ol:my-2
+          prose-p:my-1.5
+          prose-hr:border-white/10
+        ">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
         </div>
+
+        {/* Action buttons — assistant messages only */}
+        {!isUser && (
+          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/[0.04] opacity-0 group-hover/msg:opacity-100 transition-opacity">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-body text-steel hover:text-silver hover:bg-white/[0.06] transition-all"
+              title="Copy to clipboard"
+            >
+              {copied ? <Check size={12} className="text-teal" /> : <Copy size={12} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-body text-steel hover:text-silver hover:bg-white/[0.06] transition-all"
+              title="Print report"
+            >
+              <Printer size={12} />
+              Print
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

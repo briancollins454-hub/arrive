@@ -7,7 +7,7 @@ import {
   Search, TrendingUp, Brain, Wrench, LogIn, LogOut as LogOutIcon2, Moon, BarChart3,
   ClipboardList, CheckCheck, CalendarRange, UsersRound, Gift, PackageSearch,
   BellRing, Mail, CreditCard, MessageCircle, Globe, Wallet, CalendarClock,
-  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid, Bot, SlidersHorizontal,
+  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid, Bot, SlidersHorizontal, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/shared/Logo';
@@ -47,6 +47,13 @@ const ROUTE_FEATURE_MAP: Record<string, FeatureKey> = {
 
 // Grouped nav structure with section headers
 const navSections = [
+  {
+    label: 'AI',
+    items: [
+      { to: '/dashboard/ai-assistant', icon: Bot, label: 'AI Assistant', end: true, highlight: true as const },
+      // highlight causes purple glow styling in the render below
+    ],
+  },
   {
     label: 'Operations',
     items: [
@@ -98,7 +105,6 @@ const navSections = [
       { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
       { to: '/dashboard/admin', icon: Shield, label: 'Onboard Hotel' },
       { to: '/dashboard/feature-toggles', icon: SlidersHorizontal, label: 'Feature Toggles' },
-      { to: '/dashboard/ai-assistant', icon: Bot, label: 'AI Assistant' },
     ],
   },
 ];
@@ -450,21 +456,24 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    end={item.end}
+                    end={'end' in item ? item.end : undefined}
                     title={!show ? item.label : undefined}
                     className={({ isActive: routerActive }) => {
                       const isActive = routerActive && !(location.pathname === item.to && location.search.includes('view='));
+                      const hl = 'highlight' in item && Boolean(item.highlight);
                       return cn(
                         'flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-body transition-all duration-300 relative group',
                         !show && 'justify-center px-2',
+                        hl && !isActive && 'bg-gradient-to-r from-purple-500/[0.12] to-teal/[0.08] text-purple-300 border border-purple-500/20 hover:from-purple-500/[0.18] hover:to-teal/[0.12] hover:text-white shadow-[0_0_16px_rgba(168,85,247,0.08)]',
                         isActive
                           ? 'bg-gradient-to-r from-gold/[0.12] to-teal/[0.06] text-white font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_0_12px_rgba(201,168,76,0.08)]'
-                          : 'text-steel hover:text-silver hover:bg-white/[0.05]'
+                          : !hl && 'text-steel hover:text-silver hover:bg-white/[0.05]'
                       );
                     }}
                   >
                     {({ isActive: routerActive }) => {
                       const isActive = routerActive && !(location.pathname === item.to && location.search.includes('view='));
+                      const hl = 'highlight' in item && Boolean(item.highlight);
                       return (
                       <>
                         {isActive && (
@@ -472,9 +481,12 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
                         )}
                         <item.icon size={17} className={cn(
                           'transition-all duration-300 shrink-0',
-                          isActive ? 'text-gold drop-shadow-[0_0_4px_rgba(201,168,76,0.4)]' : 'group-hover:text-silver'
+                          isActive ? 'text-gold drop-shadow-[0_0_4px_rgba(201,168,76,0.4)]' : hl ? 'text-purple-400 drop-shadow-[0_0_4px_rgba(168,85,247,0.3)]' : 'group-hover:text-silver'
                         )} />
                         {show && <span className="tracking-wide">{item.label}</span>}
+                        {show && hl && !isActive && (
+                          <Sparkles size={12} className="ml-auto text-purple-400/60" />
+                        )}
                       </>
                       );
                     }}
