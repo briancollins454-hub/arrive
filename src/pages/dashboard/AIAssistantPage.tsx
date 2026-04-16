@@ -261,7 +261,10 @@ function AIAssistantInner() {
           {!activeConversationId ? (
             <EmptyState onNew={handleNewConversation} hasApiKey={!!apiKey} />
           ) : messages.length === 0 ? (
-            <EmptyConversation />
+            <EmptyConversation onSuggest={(text) => {
+              if (!apiKey || isStreaming) return;
+              sendMessage(text, apiKey);
+            }} />
           ) : (
             messages.map((msg) => (
               <ChatMessage key={msg.id} message={msg} />
@@ -457,7 +460,7 @@ function EmptyState({ onNew, hasApiKey }: { onNew: () => void; hasApiKey: boolea
   );
 }
 
-function EmptyConversation() {
+function EmptyConversation({ onSuggest }: { onSuggest: (text: string) => void }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4">
       <Sparkles size={24} className="text-purple-400 mb-3" />
@@ -469,12 +472,13 @@ function EmptyConversation() {
           'Any pending maintenance or guest requests?',
           'Revenue summary for this week',
         ].map((q) => (
-          <span
+          <button
             key={q}
-            className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-steel/80 font-body cursor-default"
+            onClick={() => onSuggest(q)}
+            className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-steel/80 font-body cursor-pointer hover:bg-white/[0.08] hover:text-silver hover:border-white/[0.12] transition-all"
           >
             {q}
-          </span>
+          </button>
         ))}
       </div>
     </div>
