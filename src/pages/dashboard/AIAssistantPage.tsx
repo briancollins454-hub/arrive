@@ -259,7 +259,7 @@ function AIAssistantInner() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           {!activeConversationId ? (
-            <EmptyState onNew={handleNewConversation} />
+            <EmptyState onNew={handleNewConversation} hasApiKey={!!apiKey} />
           ) : messages.length === 0 ? (
             <EmptyConversation />
           ) : (
@@ -396,7 +396,7 @@ function ApiKeyBanner({
   );
 }
 
-function EmptyState({ onNew }: { onNew: () => void }) {
+function EmptyState({ onNew, hasApiKey }: { onNew: () => void; hasApiKey: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 via-teal/10 to-gold/10 flex items-center justify-center mb-6">
@@ -406,25 +406,53 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <p className="text-sm text-steel font-body max-w-md leading-relaxed mb-6">
         Your intelligent hotel management copilot. Ask about occupancy, revenue, guest requests, housekeeping, or anything else — the AI has full access to all your property data.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg w-full mb-8">
-        {[
-          { icon: '📊', text: 'Occupancy & revenue analysis' },
-          { icon: '🛎️', text: 'Guest requests & operations' },
-          { icon: '💡', text: 'Pricing recommendations' },
-        ].map((item) => (
-          <div key={item.text} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-steel font-body">
-            <span>{item.icon}</span>
-            <span>{item.text}</span>
+
+      {!hasApiKey ? (
+        <div className="max-w-md w-full mb-8">
+          <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-500/[0.06] to-purple-500/[0.03] p-5 text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap size={16} className="text-amber-400" />
+              <h3 className="text-sm font-display text-white">Step 1: Add your API Key</h3>
+            </div>
+            <p className="text-xs text-steel font-body leading-relaxed mb-3">
+              Click the <Settings2 size={12} className="inline text-amber-400" /> settings icon in the top-right corner to enter your Anthropic API key. Your key stays in your browser — it's never sent to our servers.
+            </p>
+            <p className="text-[10px] text-steel/50 font-body">
+              Don't have one? Get your API key at{' '}
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-teal hover:underline"
+              >
+                console.anthropic.com
+              </a>
+            </p>
           </div>
-        ))}
-      </div>
-      <button
-        onClick={onNew}
-        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-teal/20 to-purple-500/10 text-teal font-body text-sm hover:from-teal/30 hover:to-purple-500/20 border border-teal/20 transition-all"
-      >
-        <Plus size={16} />
-        Start a conversation
-      </button>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg w-full mb-8">
+            {[
+              { icon: '📊', text: 'Occupancy & revenue analysis' },
+              { icon: '🛎️', text: 'Guest requests & operations' },
+              { icon: '💡', text: 'Pricing recommendations' },
+            ].map((item) => (
+              <div key={item.text} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-steel font-body">
+                <span>{item.icon}</span>
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={onNew}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-teal/20 to-purple-500/10 text-teal font-body text-sm hover:from-teal/30 hover:to-purple-500/20 border border-teal/20 transition-all"
+          >
+            <Plus size={16} />
+            Start a conversation
+          </button>
+        </>
+      )}
     </div>
   );
 }

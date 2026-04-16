@@ -1,4 +1,5 @@
-import { Shield, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Shield, ToggleLeft, ToggleRight, Bot, ArrowRight, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useFeatureToggles, ALL_FEATURES, type FeatureMeta } from '@/hooks/useFeatureToggles';
 import { useAppStore } from '@/store/useAppStore';
@@ -17,8 +18,10 @@ export function FeatureTogglesPage() {
   const { toggles, isLoading, toggleFeature } = useFeatureToggles();
   const currentRole = useAppStore((s) => s.currentRole);
   const isOwner = currentRole === 'owner';
+  const navigate = useNavigate();
 
   const toggleMap = new Map(toggles.map((t) => [t.feature_key, t.enabled]));
+  const aiEnabled = toggleMap.get('ai_assistant') ?? false;
 
   // Group features by category
   const grouped = CATEGORY_ORDER.map((cat) => ({
@@ -70,6 +73,36 @@ export function FeatureTogglesPage() {
           </div>
         </div>
       ))}
+
+      {/* AI Assistant setup prompt */}
+      {aiEnabled && (
+        <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-r from-purple-500/[0.08] via-teal/[0.04] to-purple-500/[0.08] p-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-teal/20 flex items-center justify-center shrink-0">
+              <Bot size={24} className="text-purple-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-sm font-display text-white">AI Assistant Enabled</h3>
+                <Sparkles size={14} className="text-purple-400" />
+              </div>
+              <p className="text-xs text-steel font-body leading-relaxed mb-4">
+                To start using the AI Assistant, you'll need to add your Claude API key. The assistant will have full access to all your property data — bookings, guests, rooms, revenue, and more.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/dashboard/ai-assistant')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal/20 to-purple-500/10 text-teal text-sm font-body hover:from-teal/30 hover:to-purple-500/20 border border-teal/20 transition-all"
+                >
+                  Set Up AI Assistant
+                  <ArrowRight size={14} />
+                </button>
+                <span className="text-[10px] text-steel/50 font-body">Requires an Anthropic API key</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
