@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
+import { getDemoRoomTypes, getDemoRooms, getDemoCurrentBookings, getDemoGuests } from './demoData';
 import type { AIConversation, AIMessage } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -41,6 +42,277 @@ const DEMO_MESSAGES: AIMessage[] = [
 
 // ============================================================
 // System prompt builder — feeds ALL property data to Claude
+// ============================================================
+
+// ============================================================
+// Demo AI Responder — generates intelligent responses from demo data
+// No API key needed. Hotels can test the full AI experience.
+// ============================================================
+
+function generateDemoResponse(query: string, propertyId: string): string {
+  const q = query.toLowerCase();
+  const rooms = getDemoRooms(propertyId);
+  const roomTypes = getDemoRoomTypes(propertyId);
+  const bookings = getDemoCurrentBookings(propertyId);
+  const guests = getDemoGuests(propertyId);
+
+  const totalRooms = rooms.length;
+  const occupied = rooms.filter((r) => r.status === 'occupied').length;
+  const available = rooms.filter((r) => r.status === 'available').length;
+  const reserved = rooms.filter((r) => r.status === 'reserved').length;
+  const maintenance = rooms.filter((r) => r.status === 'maintenance' || r.status === 'blocked').length;
+  const occupancyRate = totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
+  const dirty = rooms.filter((r) => r.housekeeping_status === 'dirty').length;
+  const clean = rooms.filter((r) => r.housekeeping_status === 'clean' || r.housekeeping_status === 'inspected').length;
+
+  const arrivals = bookings.filter((b) => b.status === 'confirmed');
+  const checkedIn = bookings.filter((b) => b.status === 'checked_in');
+  const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_amount ?? 0), 0);
+  const avgRate = bookings.length > 0 ? Math.round(totalRevenue / bookings.length) : 0;
+  const vipGuests = guests.filter((g) => g.tags?.includes('VIP'));
+  const returningGuests = guests.filter((g) => (g.total_stays ?? 0) > 1);
+
+  // Occupancy queries
+  if (q.includes('occupancy') || q.includes('how full') || q.includes('how many rooms')) {
+    return `## Current Occupancy: ${occupancyRate}%
+
+**${occupied}** of **${totalRooms}** rooms are currently occupied.
+
+| Status | Count |
+|--------|-------|
+| 🟢 Occupied | ${occupied} |
+| 🔵 Reserved | ${reserved} |
+| ⚪ Available | ${available} |
+| 🔧 Maintenance | ${maintenance} |
+
+**RevPAR today:** £${totalRooms > 0 ? Math.round((occupied * avgRate) / totalRooms) : 0}
+**ADR:** £${avgRate}
+
+${occupancyRate < 60 ? '⚠️ Occupancy is below 60% — consider running a flash promotion or adjusting rates to drive last-minute bookings.' : occupancyRate > 85 ? '🎉 Excellent occupancy! Consider upselling upgrades to maximise revenue per room.' : '📊 Healthy occupancy level. Monitor upcoming arrivals to optimise room assignments.'}`;
+  }
+
+  // Arrivals & departures
+  if (q.includes('arrival') || q.includes('departure') || q.includes('check-in') || q.includes('checkin') || q.includes('check in') || q.includes('check out') || q.includes('checkout')) {
+    const arrivalList = arrivals.map((b) => {
+      const guest = guests.find((g) => g.id === b.guest_id);
+      const rt = roomTypes.find((t) => t.id === b.room_type_id);
+      return `- **${guest?.first_name ?? '?'} ${guest?.last_name ?? ''}** — ${rt?.name ?? 'Unknown'} (Room ${rooms.find((r) => r.id === b.room_id)?.room_number ?? 'TBA'}) · ${b.num_guests} guest${b.num_guests > 1 ? 's' : ''} · £${b.total_amount ?? 0}${b.special_requests ? `\n  _Request: ${b.special_requests}_` : ''}`;
+    }).join('\n');
+
+    const departureList = checkedIn.map((b) => {
+      const guest = guests.find((g) => g.id === b.guest_id);
+      const room = rooms.find((r) => r.id === b.room_id);
+      return `- **${guest?.first_name ?? '?'} ${guest?.last_name ?? ''}** — Room ${room?.room_number ?? '?'} · £${b.total_amount ?? 0}`;
+    }).join('\n');
+
+    return `## Today's Arrivals & Departures
+
+### 🟢 Arrivals (${arrivals.length})
+${arrivals.length > 0 ? arrivalList : '_No arrivals today._'}
+
+### 🔴 In-House / Pending Departure (${checkedIn.length})
+${checkedIn.length > 0 ? departureList : '_No departures today._'}
+
+**Action items:**
+${dirty > 0 ? `- ⚠️ ${dirty} room${dirty > 1 ? 's' : ''} need housekeeping before arrivals` : '- ✅ All rooms clean and ready'}
+${arrivals.some((b) => b.special_requests) ? '- 📝 Check special requests above — some guests have preferences noted' : ''}
+- 📋 Ensure welcome amenities are prepared for VIP guests`;
+  }
+
+  // Revenue
+  if (q.includes('revenue') || q.includes('income') || q.includes('money') || q.includes('financial') || q.includes('earnings')) {
+    const directBookings = bookings.filter((b) => b.source === 'direct');
+    const otaBookings = bookings.filter((b) => b.source !== 'direct');
+    const directRevenue = directBookings.reduce((sum, b) => sum + (b.total_amount ?? 0), 0);
+    const otaRevenue = otaBookings.reduce((sum, b) => sum + (b.total_amount ?? 0), 0);
+
+    return `## Revenue Summary
+
+### Current Bookings Revenue
+| Metric | Value |
+|--------|-------|
+| **Total Revenue** | **£${totalRevenue.toLocaleString()}** |
+| **Average Daily Rate** | £${avgRate} |
+| **RevPAR** | £${totalRooms > 0 ? Math.round((occupied * avgRate) / totalRooms) : 0} |
+| **Bookings** | ${bookings.length} |
+
+### By Source
+- 🏠 **Direct bookings:** ${directBookings.length} (£${directRevenue.toLocaleString()}) — ${bookings.length > 0 ? Math.round((directBookings.length / bookings.length) * 100) : 0}%
+- 🌐 **OTA bookings:** ${otaBookings.length} (£${otaRevenue.toLocaleString()}) — ${bookings.length > 0 ? Math.round((otaBookings.length / bookings.length) * 100) : 0}%
+
+### Room Type Performance
+${roomTypes.map((rt) => {
+  const typeBookings = bookings.filter((b) => b.room_type_id === rt.id);
+  const typeRevenue = typeBookings.reduce((sum, b) => sum + (b.total_amount ?? 0), 0);
+  return `- **${rt.name}** (£${rt.base_rate}/night): ${typeBookings.length} booking${typeBookings.length !== 1 ? 's' : ''} · £${typeRevenue.toLocaleString()}`;
+}).join('\n')}
+
+💡 **Recommendation:** ${directBookings.length < otaBookings.length ? 'Your OTA ratio is high — consider incentivising direct bookings with a "Book Direct" discount to reduce commission costs.' : 'Great direct booking ratio! Keep promoting your booking engine.'}`;
+  }
+
+  // Housekeeping
+  if (q.includes('housekeeping') || q.includes('cleaning') || q.includes('dirty') || q.includes('clean')) {
+    const hkGroups = {
+      clean: rooms.filter((r) => r.housekeeping_status === 'clean'),
+      dirty: rooms.filter((r) => r.housekeeping_status === 'dirty'),
+      inspected: rooms.filter((r) => r.housekeeping_status === 'inspected'),
+      serviced: rooms.filter((r) => r.housekeeping_status === 'serviced'),
+      out_of_order: rooms.filter((r) => r.housekeeping_status === 'out_of_order'),
+    };
+
+    return `## Housekeeping Status
+
+| Status | Rooms | Details |
+|--------|-------|---------|
+| ✅ Clean | ${hkGroups.clean.length} | ${hkGroups.clean.map((r) => r.room_number).join(', ') || '—'} |
+| 🧹 Dirty | ${hkGroups.dirty.length} | ${hkGroups.dirty.map((r) => r.room_number).join(', ') || '—'} |
+| 🔍 Inspected | ${hkGroups.inspected.length} | ${hkGroups.inspected.map((r) => r.room_number).join(', ') || '—'} |
+| 🛎️ Serviced | ${hkGroups.serviced.length} | ${hkGroups.serviced.map((r) => r.room_number).join(', ') || '—'} |
+| 🔧 Out of Order | ${hkGroups.out_of_order.length} | ${hkGroups.out_of_order.map((r) => `${r.room_number}${r.notes ? ` (${r.notes})` : ''}`).join(', ') || '—'} |
+
+**Ready to sell:** ${clean} room${clean !== 1 ? 's' : ''}
+${dirty > 0 ? `\n⚠️ **Priority:** ${dirty} room${dirty > 1 ? 's' : ''} need cleaning before new arrivals.` : '\n✅ All rooms are clean or in service.'}`;
+  }
+
+  // Maintenance
+  if (q.includes('maintenance') || q.includes('repair') || q.includes('work order') || q.includes('out of order') || q.includes('broken')) {
+    const maintenanceRooms = rooms.filter((r) => r.status === 'maintenance' || r.status === 'blocked');
+    return `## Maintenance & Out of Service
+
+**${maintenanceRooms.length}** room${maintenanceRooms.length !== 1 ? 's' : ''} currently unavailable:
+
+${maintenanceRooms.length > 0 ? maintenanceRooms.map((r) => {
+  const rt = roomTypes.find((t) => t.id === r.room_type_id);
+  return `- **Room ${r.room_number}** (${rt?.name ?? 'Unknown'}, Floor ${r.floor ?? '?'}) — ${r.status === 'blocked' ? 'Out of Service' : 'Maintenance'}${r.notes ? ` · _${r.notes}_` : ''}`;
+}).join('\n') : '_No rooms currently in maintenance._'}
+
+${maintenanceRooms.length > 0 ? `\n💡 These ${maintenanceRooms.length} room${maintenanceRooms.length !== 1 ? 's' : ''} represent **£${maintenanceRooms.reduce((sum, r) => sum + (roomTypes.find((t) => t.id === r.room_type_id)?.base_rate ?? 0), 0)}/night** in lost revenue. Prioritise returning them to service.` : ''}`;
+  }
+
+  // Guest queries
+  if (q.includes('guest') || q.includes('vip') || q.includes('customer') || q.includes('returning')) {
+    return `## Guest Overview
+
+| Metric | Value |
+|--------|-------|
+| **Total Guests** | ${guests.length} |
+| **VIP Guests** | ${vipGuests.length} |
+| **Returning Guests** | ${returningGuests.length} |
+| **New Guests** | ${guests.filter((g) => (g.total_stays ?? 0) === 0).length} |
+
+### VIP Guests
+${vipGuests.length > 0 ? vipGuests.map((g) => `- **${g.first_name} ${g.last_name}** — ${g.total_stays ?? 0} stays, £${(g.total_spend ?? 0).toLocaleString()} total spend${g.preferences?.room_pref ? ` · _Prefers: ${g.preferences.room_pref}_` : ''}`).join('\n') : '_No VIP guests._'}
+
+### Top Spenders
+${[...guests].sort((a, b) => (b.total_spend ?? 0) - (a.total_spend ?? 0)).slice(0, 5).map((g, i) => `${i + 1}. **${g.first_name} ${g.last_name}** — £${(g.total_spend ?? 0).toLocaleString()} (${g.total_stays ?? 0} stays)`).join('\n')}
+
+💡 **Tip:** Consider a loyalty programme for your ${returningGuests.length} returning guests to increase retention and direct bookings.`;
+  }
+
+  // Room types / inventory
+  if (q.includes('room type') || q.includes('inventory') || q.includes('what rooms') || q.includes('room categories')) {
+    return `## Room Inventory
+
+${roomTypes.map((rt) => {
+  const typeRooms = rooms.filter((r) => r.room_type_id === rt.id);
+  const typeOccupied = typeRooms.filter((r) => r.status === 'occupied').length;
+  return `### ${rt.name} — £${rt.base_rate}/night
+- **Rooms:** ${typeRooms.length} (${typeOccupied} occupied, ${typeRooms.length - typeOccupied} available)
+- **Max Occupancy:** ${rt.max_occupancy} guests
+- **Beds:** ${rt.bed_config?.map((b) => `${b.count}× ${b.type}`).join(', ') ?? 'N/A'}
+- **Amenities:** ${rt.amenities?.join(', ') ?? 'None'}`;
+}).join('\n\n')}
+
+**Total Inventory:** ${totalRooms} rooms across ${roomTypes.length} types`;
+  }
+
+  // Pricing / rates
+  if (q.includes('rate') || q.includes('pricing') || q.includes('price') || q.includes('discount')) {
+    return `## Rate Overview
+
+| Room Type | Base Rate | Rooms | Current Demand |
+|-----------|-----------|-------|----------------|
+${roomTypes.map((rt) => {
+  const typeRooms = rooms.filter((r) => r.room_type_id === rt.id);
+  const occ = typeRooms.filter((r) => r.status === 'occupied').length;
+  const demand = typeRooms.length > 0 ? Math.round((occ / typeRooms.length) * 100) : 0;
+  return `| ${rt.name} | £${rt.base_rate} | ${typeRooms.length} | ${demand}% occupied |`;
+}).join('\n')}
+
+**Average Rate Across Property:** £${avgRate}
+**RevPAR:** £${totalRooms > 0 ? Math.round((occupied * avgRate) / totalRooms) : 0}
+
+💡 **Recommendations:**
+${roomTypes.filter((rt) => {
+  const occ = rooms.filter((r) => r.room_type_id === rt.id && r.status === 'occupied').length;
+  const total = rooms.filter((r) => r.room_type_id === rt.id).length;
+  return total > 0 && (occ / total) > 0.8;
+}).map((rt) => `- **${rt.name}** is at high demand — consider a rate increase of 10-15%`).join('\n') || '- Demand is balanced across room types'}
+${occupancyRate < 50 ? '- Consider a midweek special or last-minute discount to boost occupancy' : ''}`;
+  }
+
+  // Bookings
+  if (q.includes('booking') || q.includes('reservation')) {
+    return `## Bookings Overview
+
+| Status | Count |
+|--------|-------|
+| ✅ Confirmed | ${bookings.filter((b) => b.status === 'confirmed').length} |
+| 🏨 Checked In | ${bookings.filter((b) => b.status === 'checked_in').length} |
+| ⏳ Pending | ${bookings.filter((b) => b.status === 'pending').length} |
+
+### Recent Bookings
+${bookings.slice(0, 8).map((b) => {
+  const guest = guests.find((g) => g.id === b.guest_id);
+  const rt = roomTypes.find((t) => t.id === b.room_type_id);
+  return `- **${guest?.first_name ?? '?'} ${guest?.last_name ?? ''}** — ${rt?.name ?? '?'} · ${b.check_in} → ${b.check_out} · £${b.total_amount ?? 0} · _${b.source}_`;
+}).join('\n')}
+
+**Total Revenue from Current Bookings:** £${totalRevenue.toLocaleString()}`;
+  }
+
+  // Staff
+  if (q.includes('staff') || q.includes('employee') || q.includes('team')) {
+    return `## Staff Information
+
+The AI has access to staff data when connected to your live property database. In this demo, here's what the AI can analyse:
+
+- **Active staff members** and their roles
+- **Permission levels** across the platform
+- **Staff scheduling** (when Staff Rota is enabled)
+- **Activity logs** showing who did what
+
+💡 This is a demo preview — connect your live property to see your actual team data.`;
+  }
+
+  // General / catch-all
+  return `## Property Dashboard Summary
+
+### Occupancy
+- **Rate:** ${occupancyRate}% (${occupied}/${totalRooms} rooms)
+- **Available:** ${available} rooms ready to sell
+- **Maintenance:** ${maintenance} room${maintenance !== 1 ? 's' : ''}
+
+### Today's Activity
+- 🟢 **${arrivals.length}** arrivals expected
+- 🏨 **${checkedIn.length}** guests in-house
+- ${dirty > 0 ? `⚠️ **${dirty}** rooms need housekeeping` : '✅ All rooms clean'}
+
+### Revenue Snapshot
+- **Total from current bookings:** £${totalRevenue.toLocaleString()}
+- **Average rate:** £${avgRate}/night
+- **RevPAR:** £${totalRooms > 0 ? Math.round((occupied * avgRate) / totalRooms) : 0}
+
+### Guest Highlights
+- 👑 ${vipGuests.length} VIP guest${vipGuests.length !== 1 ? 's' : ''}
+- 🔄 ${returningGuests.length} returning guest${returningGuests.length !== 1 ? 's' : ''}
+
+---
+*Try asking about specific topics: occupancy, arrivals, revenue, housekeeping, guests, room types, rates, maintenance, or bookings.*`;
+}
+
+// ============================================================
+// System prompt builder — feeds ALL property data to Claude (live mode)
 // ============================================================
 
 function buildSystemPrompt(propertyContext: Record<string, unknown> | null, propertyName: string): string {
@@ -207,7 +479,7 @@ export function useAIAssistant() {
     },
   });
 
-  // ---- Send message (calls Claude API) ----
+  // ---- Send message (calls Claude API in live mode, demo responder in demo mode) ----
   const sendMessage = useCallback(async (content: string, apiKey: string) => {
     if (!activeConversationId) return;
 
@@ -225,14 +497,47 @@ export function useAIAssistant() {
       [...(old ?? []), userMsg]
     );
 
-    // Save user message to DB
-    if (!isDemoMode) {
-      await supabase.from('ai_messages').insert({
+    setIsStreaming(true);
+
+    // --- DEMO MODE: use local AI responder ---
+    if (isDemoMode) {
+      // Simulate a brief "thinking" delay
+      await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200));
+
+      const assistantContent = generateDemoResponse(content, propertyId ?? 'demo-property-id');
+      const assistantMsg: AIMessage = {
+        id: `demo-msg-${Date.now()}-resp`,
         conversation_id: activeConversationId,
-        role: 'user',
-        content,
-      });
+        role: 'assistant',
+        content: assistantContent,
+        tokens_used: 0,
+        created_at: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData(['ai-messages', activeConversationId], (old: AIMessage[] | undefined) =>
+        [...(old ?? []), assistantMsg]
+      );
+
+      // Update conversation title from first user message
+      const currentMessages = queryClient.getQueryData<AIMessage[]>(['ai-messages', activeConversationId]) ?? [];
+      if (currentMessages.filter((m) => m.role === 'user').length <= 1) {
+        const title = content.length > 60 ? content.slice(0, 57) + '...' : content;
+        queryClient.setQueryData(['ai-conversations', propertyId], (old: AIConversation[] | undefined) =>
+          (old ?? []).map((c) => c.id === activeConversationId ? { ...c, title, updated_at: new Date().toISOString() } : c)
+        );
+      }
+
+      setIsStreaming(false);
+      return;
     }
+
+    // --- LIVE MODE: call Claude API ---
+    // Save user message to DB
+    await supabase.from('ai_messages').insert({
+      conversation_id: activeConversationId,
+      role: 'user',
+      content,
+    });
 
     // Build messages array for Claude
     const currentMessages = queryClient.getQueryData<AIMessage[]>(['ai-messages', activeConversationId]) ?? [];
@@ -241,7 +546,6 @@ export function useAIAssistant() {
       content: m.content,
     })).filter((m) => m.role !== 'system' as string);
 
-    setIsStreaming(true);
     abortRef.current = new AbortController();
 
     try {
@@ -272,7 +576,7 @@ export function useAIAssistant() {
       const tokensUsed = (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0);
 
       const assistantMsg: AIMessage = {
-        id: isDemoMode ? `demo-msg-${Date.now()}-resp` : crypto.randomUUID(),
+        id: crypto.randomUUID(),
         conversation_id: activeConversationId,
         role: 'assistant',
         content: assistantContent,
@@ -285,23 +589,21 @@ export function useAIAssistant() {
       );
 
       // Persist assistant message
-      if (!isDemoMode) {
-        await supabase.from('ai_messages').insert({
-          conversation_id: activeConversationId,
-          role: 'assistant',
-          content: assistantContent,
-          tokens_used: tokensUsed,
-        });
+      await supabase.from('ai_messages').insert({
+        conversation_id: activeConversationId,
+        role: 'assistant',
+        content: assistantContent,
+        tokens_used: tokensUsed,
+      });
 
-        // Update conversation title from first exchange
-        if (currentMessages.filter((m) => m.role === 'user').length <= 1) {
-          const title = content.length > 60 ? content.slice(0, 57) + '...' : content;
-          await supabase
-            .from('ai_conversations')
-            .update({ title, updated_at: new Date().toISOString() })
-            .eq('id', activeConversationId);
-          queryClient.invalidateQueries({ queryKey: ['ai-conversations', propertyId] });
-        }
+      // Update conversation title from first exchange
+      if (currentMessages.filter((m) => m.role === 'user').length <= 1) {
+        const title = content.length > 60 ? content.slice(0, 57) + '...' : content;
+        await supabase
+          .from('ai_conversations')
+          .update({ title, updated_at: new Date().toISOString() })
+          .eq('id', activeConversationId);
+        queryClient.invalidateQueries({ queryKey: ['ai-conversations', propertyId] });
       }
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;

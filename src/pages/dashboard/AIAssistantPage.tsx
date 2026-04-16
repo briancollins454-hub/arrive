@@ -4,6 +4,7 @@ import {
   Eye, EyeOff, ChevronLeft, Sparkles, Database, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isDemoMode } from '@/lib/supabase';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 import { useAppStore } from '@/store/useAppStore';
@@ -89,11 +90,14 @@ function AIAssistantInner() {
   const property = useAppStore((s) => s.property);
   const [input, setInput] = useState('');
   const [apiKey, setApiKey] = useState(getStoredApiKey);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey);
+  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey && !isDemoMode);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // In demo mode, API key is not needed — the demo AI runs locally
+  const effectiveApiKey = isDemoMode ? 'demo' : apiKey;
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -107,10 +111,10 @@ function AIAssistantInner() {
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
-    if (!trimmed || isStreaming || !apiKey) return;
+    if (!trimmed || isStreaming || !effectiveApiKey) return;
     setInput('');
-    sendMessage(trimmed, apiKey);
-  }, [input, isStreaming, apiKey, sendMessage]);
+    sendMessage(trimmed, effectiveApiKey);
+  }, [input, isStreaming, effectiveApiKey, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -230,18 +234,25 @@ function AIAssistantInner() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowApiKeyInput((v) => !v)}
-              className={cn(
-                'p-2 rounded-lg transition-all',
-                apiKey
-                  ? 'text-teal/60 hover:text-teal hover:bg-teal/10'
-                  : 'text-amber-400 hover:bg-amber-400/10 animate-pulse'
-              )}
-              title="API Key settings"
-            >
-              <Settings2 size={16} />
-            </button>
+            {isDemoMode && (
+              <span className="text-[10px] bg-teal/20 text-teal px-2 py-0.5 rounded-full font-medium font-body">
+                Demo AI
+              </span>
+            )}
+            {!isDemoMode && (
+              <button
+                onClick={() => setShowApiKeyInput((v) => !v)}
+                className={cn(
+                  'p-2 rounded-lg transition-all',
+                  apiKey
+                    ? 'text-teal/60 hover:text-teal hover:bg-teal/10'
+                    : 'text-amber-400 hover:bg-amber-400/10 animate-pulse'
+                )}
+                title="API Key settings"
+              >
+                <Settings2 size={16} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -259,11 +270,11 @@ function AIAssistantInner() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           {!activeConversationId ? (
-            <EmptyState onNew={handleNewConversation} hasApiKey={!!apiKey} />
+            <EmptyState onNew={handleNewConversation} hasApiKey={!!effectiveApiKey} />
           ) : messages.length === 0 ? (
             <EmptyConversation onSuggest={(text) => {
-              if (!apiKey || isStreaming) return;
-              sendMessage(text, apiKey);
+              if (!effectiveApiKey || isStreaming) return;
+              sendMessage(text, effectiveApiKey);
             }} />
           ) : (
             messages.map((msg) => (
@@ -296,8 +307,8 @@ function AIAssistantInner() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={apiKey ? 'Ask about your property…' : 'Enter your Claude API key first'}
-                  disabled={!apiKey || isStreaming}
+                  placeholder={effectiveApiKey ? 'Ask about your property…' : 'Enter your Claude API key first'}
+                  disabled={!effectiveApiKey || isStreaming}
                   rows={1}
                   className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white font-body placeholder:text-steel/40 outline-none focus:border-teal/30 focus:ring-1 focus:ring-teal/20 resize-none transition-all disabled:opacity-50"
                   style={{ maxHeight: 160 }}
@@ -319,7 +330,7 @@ function AIAssistantInner() {
               ) : (
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim() || !apiKey}
+                  disabled={!input.trim() || !effectiveApiKey}
                   className="p-3 rounded-xl bg-gradient-to-r from-teal/20 to-purple-500/10 text-teal hover:from-teal/30 hover:to-purple-500/20 border border-teal/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Send (Enter)"
                 >
@@ -435,6 +446,16 @@ function EmptyState({ onNew, hasApiKey }: { onNew: () => void; hasApiKey: boolea
         </div>
       ) : (
         <>
+          {isDemoMode && (
+            <div className="max-w-md w-full mb-4">
+              <div className="rounded-xl border border-teal/20 bg-gradient-to-r from-teal/[0.06] to-purple-500/[0.03] px-4 py-3 text-left">
+                <p className="text-xs text-teal font-body leading-relaxed">
+                  <Sparkles size={12} className="inline mr-1.5" />
+                  <strong>Demo AI</strong> — no API key needed. The AI runs locally using sample hotel data so you can experience the full assistant.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg w-full mb-8">
             {[
               { icon: '📊', text: 'Occupancy & revenue analysis' },

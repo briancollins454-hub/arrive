@@ -44,9 +44,10 @@ const statusConfig: Record<RoomStatus, { label: string; color: string; bg: strin
 };
 
 export function RoomsPage() {
-  const { roomTypes, rooms, isLoadingTypes, createRoomType, updateRoomType, updateRoom, createRoom, createRoomsBulk } = useRooms();
+  const { roomTypes, rooms, isLoadingTypes, createRoomType, updateRoomType, deleteRoomType, updateRoom, createRoom, createRoomsBulk } = useRooms();
   const { bookings } = useBookings();
   const [editingRoomType, setEditingRoomType] = useState<RoomType | null>(null);
+  const [deletingRoomType, setDeletingRoomType] = useState<RoomType | null>(null);
   const [showNewRoomType, setShowNewRoomType] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [showFloorSetup, setShowFloorSetup] = useState(false);
@@ -360,14 +361,25 @@ export function RoomsPage() {
                       <CardTitle className="text-white text-lg">{rt.name}</CardTitle>
                       <p className="text-steel text-xs font-body mt-1">{rt.description}</p>
                     </div>
-                    <Button
-                      variant="ghost-dark"
-                      size="icon"
-                      onClick={() => setEditingRoomType(rt)}
-                      aria-label="Edit room type"
-                    >
-                      <Edit size={16} />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost-dark"
+                        size="icon"
+                        onClick={() => setEditingRoomType(rt)}
+                        aria-label="Edit room type"
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost-dark"
+                        size="icon"
+                        onClick={() => setDeletingRoomType(rt)}
+                        aria-label="Delete room type"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-4 text-sm">
@@ -646,6 +658,46 @@ export function RoomsPage() {
                 <><Loader2 size={14} className="animate-spin mr-2" /> Creating...</>
               ) : (
                 <><Plus size={14} className="mr-2" /> Create {floorRoomPreview.length - floorConflicts.length} Room{floorRoomPreview.length - floorConflicts.length !== 1 ? 's' : ''}</>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Room Type Confirmation */}
+      <Dialog open={!!deletingRoomType} onOpenChange={() => setDeletingRoomType(null)}>
+        <DialogContent variant="dark" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete Room Type</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-steel font-body">
+            Are you sure you want to delete <span className="text-white font-semibold">{deletingRoomType?.name}</span>?
+            {(() => {
+              const count = rooms.filter((r) => r.room_type_id === deletingRoomType?.id).length;
+              return count > 0 ? (
+                <span className="block mt-2 text-amber-400 text-xs">
+                  <AlertTriangle size={12} className="inline mr-1" />
+                  {count} room{count !== 1 ? 's' : ''} assigned — remove or reassign them first.
+                </span>
+              ) : null;
+            })()}
+          </p>
+          <div className="flex justify-end gap-3 pt-3">
+            <Button variant="ghost-dark" onClick={() => setDeletingRoomType(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              disabled={deleteRoomType.isPending}
+              onClick={() => {
+                if (!deletingRoomType) return;
+                deleteRoomType.mutate(deletingRoomType.id, {
+                  onSuccess: () => setDeletingRoomType(null),
+                });
+              }}
+            >
+              {deleteRoomType.isPending ? (
+                <><Loader2 size={14} className="animate-spin mr-2" /> Deleting...</>
+              ) : (
+                <><Trash2 size={14} className="mr-2" /> Delete</>
               )}
             </Button>
           </div>

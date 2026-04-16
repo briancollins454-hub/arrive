@@ -92,6 +92,38 @@ export function useRooms() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Delete Room Type
+  const deleteRoomType = useMutation({
+    mutationFn: async (id: string) => {
+      if (isDemoMode) {
+        // Check for rooms assigned to this type
+        const existingRooms = (queryClient.getQueryData<Room[]>(['rooms', propertyId]) ?? [])
+          .filter((r) => r.room_type_id === id);
+        if (existingRooms.length > 0) {
+          throw new Error(`Cannot delete — ${existingRooms.length} room(s) still assigned to this type. Remove or reassign them first.`);
+        }
+        queryClient.setQueryData<RoomType[]>(['room-types', propertyId], (old) =>
+          (old ?? []).filter((rt) => rt.id !== id)
+        );
+        toast.success('Room type deleted');
+        return;
+      }
+      // Check for rooms in real mode
+      const { count } = await supabase
+        .from('rooms')
+        .select('id', { count: 'exact', head: true })
+        .eq('room_type_id', id);
+      if (count && count > 0) {
+        throw new Error(`Cannot delete — ${count} room(s) still assigned to this type. Remove or reassign them first.`);
+      }
+      const { error } = await supabase.from('room_types').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Room type deleted');
+    },
+    onSuccess: () => { if (!isDemoMode) queryClient.invalidateQueries({ queryKey: ['room-types'] }); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   // Create Room
   const createRoom = useMutation({
     mutationFn: async (input: RoomFormData) => {
@@ -279,6 +311,7 @@ export function useRooms() {
     isLoadingRooms: roomsQuery.isLoading,
     createRoomType,
     updateRoomType,
+    deleteRoomType,
     createRoom,
     createRoomsBulk,
     updateRoom,
