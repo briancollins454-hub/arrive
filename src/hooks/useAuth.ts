@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isDemoMode, exitDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode, exitDemoMode, enterDemoMode } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { hasPermission, ROUTE_PERMISSIONS, getRoleLabel, getRoleColor, ROLE_DEFINITIONS } from '@/lib/roles';
 import type { Permission } from '@/lib/roles';
@@ -134,16 +134,24 @@ export function useAuth() {
   }
 
   async function signIn(email: string, password: string) {
-    if (isDemoMode) {
-      setUser({ id: 'demo-user-id', email });
-      navigate('/dashboard');
-      return { error: null };
+    const wasDemoMode = isDemoMode;
+
+    // Always exit demo mode when signing in with real credentials
+    if (wasDemoMode) {
+      exitDemoMode();
     }
 
-    exitDemoMode(); // Ensure demo state is cleared on real login
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) {
+      if (wasDemoMode) {
+        // Hard reload clears all in-memory demo state (module vars, stores, subscriptions)
+        window.location.href = '/dashboard';
+        return { error: null };
+      }
       navigate('/dashboard');
+    } else if (wasDemoMode) {
+      // Real auth failed — restore demo mode so user can still explore
+      enterDemoMode();
     }
     return { error };
   }
