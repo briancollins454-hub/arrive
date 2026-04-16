@@ -65,7 +65,9 @@ export type Permission =
   | 'concierge.view'
   | 'concierge.manage'
   | 'waitlist.view'
-  | 'waitlist.manage';
+  | 'waitlist.manage'
+  // AI
+  | 'ai_assistant.view';
 
 // ============================================================
 // ROLE DEFINITIONS
@@ -105,6 +107,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'settings.view', 'settings.manage', 'settings.users',
   'concierge.view', 'concierge.manage',
   'waitlist.view', 'waitlist.manage',
+  'ai_assistant.view',
 ];
 
 // ============================================================
@@ -204,6 +207,12 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: 'concierge.manage', label: 'Manage concierge' },
       { key: 'waitlist.view', label: 'View waitlist' },
       { key: 'waitlist.manage', label: 'Manage waitlist' },
+    ],
+  },
+  {
+    label: 'AI',
+    permissions: [
+      { key: 'ai_assistant.view', label: 'Use AI Assistant' },
     ],
   },
 ];
@@ -430,6 +439,8 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/dashboard/email-templates': 'email_templates.view',
   '/dashboard/messages': 'messages.view',
   '/dashboard/settings': 'settings.view',
+  '/dashboard/ai-assistant': 'ai_assistant.view',
+  '/dashboard/feature-toggles': 'settings.manage',
 };
 
 // ============================================================

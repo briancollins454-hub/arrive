@@ -7,7 +7,7 @@ import {
   Search, TrendingUp, Brain, Wrench, LogIn, LogOut as LogOutIcon2, Moon, BarChart3,
   ClipboardList, CheckCheck, CalendarRange, UsersRound, Gift, PackageSearch,
   BellRing, Mail, CreditCard, MessageCircle, Globe, Wallet, CalendarClock,
-  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid,
+  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid, Bot, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/shared/Logo';
@@ -18,8 +18,32 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useAppStore } from '@/store/useAppStore';
 import { isDemoMode, isPlatformAdmin } from '@/lib/supabase';
+import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 import { formatDistanceToNow } from 'date-fns';
 import type { StaffRole } from '@/types';
+import type { FeatureKey } from '@/types';
+
+// Map nav routes to feature keys — if the feature is off, hide the route
+const ROUTE_FEATURE_MAP: Record<string, FeatureKey> = {
+  '/dashboard/housekeeping': 'housekeeping',
+  '/dashboard/maintenance': 'maintenance',
+  '/dashboard/lost-found': 'lost_found',
+  '/dashboard/groups': 'group_bookings',
+  '/dashboard/waitlist': 'waitlist',
+  '/dashboard/concierge': 'concierge',
+  '/dashboard/packages': 'packages',
+  '/dashboard/payments': 'payments',
+  '/dashboard/financials': 'financials',
+  '/dashboard/city-ledger': 'city_ledger',
+  '/dashboard/channel-manager': 'channel_manager',
+  '/dashboard/rate-intelligence': 'rate_intelligence',
+  '/dashboard/night-audit': 'night_audit',
+  '/dashboard/staff-rota': 'staff_rota',
+  '/dashboard/reports': 'reports',
+  '/dashboard/guest-messaging': 'guest_messaging',
+  '/dashboard/email-templates': 'email_templates',
+  '/dashboard/ai-assistant': 'ai_assistant',
+};
 
 // Grouped nav structure with section headers
 const navSections = [
@@ -73,6 +97,8 @@ const navSections = [
       { to: '/dashboard/messages', icon: MessageSquare, label: 'Messages' },
       { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
       { to: '/dashboard/admin', icon: Shield, label: 'Onboard Hotel' },
+      { to: '/dashboard/feature-toggles', icon: SlidersHorizontal, label: 'Feature Toggles' },
+      { to: '/dashboard/ai-assistant', icon: Bot, label: 'AI Assistant' },
     ],
   },
 ];
@@ -345,14 +371,18 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
   const user = useAppStore((s) => s.user);
   const [showRolePicker, setShowRolePicker] = useState(false);
   const isAdmin = isPlatformAdmin(user?.email);
+  const { isEnabled } = useFeatureToggles();
 
-  // Filter nav sections: only show items the current role can access
+  // Filter nav sections: only show items the current role can access AND feature is enabled
   const filteredSections = navSections
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => {
         // Hide admin page from non-platform-admins
         if (item.to === '/dashboard/admin' && !isAdmin) return false;
+        // Hide routes for disabled features
+        const featureKey = ROUTE_FEATURE_MAP[item.to];
+        if (featureKey && !isEnabled(featureKey)) return false;
         return canAccessRoute(item.to);
       }),
     }))

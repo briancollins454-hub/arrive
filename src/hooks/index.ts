@@ -14,3 +14,5 @@ export { usePackages } from './usePackages';
 export { useWorkOrders } from './useWorkOrders';
 export { useLostFound } from './useLostFound';
 export { useGuestRequests } from './useGuestRequests';
+export { useFeatureToggles } from './useFeatureToggles';
+export { useAIAssistant } from './useAIAssistant';

@@ -708,3 +708,62 @@ export interface PropertySummary {
   adr: number;
   revpar: number;
 }
+
+// ============================================================
+// FEATURE TOGGLES
+// ============================================================
+
+/** All toggleable features in Arrivé */
+export type FeatureKey =
+  | 'ai_assistant'
+  | 'booking_engine'
+  | 'channel_manager'
+  | 'city_ledger'
+  | 'concierge'
+  | 'email_templates'
+  | 'financials'
+  | 'group_bookings'
+  | 'guest_messaging'
+  | 'housekeeping'
+  | 'lost_found'
+  | 'maintenance'
+  | 'night_audit'
+  | 'packages'
+  | 'payments'
+  | 'rate_intelligence'
+  | 'reports'
+  | 'staff_rota'
+  | 'waitlist';
+
+export interface FeatureToggle {
+  id: string;
+  property_id: string;
+  feature_key: FeatureKey;
+  enabled: boolean;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+// ============================================================
+// AI ASSISTANT
+// ============================================================
+
+export interface AIConversation {
+  id: string;
+  property_id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AIMessageRole = 'user' | 'assistant' | 'system';
+
+export interface AIMessage {
+  id: string;
+  conversation_id: string;
+  role: AIMessageRole;
+  content: string;
+  tokens_used: number;
+  created_at: string;
+}
