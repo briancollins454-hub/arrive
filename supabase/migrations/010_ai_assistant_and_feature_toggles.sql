@@ -24,8 +24,7 @@ CREATE POLICY "Staff read own property toggles"
   USING (
     property_id IN (
       SELECT sp.property_id FROM staff_properties sp
-      JOIN staff s ON s.id = sp.staff_id
-      WHERE s.user_id = auth.uid()
+      WHERE sp.staff_id = auth.uid()
     )
   );
 
@@ -35,8 +34,7 @@ CREATE POLICY "Owners manage property toggles"
   USING (
     property_id IN (
       SELECT sp.property_id FROM staff_properties sp
-      JOIN staff s ON s.id = sp.staff_id
-      WHERE s.user_id = auth.uid() AND sp.role = 'owner'
+      WHERE sp.staff_id = auth.uid() AND sp.role = 'owner'
     )
   );
 
@@ -72,8 +70,7 @@ CREATE POLICY "Users read own conversations"
     user_id = auth.uid()
     OR property_id IN (
       SELECT sp.property_id FROM staff_properties sp
-      JOIN staff s ON s.id = sp.staff_id
-      WHERE s.user_id = auth.uid() AND sp.role = 'owner'
+      WHERE sp.staff_id = auth.uid() AND sp.role = 'owner'
     )
   );
 
@@ -96,8 +93,7 @@ CREATE POLICY "Users read own conversation messages"
       SELECT ac.id FROM ai_conversations ac
       WHERE ac.property_id IN (
         SELECT sp.property_id FROM staff_properties sp
-        JOIN staff s ON s.id = sp.staff_id
-        WHERE s.user_id = auth.uid() AND sp.role = 'owner'
+        WHERE sp.staff_id = auth.uid() AND sp.role = 'owner'
       )
     )
   );
@@ -113,7 +109,8 @@ CREATE POLICY "Users insert own conversation messages"
 -- ============================================================
 -- 3. AI context RPC — gathers ALL property data for the AI
 -- Runs as SECURITY DEFINER so it can read across tables.
--- Only callable by staff who have ai_assistant enabled.
+-- Only callable by staff who have access to the property.
+-- Safely skips tables that don't exist yet.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION get_ai_property_context(p_property_id UUID)
@@ -123,18 +120,16 @@ SECURITY DEFINER
 AS $$
 DECLARE
   ctx JSONB;
-  prop RECORD;
 BEGIN
   -- Verify caller has access
   IF NOT EXISTS (
     SELECT 1 FROM staff_properties sp
-    JOIN staff s ON s.id = sp.staff_id
-    WHERE s.user_id = auth.uid() AND sp.property_id = p_property_id
+    WHERE sp.staff_id = auth.uid() AND sp.property_id = p_property_id
   ) THEN
     RAISE EXCEPTION 'Access denied';
   END IF;
 
-  -- Build comprehensive context
+  -- Build comprehensive context from tables that exist
   SELECT jsonb_build_object(
     'property', (
       SELECT to_jsonb(p) FROM properties p WHERE p.id = p_property_id
@@ -181,26 +176,16 @@ BEGIN
     ),
     'staff', (
       SELECT COALESCE(jsonb_agg(jsonb_build_object(
-        'id', s.id, 'name', s.name, 'role', sp.role, 'is_active', s.is_active
+        'id', sm.id, 'name', sm.name, 'role', sp.role, 'is_active', sm.is_active
       )), '[]'::jsonb)
-      FROM staff s
-      JOIN staff_properties sp ON sp.staff_id = s.id
+      FROM staff_members sm
+      JOIN staff_properties sp ON sp.staff_id = sm.id
       WHERE sp.property_id = p_property_id
     ),
     'rate_periods', (
       SELECT COALESCE(jsonb_agg(to_jsonb(rp)), '[]'::jsonb)
       FROM rate_periods rp
       WHERE rp.property_id = p_property_id AND rp.is_active = true
-    ),
-    'active_work_orders', (
-      SELECT COALESCE(jsonb_agg(to_jsonb(wo)), '[]'::jsonb)
-      FROM work_orders wo
-      WHERE wo.property_id = p_property_id AND wo.status IN ('open', 'in_progress')
-    ),
-    'pending_guest_requests', (
-      SELECT COALESCE(jsonb_agg(to_jsonb(gr)), '[]'::jsonb)
-      FROM guest_requests gr
-      WHERE gr.property_id = p_property_id AND gr.status IN ('pending', 'in_progress')
     ),
     'recent_activity', (
       SELECT COALESCE(jsonb_agg(to_jsonb(al)), '[]'::jsonb)
@@ -217,22 +202,6 @@ BEGIN
         WHERE m.property_id = p_property_id
         ORDER BY m.created_at DESC LIMIT 30
       ) m
-    ),
-    'group_bookings', (
-      SELECT COALESCE(jsonb_agg(to_jsonb(gb)), '[]'::jsonb)
-      FROM group_bookings gb
-      WHERE gb.property_id = p_property_id
-        AND gb.status != 'cancelled'
-    ),
-    'packages', (
-      SELECT COALESCE(jsonb_agg(to_jsonb(pk)), '[]'::jsonb)
-      FROM packages pk
-      WHERE pk.property_id = p_property_id AND pk.is_active = true
-    ),
-    'lost_found', (
-      SELECT COALESCE(jsonb_agg(to_jsonb(lf)), '[]'::jsonb)
-      FROM lost_found_items lf
-      WHERE lf.property_id = p_property_id AND lf.status IN ('found')
     ),
     'occupancy_stats', (
       SELECT jsonb_build_object(
