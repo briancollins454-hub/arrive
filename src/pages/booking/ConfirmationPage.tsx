@@ -1,10 +1,10 @@
 import { useSearchParams } from 'react-router-dom';
-import { useProperty } from '@/hooks/useProperty';
+import { useBookingProperty } from '@/hooks/useBookingProperty';
 import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
 
 export function ConfirmationPage() {
   const [searchParams] = useSearchParams();
-  const { property } = useProperty();
+  const { property } = useBookingProperty();
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">

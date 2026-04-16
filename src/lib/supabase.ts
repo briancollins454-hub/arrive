@@ -42,3 +42,15 @@ export const supabase: SupabaseClient = createClient(
 
 /** True when Supabase env vars are not configured — use mock data instead */
 export const isDemoMode = isMissing;
+
+/**
+ * Platform admin email — the single account that can onboard new hotels.
+ * Set VITE_PLATFORM_ADMIN_EMAIL in .env.local to your email address.
+ */
+export const PLATFORM_ADMIN_EMAIL = (import.meta.env.VITE_PLATFORM_ADMIN_EMAIL ?? '').toLowerCase();
+
+/** Check if the given email is the platform admin */
+export function isPlatformAdmin(email: string | undefined | null): boolean {
+  if (!PLATFORM_ADMIN_EMAIL || !email) return false;
+  return email.toLowerCase() === PLATFORM_ADMIN_EMAIL;
+}

@@ -1,8 +1,9 @@
 import { useParams } from 'react-router-dom';
-import { useProperty } from '@/hooks/useProperty';
+import { useBookingProperty } from '@/hooks/useBookingProperty';
 import { HotelHero } from '@/components/booking/HotelHero';
 import { BookingBar } from '@/components/booking/BookingBar';
 import { DirectBookingBadge } from '@/components/booking/DirectBookingBadge';
+import { PageSpinner } from '@/components/shared/LoadingSpinner';
 import { Star, MapPin, Phone, Mail, Wifi, Car, Coffee, Waves } from 'lucide-react';
 
 const DEFAULT_HIGHLIGHTS = [
@@ -14,9 +15,10 @@ const DEFAULT_HIGHLIGHTS = [
 
 export function HotelPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { property } = useProperty();
+  const { property, isLoading } = useBookingProperty();
 
-  if (!property) return <div className="text-center py-20">Property not found</div>;
+  if (isLoading) return <PageSpinner />;
+  if (!property) return <div className="text-center py-20 text-charcoal/60 font-body">Property not found</div>;
 
   const starRating = (property as { star_rating?: number }).star_rating ?? 4;
   const highlights = (property as { highlights?: typeof DEFAULT_HIGHLIGHTS }).highlights ?? DEFAULT_HIGHLIGHTS;

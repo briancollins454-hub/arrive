@@ -17,7 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useAppStore } from '@/store/useAppStore';
-import { isDemoMode } from '@/lib/supabase';
+import { isDemoMode, isPlatformAdmin } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import type { StaffRole } from '@/types';
 
@@ -344,12 +344,17 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
   const staff = useAppStore((s) => s.staff);
   const user = useAppStore((s) => s.user);
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const isAdmin = isPlatformAdmin(user?.email);
 
   // Filter nav sections: only show items the current role can access
   const filteredSections = navSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => canAccessRoute(item.to)),
+      items: section.items.filter((item) => {
+        // Hide admin page from non-platform-admins
+        if (item.to === '/dashboard/admin' && !isAdmin) return false;
+        return canAccessRoute(item.to);
+      }),
     }))
     .filter((section) => section.items.length > 0);
 

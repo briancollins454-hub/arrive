@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
-import { useProperty } from '@/hooks/useProperty';
+import { useBookingProperty } from '@/hooks/useBookingProperty';
 import { useRooms } from '@/hooks/useRooms';
 import { useRatePeriods } from '@/hooks/useRatePeriods';
 import { useBookings } from '@/hooks/useBookings';
@@ -27,7 +27,7 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const { property } = useProperty();
+  const { property } = useBookingProperty();
   const { roomTypes } = useRooms();
   const { ratePeriods } = useRatePeriods();
   const { createBooking } = useBookings();

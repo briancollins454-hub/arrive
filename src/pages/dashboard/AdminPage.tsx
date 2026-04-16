@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase, isDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode, isPlatformAdmin } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -39,7 +39,7 @@ const emptyProperty: NewProperty = {
 };
 
 export function AdminPage() {
-  const currentRole = useAppStore((s) => s.currentRole);
+  const user = useAppStore((s) => s.user);
   const [step, setStep] = useState<'form' | 'invite' | 'done'>('form');
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -48,14 +48,14 @@ export function AdminPage() {
   const [owner, setOwner] = useState<OwnerInvite>({ name: '', email: '' });
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
-  // Only platform owners can access this
-  if (currentRole !== 'owner') {
+  // Only the platform admin can access this page
+  if (!isPlatformAdmin(user?.email)) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Building2 size={48} className="text-steel mx-auto mb-4" />
           <h2 className="text-xl font-display text-white mb-2">Access Restricted</h2>
-          <p className="text-steel font-body text-sm">Only platform owners can onboard new hotels.</p>
+          <p className="text-steel font-body text-sm">Only the platform administrator can onboard new hotels.</p>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAvailability } from '@/hooks/useAvailability';
-import { useProperty } from '@/hooks/useProperty';
+import { useBookingProperty } from '@/hooks/useBookingProperty';
 import { RoomTypeCard } from '@/components/booking/RoomTypeCard';
 import { BookingBar } from '@/components/booking/BookingBar';
 import { DirectBookingBadge } from '@/components/booking/DirectBookingBadge';
@@ -10,7 +10,7 @@ import { addDays, format } from 'date-fns';
 export function RoomSelectPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const { property } = useProperty();
+  const { property } = useBookingProperty();
 
   const checkIn = searchParams.get('check_in') || format(new Date(), 'yyyy-MM-dd');
   const checkOut = searchParams.get('check_out') || format(addDays(new Date(), 1), 'yyyy-MM-dd');
