@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isDemoMode, exitDemoMode, enterDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode, exitDemoMode } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { hasPermission, ROUTE_PERMISSIONS, getRoleLabel, getRoleColor, ROLE_DEFINITIONS } from '@/lib/roles';
 import type { Permission } from '@/lib/roles';
@@ -149,9 +149,6 @@ export function useAuth() {
         return { error: null };
       }
       navigate('/dashboard');
-    } else if (wasDemoMode) {
-      // Real auth failed — restore demo mode so user can still explore
-      enterDemoMode();
     }
     return { error };
   }
