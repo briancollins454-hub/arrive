@@ -134,21 +134,15 @@ export function useAuth() {
   }
 
   async function signIn(email: string, password: string) {
-    const wasDemoMode = isDemoMode;
-
-    // Always exit demo mode when signing in with real credentials
-    if (wasDemoMode) {
-      exitDemoMode();
-    }
+    // Always force-clear demo mode — username/password = real auth, period
+    exitDemoMode();
+    sessionStorage.removeItem('arrive_demo');
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) {
-      if (wasDemoMode) {
-        // Hard reload clears all in-memory demo state (module vars, stores, subscriptions)
-        window.location.href = '/dashboard';
-        return { error: null };
-      }
-      navigate('/dashboard');
+      // Hard reload ensures all module-level demo state is re-evaluated
+      window.location.href = '/dashboard';
+      return { error: null };
     }
     return { error };
   }
