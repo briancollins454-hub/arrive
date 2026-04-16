@@ -4,33 +4,91 @@ import {
   Eye, EyeOff, ChevronLeft, Sparkles, Database, Zap, Printer, Copy, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { isDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode } from '@/lib/supabase';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 import { useAppStore } from '@/store/useAppStore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 // ============================================================
-// Local storage key for the Claude API key
+// API key persistence — saved to property_secrets table in DB
+// localStorage is used as a fast cache only
 // ============================================================
-const API_KEY_STORAGE = 'arrive_claude_api_key';
+const API_KEY_CACHE_PREFIX = 'arrive_ai_key_';
 
-function getStoredApiKey(): string {
+function getCachedApiKey(propertyId: string): string {
   try {
-    return localStorage.getItem(API_KEY_STORAGE) ?? '';
+    return localStorage.getItem(API_KEY_CACHE_PREFIX + propertyId) ?? '';
   } catch {
     return '';
   }
 }
 
-function storeApiKey(key: string) {
+function cacheApiKey(propertyId: string, key: string) {
   try {
-    if (key) localStorage.setItem(API_KEY_STORAGE, key);
-    else localStorage.removeItem(API_KEY_STORAGE);
-  } catch {
-    // ignore
-  }
+    if (key) localStorage.setItem(API_KEY_CACHE_PREFIX + propertyId, key);
+    else localStorage.removeItem(API_KEY_CACHE_PREFIX + propertyId);
+  } catch { /* ignore */ }
+}
+
+/** Hook to load/save the Claude API key for the current property */
+function usePropertyApiKey() {
+  const queryClient = useQueryClient();
+  const propertyId = useAppStore((s) => s.property?.id);
+
+  const { data: apiKey = '', isLoading } = useQuery({
+    queryKey: ['property-api-key', propertyId],
+    queryFn: async () => {
+      if (!propertyId || isDemoMode) return '';
+
+      // Try DB first
+      const { data, error } = await supabase
+        .from('property_secrets')
+        .select('secret_value')
+        .eq('property_id', propertyId)
+        .eq('secret_key', 'claude_api_key')
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[AI] Failed to load API key from DB:', error.message);
+        // Fall back to localStorage cache
+        return getCachedApiKey(propertyId);
+      }
+
+      const key = data?.secret_value ?? '';
+      if (key) cacheApiKey(propertyId, key);
+      return key;
+    },
+    enabled: !!propertyId && !isDemoMode,
+    staleTime: 1000 * 60 * 30, // 30 min
+    initialData: propertyId ? getCachedApiKey(propertyId) : '',
+  });
+
+  const saveKey = useMutation({
+    mutationFn: async (newKey: string) => {
+      if (!propertyId || isDemoMode) return newKey;
+
+      const { error } = await supabase
+        .from('property_secrets')
+        .upsert({
+          property_id: propertyId,
+          secret_key: 'claude_api_key',
+          secret_value: newKey,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'property_id,secret_key' });
+
+      if (error) throw error;
+      cacheApiKey(propertyId, newKey);
+      return newKey;
+    },
+    onSuccess: (newKey) => {
+      queryClient.setQueryData(['property-api-key', propertyId], newKey);
+    },
+  });
+
+  return { apiKey, isLoading, saveKey };
 }
 
 // ============================================================
@@ -89,10 +147,17 @@ function AIAssistantInner() {
   } = useAIAssistant();
 
   const property = useAppStore((s) => s.property);
+  const { apiKey, isLoading: apiKeyLoading, saveKey } = usePropertyApiKey();
   const [input, setInput] = useState('');
-  const [apiKey, setApiKey] = useState(getStoredApiKey);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey && !isDemoMode);
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  // Show API key input if no key is saved (after loading) and not in demo mode
+  useEffect(() => {
+    if (!apiKeyLoading && !apiKey && !isDemoMode) {
+      setShowApiKeyInput(true);
+    }
+  }, [apiKeyLoading, apiKey]);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -125,9 +190,14 @@ function AIAssistantInner() {
   };
 
   const handleSaveApiKey = (key: string) => {
-    setApiKey(key);
-    storeApiKey(key);
-    setShowApiKeyInput(false);
+    saveKey.mutate(key, {
+      onSuccess: () => setShowApiKeyInput(false),
+      onError: () => {
+        // Still cache locally if DB save fails
+        cacheApiKey(property?.id ?? '', key);
+        setShowApiKeyInput(false);
+      },
+    });
   };
 
   const handleNewConversation = () => {
@@ -372,7 +442,7 @@ function ApiKeyBanner({
           <p className="text-xs font-body font-semibold text-white">Claude API Key</p>
         </div>
         <p className="text-[11px] text-steel font-body mb-3">
-          Enter your Anthropic API key to connect. Your key is stored locally in your browser only — it is never sent to our servers.
+          Enter your Anthropic API key to connect. Your key is saved securely to this property — all authorised staff will have access.
         </p>
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -430,7 +500,7 @@ function EmptyState({ onNew, hasApiKey }: { onNew: () => void; hasApiKey: boolea
               <h3 className="text-sm font-display text-white">Step 1: Add your API Key</h3>
             </div>
             <p className="text-xs text-steel font-body leading-relaxed mb-3">
-              Click the <Settings2 size={12} className="inline text-amber-400" /> settings icon in the top-right corner to enter your Anthropic API key. Your key stays in your browser — it's never sent to our servers.
+              Click the <Settings2 size={12} className="inline text-amber-400" /> settings icon in the top-right corner to enter your Anthropic API key. Your key is saved to the property — set it once and all staff can use it.
             </p>
             <p className="text-[10px] text-steel/50 font-body">
               Don't have one? Get your API key at{' '}
