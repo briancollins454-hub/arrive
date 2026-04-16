@@ -41,7 +41,19 @@ export const supabase: SupabaseClient = createClient(
 );
 
 /** True when Supabase env vars are not configured — use mock data instead */
-export const isDemoMode = isMissing;
+export let isDemoMode = isMissing || sessionStorage.getItem('arrive_demo') === '1';
+
+/** Activate demo mode at runtime (e.g. from the "Explore Demo" button) */
+export function enterDemoMode() {
+  sessionStorage.setItem('arrive_demo', '1');
+  isDemoMode = true;
+}
+
+/** Exit demo mode (e.g. when signing in with real credentials) */
+export function exitDemoMode() {
+  sessionStorage.removeItem('arrive_demo');
+  isDemoMode = isMissing;
+}
 
 /**
  * Platform admin email — the single account that can onboard new hotels.

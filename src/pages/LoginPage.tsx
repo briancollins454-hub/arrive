@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Lock, Mail, AlertCircle, ArrowRight, BedDouble, BarChart3, MessageSquare, Shield } from 'lucide-react';
-import { isDemoMode } from '@/lib/supabase';
+import { enterDemoMode } from '@/lib/supabase';
 
 const FEATURES = [
   { icon: BedDouble, title: 'Room Management', desc: 'Real-time room status, types, and availability' },
@@ -45,6 +45,7 @@ export function LoginPage() {
   };
 
   const handleDemoAccess = () => {
+    enterDemoMode();
     navigate('/dashboard');
   };
 
@@ -155,9 +156,7 @@ export function LoginPage() {
                 </Button>
               </form>
 
-              {isDemoMode && (
-                <>
-                  <div className="relative my-6">
+              <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-white/[0.06]" />
                     </div>
@@ -174,10 +173,8 @@ export function LoginPage() {
                   </button>
 
                   <p className="mt-5 text-center text-[11px] text-steel/40 font-body tracking-wide">
-                    Demo mode — full access, no sign-up required
+                    Full access, no sign-up required
                   </p>
-                </>
-              )}
             </div>
           </div>
         </div>

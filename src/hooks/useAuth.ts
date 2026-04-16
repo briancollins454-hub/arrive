@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode, exitDemoMode } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { hasPermission, ROUTE_PERMISSIONS, getRoleLabel, getRoleColor, ROLE_DEFINITIONS } from '@/lib/roles';
 import type { Permission } from '@/lib/roles';
@@ -140,6 +140,7 @@ export function useAuth() {
       return { error: null };
     }
 
+    exitDemoMode(); // Ensure demo state is cleared on real login
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) {
       navigate('/dashboard');
@@ -148,6 +149,7 @@ export function useAuth() {
   }
 
   async function signOut() {
+    exitDemoMode();
     if (!isDemoMode) {
       await supabase.auth.signOut();
     }
