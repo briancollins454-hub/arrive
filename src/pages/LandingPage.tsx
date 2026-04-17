@@ -115,7 +115,7 @@ export function LandingPage() {
         <div className="text-center text-xs text-steel font-body mb-8">
           Multi-property? 20% off each additional property. Annual billing? 2 months free.
           <br />
-          Running a 10-room B&B or guesthouse? We've got you covered from <span className="text-silver">£79/mo</span> — <a href="mailto:hello@arrive.hotel" className="text-gold hover:text-gold-light">get in touch</a>.
+          Running a 10-room B&B or guesthouse? We've got you covered from <span className="text-silver">£79/mo</span> — <a href="mailto:brian@thesupportsdesk.com" className="text-gold hover:text-gold-light">get in touch</a>.
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 mb-8">
@@ -157,7 +157,7 @@ export function LandingPage() {
           <span>© {new Date().getFullYear()} Arrivé. Built for hoteliers who've had enough.</span>
           <div className="flex items-center gap-5">
             <Link to="/login" className="hover:text-white">Sign in</Link>
-            <a href="mailto:hello@arrive.hotel" className="hover:text-white">hello@arrive.hotel</a>
+            <a href="mailto:brian@thesupportsdesk.com" className="hover:text-white">brian@thesupportsdesk.com</a>
           </div>
         </div>
       </footer>
