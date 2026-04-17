@@ -155,7 +155,7 @@ export function LandingPage() {
                 <span className="text-3xl font-display text-white">+£40</span>
                 <span className="text-steel text-sm font-body">/ month</span>
               </div>
-              <p className="text-xs text-steel font-body mt-1">Bring-your-own API key. No per-query fees.</p>
+              <p className="text-xs text-steel font-body mt-1">Fully managed. No API keys, no per-query fees.</p>
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@ export function LandingPage() {
 }
 
 const FEATURES = [
-  { icon: Sparkles, title: 'Arrivé AI (optional +£40/mo)', body: 'Plain-English data queries, daily revenue suggestions, anomaly detection, and draft replies to guests. Bring your own API key.' },
+  { icon: Sparkles, title: 'Arrivé AI (optional +£40/mo)', body: 'Plain-English data queries, daily revenue suggestions, anomaly detection, and draft replies to guests. Fully managed — no setup.' },
   { icon: CalendarClock, title: 'Smart booking engine', body: 'Direct bookings, zero commission, instant confirmation. Branded to your property.' },
   { icon: KeyRound, title: 'Online self check-in', body: 'Guests check in from the pre-arrival email. Reception gets arrival ETA, ID, and requests in advance.' },
   { icon: MessageSquareHeart, title: 'Guest lifecycle emails', body: 'Pre-arrival info, post-stay review requests, and marketing to past guests — all in one place.' },
