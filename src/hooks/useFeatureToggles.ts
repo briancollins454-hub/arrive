@@ -41,6 +41,8 @@ export const ALL_FEATURES: FeatureMeta[] = [
   // Communication
   { key: 'guest_messaging',    label: 'Guest Messaging',       description: 'SMS, email, and WhatsApp guest chat',                   category: 'communication' },
   { key: 'email_templates',    label: 'Email Templates',       description: 'Automated email workflows and templates',               category: 'communication' },
+  { key: 'guest_lifecycle',    label: 'Guest Lifecycle',       description: 'Pre-arrival emails, post-stay review requests, campaigns', category: 'communication' },
+  { key: 'self_checkin',       label: 'Self Check-In',         description: 'Guest-facing online check-in with arrival time + ID',   category: 'communication' },
 
   // Add-on
   { key: 'ai_assistant',       label: 'AI Assistant',          description: 'Claude-powered AI with full property data access',      category: 'addon' },
@@ -66,6 +68,8 @@ const DEFAULT_ENABLED: Record<FeatureKey, boolean> = {
   reports: true,
   guest_messaging: true,
   email_templates: true,
+  guest_lifecycle: true,
+  self_checkin: true,
   ai_assistant: false,
 };
 

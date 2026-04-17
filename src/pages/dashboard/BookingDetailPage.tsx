@@ -16,7 +16,7 @@ import {
   BedDouble, MapPin, Clock, PlusCircle, Pencil,
   CalendarPlus, Hash, Check, X, Printer, MessageSquare, FileText,
   Receipt, Ban, AlertCircle, Building, DollarSign, KeyRound,
-  Lock, Loader2, ShieldCheck, Shield, CheckCircle, ShoppingBag,
+  Lock, Loader2, ShieldCheck, Shield, CheckCircle, ShoppingBag, Star,
 } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { getStripe, isStripeReady, stripeDarkAppearance } from '@/lib/stripe';
@@ -677,6 +677,45 @@ export function BookingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Returning guest / preferences banner — highly visible summary of what staff should know */}
+      {guest && (guest.total_stays > 0 || guest.tags.length > 0 || Object.values(guest.preferences ?? {}).some(Boolean)) && (
+        <div className="mb-6 rounded-xl border border-gold/20 bg-gradient-to-r from-gold/[0.06] via-gold/[0.02] to-transparent p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Star size={16} className="text-gold" />
+            <h3 className="text-sm font-semibold text-white font-body">Guest memory</h3>
+            {guest.total_stays > 0 && (
+              <span className="text-[10px] uppercase tracking-widest text-gold font-body">
+                {guest.total_stays === 1 ? '2nd stay' : `${guest.total_stays + 1}${['th','st','nd','rd'][(guest.total_stays+1)%10>3?0:(guest.total_stays+1)%10]} stay`} — returning guest
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs font-body">
+            {guest.preferences?.room_pref && (
+              <div className="flex gap-2"><span className="text-steel min-w-[90px]">Room pref</span><span className="text-silver">{guest.preferences.room_pref}</span></div>
+            )}
+            {guest.preferences?.dietary && (
+              <div className="flex gap-2"><span className="text-steel min-w-[90px]">Dietary</span><span className="text-silver">{guest.preferences.dietary}</span></div>
+            )}
+            {guest.preferences?.allergies && (
+              <div className="flex gap-2"><span className="text-steel min-w-[90px]">Allergies</span><span className="text-amber-400">{guest.preferences.allergies}</span></div>
+            )}
+            {guest.preferences?.notes && (
+              <div className="flex gap-2 md:col-span-2"><span className="text-steel min-w-[90px]">Notes</span><span className="text-silver">{guest.preferences.notes}</span></div>
+            )}
+            {guest.tags.length > 0 && (
+              <div className="flex gap-2 items-center md:col-span-2">
+                <span className="text-steel min-w-[90px]">Tags</span>
+                <span className="flex flex-wrap gap-1">
+                  {guest.tags.map((t) => (
+                    <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/20">{t}</span>
+                  ))}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions Bar — only if booking can still be modified */}
       {isModifiable && (

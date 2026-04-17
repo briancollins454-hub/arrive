@@ -153,3 +153,110 @@ function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ── Accounting CSV exports (Xero / QuickBooks) ───────────────────
+
+export interface AccountingInvoiceRow {
+  /** Invoice / confirmation reference */
+  reference: string;
+  /** YYYY-MM-DD */
+  invoice_date: string;
+  /** YYYY-MM-DD — optional */
+  due_date?: string;
+  contact_name: string;
+  contact_email?: string;
+  description: string;
+  quantity: number;
+  unit_amount: number;
+  /** Tax rate name or decimal e.g. 0.20 */
+  tax_rate?: number;
+  account_code?: string;
+  currency?: string;
+}
+
+/**
+ * Export invoices in Xero's "Sales Invoices" CSV import format.
+ * Column order matches Xero's template: https://central.xero.com/s/article/Import-sales-invoices
+ * Each row is a single line on an invoice; rows sharing the same InvoiceNumber are grouped.
+ */
+export function exportXeroCSV(rows: AccountingInvoiceRow[], filename = 'arrive-xero-invoices'): void {
+  if (rows.length === 0) return;
+  const headers = [
+    '*ContactName','EmailAddress','*InvoiceNumber','Reference','*InvoiceDate','*DueDate',
+    'Description','*Quantity','*UnitAmount','*AccountCode','*TaxType','Currency',
+  ];
+  const taxTypeFor = (rate?: number): string => {
+    if (rate == null || rate === 0) return 'Tax Exempt (0%)';
+    if (Math.abs(rate - 0.20) < 0.001) return '20% (VAT on Income)';
+    if (Math.abs(rate - 0.05) < 0.001) return '5% (VAT on Income)';
+    return 'Tax on Sales';
+  };
+  const csvRows: string[] = [headers.join(',')];
+  for (const r of rows) {
+    const values = [
+      r.contact_name,
+      r.contact_email ?? '',
+      r.reference,
+      r.reference,
+      r.invoice_date,
+      r.due_date ?? r.invoice_date,
+      r.description,
+      String(r.quantity),
+      r.unit_amount.toFixed(2),
+      r.account_code ?? '200',
+      taxTypeFor(r.tax_rate),
+      r.currency ?? 'GBP',
+    ].map(csvEscape);
+    csvRows.push(values.join(','));
+  }
+  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, `${filename}.csv`);
+}
+
+/**
+ * Export invoices in QuickBooks Online's 3-column journal-style CSV import format.
+ * Column order: InvoiceNo, Customer, InvoiceDate, DueDate, Terms, Location, Memo,
+ * Item(Product/Service), ItemDescription, ItemQuantity, ItemRate, ItemAmount, ItemTaxCode, ItemTaxAmount
+ */
+export function exportQuickBooksCSV(rows: AccountingInvoiceRow[], filename = 'arrive-quickbooks-invoices'): void {
+  if (rows.length === 0) return;
+  const headers = [
+    'InvoiceNo','Customer','InvoiceDate','DueDate','Terms','Memo',
+    'Item','ItemDescription','ItemQuantity','ItemRate','ItemAmount','ItemTaxCode','Currency',
+  ];
+  const taxCodeFor = (rate?: number) => {
+    if (rate == null || rate === 0) return 'NON';
+    return 'TAX';
+  };
+  const csvRows: string[] = [headers.join(',')];
+  for (const r of rows) {
+    const amount = +(r.quantity * r.unit_amount).toFixed(2);
+    const values = [
+      r.reference,
+      r.contact_name,
+      r.invoice_date,
+      r.due_date ?? r.invoice_date,
+      'Due on receipt',
+      r.description,
+      'Accommodation',
+      r.description,
+      String(r.quantity),
+      r.unit_amount.toFixed(2),
+      amount.toFixed(2),
+      taxCodeFor(r.tax_rate),
+      r.currency ?? 'GBP',
+    ].map(csvEscape);
+    csvRows.push(values.join(','));
+  }
+  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, `${filename}.csv`);
+}
+
+function csvEscape(str: string): string {
+  let s = str ?? '';
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}

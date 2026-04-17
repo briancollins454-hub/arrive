@@ -42,6 +42,7 @@ const ROUTE_FEATURE_MAP: Record<string, FeatureKey> = {
   '/dashboard/reports': 'reports',
   '/dashboard/guest-messaging': 'guest_messaging',
   '/dashboard/email-templates': 'email_templates',
+  '/dashboard/guest-lifecycle': 'guest_lifecycle',
   '/dashboard/ai-assistant': 'ai_assistant',
 };
 
@@ -100,6 +101,7 @@ const navSections = [
       { to: '/dashboard/reports', icon: BarChart3, label: 'Reports' },
       { to: '/dashboard/activity-log', icon: ClipboardList, label: 'Activity Log' },
       { to: '/dashboard/guest-messaging', icon: MessageCircle, label: 'Guest Chat' },
+      { to: '/dashboard/guest-lifecycle', icon: Mail, label: 'Guest Lifecycle' },
       { to: '/dashboard/email-templates', icon: Mail, label: 'Email Templates' },
       { to: '/dashboard/messages', icon: MessageSquare, label: 'Messages' },
       { to: '/dashboard/settings', icon: Settings, label: 'Settings' },

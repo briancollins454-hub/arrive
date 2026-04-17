@@ -17,7 +17,7 @@ import {
   isWithinInterval, differenceInDays, getDaysInMonth, parseISO,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { exportCSV } from '@/lib/exportUtils';
+import { exportCSV, exportXeroCSV, exportQuickBooksCSV, type AccountingInvoiceRow } from '@/lib/exportUtils';
 import { DashboardDatePicker, getPresetRange } from '@/components/shared/DashboardDatePicker';
 import type { DateRange } from '@/components/shared/DashboardDatePicker';
 
@@ -308,6 +308,41 @@ export function FinancialDashboardPage() {
     exportCSV(rows, `financial-dashboard-${format(new Date(), 'yyyy-MM-dd')}`);
   };
 
+  // ── Accounting exports (one invoice row per checked-out booking) ─
+  const buildAccountingRows = (): AccountingInvoiceRow[] => {
+    return periodBookings
+      .filter(b => b.status === 'checked_out' || b.status === 'checked_in')
+      .map(b => {
+        const nights = Math.max(1, differenceInDays(parseISO(b.check_out), parseISO(b.check_in)));
+        const guestName = b.guest
+          ? `${b.guest.first_name} ${b.guest.last_name}`.trim()
+          : 'Guest';
+        return {
+          reference: b.confirmation_code,
+          invoice_date: format(parseISO(b.check_out), 'yyyy-MM-dd'),
+          due_date: format(parseISO(b.check_out), 'yyyy-MM-dd'),
+          contact_name: guestName || 'Guest',
+          contact_email: b.guest?.email ?? '',
+          description: `${b.room_type?.name ?? 'Accommodation'} — ${nights} night${nights !== 1 ? 's' : ''} (${format(parseISO(b.check_in), 'dd MMM')} – ${format(parseISO(b.check_out), 'dd MMM yyyy')})`,
+          quantity: nights,
+          unit_amount: b.nightly_rate,
+          tax_rate: 0.20,
+          account_code: '200',
+          currency: 'GBP',
+        };
+      });
+  };
+  const handleExportXero = () => {
+    const rows = buildAccountingRows();
+    if (rows.length === 0) return;
+    exportXeroCSV(rows, `xero-invoices-${format(new Date(), 'yyyy-MM-dd')}`);
+  };
+  const handleExportQuickBooks = () => {
+    const rows = buildAccountingRows();
+    if (rows.length === 0) return;
+    exportQuickBooksCSV(rows, `quickbooks-invoices-${format(new Date(), 'yyyy-MM-dd')}`);
+  };
+
   return (
     <div className="p-6 lg:p-8 space-y-6 min-h-full">
       {/* Header */}
@@ -327,6 +362,12 @@ export function FinancialDashboardPage() {
           />
           <Button variant="outline-dark" size="sm" onClick={handleExportCSV}>
             <Download size={14} className="mr-1.5" /> Export
+          </Button>
+          <Button variant="outline-dark" size="sm" onClick={handleExportXero} title="Export invoices in Xero CSV format">
+            <Download size={14} className="mr-1.5" /> Xero
+          </Button>
+          <Button variant="outline-dark" size="sm" onClick={handleExportQuickBooks} title="Export invoices in QuickBooks CSV format">
+            <Download size={14} className="mr-1.5" /> QuickBooks
           </Button>
         </div>
       </div>

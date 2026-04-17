@@ -37,6 +37,7 @@ import { GroupDashboardPage } from '@/pages/dashboard/GroupDashboardPage';
 import { AdminPage } from '@/pages/dashboard/AdminPage';
 import { AIAssistantPage } from '@/pages/dashboard/AIAssistantPage';
 import { FeatureTogglesPage } from '@/pages/dashboard/FeatureTogglesPage';
+import { GuestLifecyclePage } from '@/pages/dashboard/GuestLifecyclePage';
 
 // Pages — Booking Engine
 import { HotelPage } from '@/pages/booking/HotelPage';
@@ -44,9 +45,11 @@ import { RoomSelectPage } from '@/pages/booking/RoomSelectPage';
 import { CheckoutPage } from '@/pages/booking/CheckoutPage';
 import { ConfirmationPage } from '@/pages/booking/ConfirmationPage';
 import { ManageBookingPage } from '@/pages/booking/ManageBookingPage';
+import { SelfCheckInPage } from '@/pages/booking/SelfCheckInPage';
 
 // Pages — Auth & Misc
 import { LoginPage } from '@/pages/LoginPage';
+import { LandingPage } from '@/pages/LandingPage';
 import { InviteAcceptPage } from '@/pages/InviteAcceptPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
@@ -110,6 +113,7 @@ function App() {
             <Route path="admin" element={<AdminPage />} />
             <Route path="ai-assistant" element={<AIAssistantPage />} />
             <Route path="feature-toggles" element={<RequirePermission permission="settings.manage"><FeatureTogglesPage /></RequirePermission>} />
+            <Route path="guest-lifecycle" element={<RequirePermission permission="email_templates.view"><GuestLifecyclePage /></RequirePermission>} />
           </Route>
 
           {/* ============================== */}
@@ -121,6 +125,7 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="confirmation" element={<ConfirmationPage />} />
             <Route path="manage" element={<ManageBookingPage />} />
+            <Route path="checkin" element={<SelfCheckInPage />} />
           </Route>
 
           {/* ============================== */}
@@ -130,7 +135,7 @@ function App() {
           <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
           {/* Landing page */}
-          <Route path="/" element={<LoginPage />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>

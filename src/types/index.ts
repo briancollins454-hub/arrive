@@ -724,6 +724,7 @@ export type FeatureKey =
   | 'financials'
   | 'group_bookings'
   | 'guest_messaging'
+  | 'guest_lifecycle'
   | 'housekeeping'
   | 'lost_found'
   | 'maintenance'
@@ -732,8 +733,40 @@ export type FeatureKey =
   | 'payments'
   | 'rate_intelligence'
   | 'reports'
+  | 'self_checkin'
   | 'staff_rota'
   | 'waitlist';
+
+// ============================================================
+// GUEST COMMUNICATIONS (Pre-arrival / Post-stay / Marketing)
+// ============================================================
+
+export type GuestCommKind =
+  | 'pre_arrival'
+  | 'post_stay_review'
+  | 'marketing'
+  | 'self_checkin_link'
+  | 'custom';
+
+export type GuestCommStatus = 'queued' | 'sent' | 'failed' | 'skipped';
+
+export interface GuestCommunication {
+  id: string;
+  property_id: string;
+  booking_id: string | null;
+  guest_id: string | null;
+  kind: GuestCommKind;
+  channel: string;
+  status: GuestCommStatus;
+  to_email: string | null;
+  subject: string | null;
+  body: string | null;
+  error: string | null;
+  sent_at: string | null;
+  scheduled_for: string | null;
+  created_by: string | null;
+  created_at: string;
+}
 
 export interface FeatureToggle {
   id: string;
