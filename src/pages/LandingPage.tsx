@@ -1,5 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Check, ArrowRight, Sparkles, Zap, Shield, Users, CalendarClock, BarChart3, MessageSquareHeart, KeyRound, Building2 } from 'lucide-react';
+import { enterDemoMode } from '@/lib/supabase';
+
+// Enable demo mode (session flag) then hard-navigate so every hook
+// re-reads isDemoMode and hits the in-memory demo fixtures instead of Supabase.
+function goDemo(path: string) {
+  return (e: React.MouseEvent) => {
+    e.preventDefault();
+    enterDemoMode();
+    window.location.href = path;
+  };
+}
 
 export function LandingPage() {
   return (
@@ -13,7 +24,7 @@ export function LandingPage() {
         <nav className="flex items-center gap-6 text-sm font-body">
           <a href="#features" className="text-silver hover:text-white">Features</a>
           <a href="#pricing" className="text-silver hover:text-white">Pricing</a>
-          <Link to="/book/grand-harbour" className="text-silver hover:text-white">Demo booking</Link>
+          <Link to="/book/grand-harbour" onClick={goDemo('/book/grand-harbour')} className="text-silver hover:text-white">Demo booking</Link>
           <Link to="/login" className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/10 hover:bg-white/[0.1]">Sign in</Link>
         </nav>
       </header>
@@ -31,7 +42,7 @@ export function LandingPage() {
           A modern PMS, direct booking engine, and guest lifecycle toolkit for boutique and independent properties. Flat pricing from £149/mo. Zero commission on direct bookings. No bloat.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link to="/login" className="px-6 py-3 rounded-lg bg-gold text-midnight font-semibold hover:bg-gold-light transition-colors flex items-center gap-2">
+          <Link to="/login" onClick={goDemo('/login')} className="px-6 py-3 rounded-lg bg-gold text-midnight font-semibold hover:bg-gold-light transition-colors flex items-center gap-2">
             Try the live demo <ArrowRight className="w-4 h-4" />
           </Link>
           <a href="#pricing" className="px-6 py-3 rounded-lg border border-white/15 hover:bg-white/[0.06] transition-colors">See pricing</a>
@@ -100,6 +111,7 @@ export function LandingPage() {
 
               <Link
                 to="/login"
+                onClick={goDemo('/login')}
                 className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-semibold transition-colors ${
                   t.highlight
                     ? 'bg-gold text-midnight hover:bg-gold-light'
@@ -176,7 +188,7 @@ export function LandingPage() {
       <section className="max-w-4xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl md:text-4xl font-display mb-3">See it running your property.</h2>
         <p className="text-silver font-body mb-7 max-w-lg mx-auto">Load the demo with real-looking data in one click. Poke around. No signup required.</p>
-        <Link to="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gold text-midnight font-semibold hover:bg-gold-light transition-colors">
+        <Link to="/login" onClick={goDemo('/login')} className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gold text-midnight font-semibold hover:bg-gold-light transition-colors">
           Open live demo <ArrowRight className="w-4 h-4" />
         </Link>
       </section>
