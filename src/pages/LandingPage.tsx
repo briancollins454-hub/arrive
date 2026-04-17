@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Check, ArrowRight, Sparkles, Zap, Shield, Users, CalendarClock, BarChart3, MessageSquareHeart, KeyRound } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, Zap, Shield, Users, CalendarClock, BarChart3, MessageSquareHeart, KeyRound, Building2 } from 'lucide-react';
 
 export function LandingPage() {
   return (
@@ -130,6 +130,36 @@ export function LandingPage() {
           </div>
         </div>
 
+        {/* AI add-on */}
+        <div className="rounded-2xl border border-teal/30 bg-gradient-to-br from-teal/[0.08] via-white/[0.02] to-transparent p-6 md:p-8 mb-8">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="flex-1 min-w-[260px]">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-teal/10 border border-teal/20 text-teal text-[10px] uppercase tracking-widest mb-3 font-body">
+                <Sparkles className="w-3 h-3" /> Optional add-on
+              </div>
+              <h3 className="text-2xl font-display text-white mb-2">Arrivé AI</h3>
+              <p className="text-sm text-silver font-body mb-4 max-w-xl">
+                Add a 24/7 operations co-pilot trained on your property. Generates daily revenue recommendations, spots anomalies, and lets you ask plain-English questions about your data.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm font-body">
+                {AI_FEATURES.map((f) => (
+                  <div key={f} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-teal mt-0.5 shrink-0" />
+                    <span className="text-silver">{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="flex items-baseline gap-1.5 justify-end">
+                <span className="text-3xl font-display text-white">+£40</span>
+                <span className="text-steel text-sm font-body">/ month</span>
+              </div>
+              <p className="text-xs text-steel font-body mt-1">Bring-your-own API key. No per-query fees.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Comparison */}
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
           <h3 className="text-sm uppercase tracking-widest text-steel mb-4 font-body">How we stack up (50-room property)</h3>
@@ -166,6 +196,7 @@ export function LandingPage() {
 }
 
 const FEATURES = [
+  { icon: Sparkles, title: 'Arrivé AI (optional +£40/mo)', body: 'Plain-English data queries, daily revenue suggestions, anomaly detection, and draft replies to guests. Bring your own API key.' },
   { icon: CalendarClock, title: 'Smart booking engine', body: 'Direct bookings, zero commission, instant confirmation. Branded to your property.' },
   { icon: KeyRound, title: 'Online self check-in', body: 'Guests check in from the pre-arrival email. Reception gets arrival ETA, ID, and requests in advance.' },
   { icon: MessageSquareHeart, title: 'Guest lifecycle emails', body: 'Pre-arrival info, post-stay review requests, and marketing to past guests — all in one place.' },
@@ -173,7 +204,7 @@ const FEATURES = [
   { icon: BarChart3, title: 'Financials that export', body: 'Folios, city ledger, Stripe payments. One-click exports to Xero and QuickBooks.' },
   { icon: Zap, title: 'Fast, modern, delightful', body: 'Keyboard shortcuts, instant search, offline install. Built this decade.' },
   { icon: Shield, title: 'Your data, your keys', body: 'Self-hosted Stripe & email keys per property. We never touch your guests\' payments.' },
-  { icon: Sparkles, title: 'Multi-property ready', body: 'Switch between hotels in a click. Staff roles and rates are per-property.' },
+  { icon: Building2, title: 'Multi-property ready', body: 'Switch between hotels in a click. Staff roles and rates are per-property.' },
   { icon: Check, title: 'No hidden fees', body: 'Flat monthly rate. No per-booking fees, no commission, no "enterprise tier" upsell.' },
 ];
 
@@ -223,6 +254,15 @@ const TIERS = [
       'Phone & Slack support',
     ],
   },
+];
+
+const AI_FEATURES = [
+  'Daily revenue & pricing suggestions',
+  'Natural-language data queries ("show me last weekend\'s ADR")',
+  'Anomaly detection (booking spikes, cancellations, rate issues)',
+  'Returning-guest intelligence at check-in',
+  'Draft replies to guest messages & reviews',
+  'Forecasting & rate intelligence',
 ];
 
 const INCLUDED = [
