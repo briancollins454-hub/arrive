@@ -6,6 +6,21 @@ import { hasPermission, ROUTE_PERMISSIONS, getRoleLabel, getRoleColor, ROLE_DEFI
 import type { Permission } from '@/lib/roles';
 import type { StaffRole } from '@/types';
 
+/** Map raw Supabase auth errors to clear, user-friendly messages. */
+function friendlyAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('invalid login credentials')) {
+    return 'The email or password you entered is incorrect. Use "Forgot password?" if you need to reset it.';
+  }
+  if (m.includes('email not confirmed')) {
+    return 'Your email address has not been confirmed yet. Check your inbox for the confirmation link.';
+  }
+  if (m.includes('rate') || m.includes('too many')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+  return message || 'Unable to sign in. Please try again.';
+}
+
 /**
  * Authentication + RBAC hook
  * Manages Supabase auth state and role-based permission checks.
@@ -55,7 +70,7 @@ export function useAuth() {
       .from('staff_members')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     console.log('[Arrivé Auth] Staff result:', staff, 'Error:', staffError);
 
@@ -138,13 +153,16 @@ export function useAuth() {
     exitDemoMode();
     sessionStorage.removeItem('arrive_demo');
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
     if (!error) {
       // Hard reload ensures all module-level demo state is re-evaluated
       window.location.href = '/dashboard';
       return { error: null };
     }
-    return { error };
+    return { error: { ...error, message: friendlyAuthError(error.message) } };
   }
 
   async function signOut() {

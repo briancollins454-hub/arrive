@@ -7,7 +7,7 @@ import {
   Search, TrendingUp, Brain, Wrench, LogIn, LogOut as LogOutIcon2, Moon, BarChart3,
   ClipboardList, CheckCheck, CalendarRange, UsersRound, Gift, PackageSearch,
   BellRing, Mail, CreditCard, MessageCircle, Globe, Wallet, CalendarClock,
-  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid, Bot, SlidersHorizontal, Sparkles,
+  Menu, X, Landmark, Shield, ChevronDown, LayoutGrid, Bot, SlidersHorizontal, Sparkles, UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/shared/Logo';
@@ -17,7 +17,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useAppStore } from '@/store/useAppStore';
-import { isDemoMode, isPlatformAdmin } from '@/lib/supabase';
+import { isDemoMode, supabase, exitDemoMode } from '@/lib/supabase';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
+import { useMySubscription, isLocked } from '@/hooks/useBilling';
 import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 import { formatDistanceToNow } from 'date-fns';
 import type { StaffRole } from '@/types';
@@ -105,7 +107,8 @@ const navSections = [
       { to: '/dashboard/email-templates', icon: Mail, label: 'Email Templates' },
       { to: '/dashboard/messages', icon: MessageSquare, label: 'Messages' },
       { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
-      { to: '/dashboard/admin', icon: Shield, label: 'Onboard Hotel' },
+      { to: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
+      { to: '/admin', icon: Shield, label: 'Platform Admin' },
       { to: '/dashboard/feature-toggles', icon: SlidersHorizontal, label: 'Feature Toggles' },
     ],
   },
@@ -130,6 +133,13 @@ export function DashboardLayout() {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Billing enforcement: lock the dashboard if the subscription is past
+  // grace / cancelled / suspended (platform admin is exempt; the billing
+  // page itself stays reachable so owners can pay).
+  const { isAdmin } = usePlatformAdmin();
+  const { data: subscription } = useMySubscription(property?.id);
+  const billingLocked = !isDemoMode && !isAdmin && isLocked(subscription) && location.pathname !== '/dashboard/billing';
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -346,7 +356,7 @@ export function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gradient-to-b from-midnight via-midnight to-[#070b14] relative">
-          <Outlet />
+          {billingLocked ? <BillingGate status={subscription?.status} onGoToBilling={() => navigate('/dashboard/billing')} /> : <Outlet />}
         </main>
 
         {/* Ambient floating light orbs — fixed position, behind all content */}
@@ -375,10 +385,21 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
   const location = useLocation();
   const show = isMobile || !collapsed; // mobile drawer always expanded
   const { currentRole, canAccessRoute, switchRole, roleLabel, roleColor, roleDefinitions } = useRBAC();
+  const logout = useAppStore((s) => s.logout);
+
+  const handleSignOut = async () => {
+    onClose();
+    exitDemoMode();
+    if (!isDemoMode) {
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+    }
+    logout();
+    navigate('/login');
+  };
   const staff = useAppStore((s) => s.staff);
   const user = useAppStore((s) => s.user);
   const [showRolePicker, setShowRolePicker] = useState(false);
-  const isAdmin = isPlatformAdmin(user?.email);
+  const { isAdmin } = usePlatformAdmin();
   const { isEnabled } = useFeatureToggles();
 
   // Filter nav sections: only show items the current role can access AND feature is enabled
@@ -386,8 +407,10 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => {
-        // Hide admin page from non-platform-admins
-        if (item.to === '/dashboard/admin' && !isAdmin) return false;
+        // Hide the platform-admin link from non-platform-admins
+        if (item.to === '/admin' && !isAdmin) return false;
+        // Billing is visible to users who can manage settings (owners/managers)
+        if (item.to === '/dashboard/billing') return canAccessRoute('/dashboard/settings');
         // Hide routes for disabled features
         const featureKey = ROUTE_FEATURE_MAP[item.to];
         if (featureKey && !isEnabled(featureKey)) return false;
@@ -566,7 +589,18 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
           </div>
         )}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => { navigate('/dashboard/account'); onClose(); }}
+          title="My account"
+          className={cn(
+            'flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-body text-steel hover:text-silver hover:bg-white/[0.04] transition-all duration-200',
+            !show && 'justify-center px-2',
+          )}
+        >
+          <UserCog size={16} />
+          {show && <span>My Account</span>}
+        </button>
+        <button
+          onClick={handleSignOut}
           title="Sign out"
           className={cn(
             'flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-body text-steel hover:text-silver hover:bg-white/[0.04] transition-all duration-200',
@@ -585,6 +619,40 @@ function SidebarContent({ collapsed, setCollapsed, navigate, setShowCommandPalet
         )}
       </div>
     </>
+  );
+}
+
+// ============================================================
+// Billing Gate — shown when a hotel's subscription lapses
+// ============================================================
+
+function BillingGate({ status, onGoToBilling }: { status?: string; onGoToBilling: () => void }) {
+  const cancelled = status === 'canceled' || status === 'suspended';
+  return (
+    <div className="flex items-center justify-center min-h-full p-6">
+      <div className="max-w-md text-center glass-panel p-8 border border-white/[0.08]">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center mx-auto mb-5">
+          <CreditCard size={26} className="text-amber-400" />
+        </div>
+        <h2 className="text-2xl font-display text-white mb-2">
+          {cancelled ? 'Subscription inactive' : 'Payment needed'}
+        </h2>
+        <p className="text-sm text-steel font-body mb-6">
+          {cancelled
+            ? 'Your Arrivé subscription is no longer active, so the dashboard is locked. Choose a plan to restore access.'
+            : 'We couldn\u2019t process your latest payment and the grace period has ended. Update your billing to restore access right away.'}
+        </p>
+        <button
+          onClick={onGoToBilling}
+          className="w-full px-5 py-3 rounded-xl bg-gold text-charcoal font-semibold text-sm font-body hover:bg-gold-light transition-all"
+        >
+          Go to billing
+        </button>
+        <p className="mt-4 text-[11px] text-steel/60 font-body">
+          Need help? Email <a href="mailto:brian@thesupportsdesk.com" className="text-gold hover:text-gold-light">brian@thesupportsdesk.com</a>
+        </p>
+      </div>
+    </div>
   );
 }
 

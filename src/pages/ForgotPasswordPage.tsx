@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { Logo } from '@/components/shared/Logo';
@@ -13,31 +13,40 @@ export function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
+  const sendReset = async () => {
     if (isDemoMode) {
       setError('Password reset is unavailable in demo mode.');
       return;
     }
-
     setIsLoading(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Branded reset email is delivered via the send-password-reset edge
+      // function (platform Resend). It always returns success and never
+      // reveals whether an account exists.
+      await supabase.functions.invoke('send-password-reset', {
+        body: { email: email.trim().toLowerCase() },
       });
-      // Always show success — never reveal whether an account exists.
-      if (resetError && !resetError.message.toLowerCase().includes('rate')) {
-        console.warn('[Arrivé] reset error:', resetError.message);
-      }
-      setSent(true);
-    } catch {
-      setSent(true);
+    } catch (err) {
+      console.warn('[Arrivé] reset invoke error:', err);
     } finally {
+      setSent(true);
+      setCooldown(30);
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    await sendReset();
   };
 
   return (
@@ -57,9 +66,16 @@ export function ForgotPasswordPage() {
               <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-4" />
               <h2 className="text-xl font-display text-white mb-2">Check Your Email</h2>
               <p className="text-sm text-steel font-body mb-6">
-                If an account exists for <span className="text-silver">{email}</span>, you'll receive a link to reset your password shortly.
+                If an account exists for <span className="text-silver">{email}</span>, you'll receive a link to reset your password shortly. The link expires in 1 hour.
               </p>
               <Button className="w-full" onClick={() => navigate('/login')}>Back to Sign In</Button>
+              <button
+                onClick={sendReset}
+                disabled={cooldown > 0 || isLoading}
+                className="mt-3 w-full text-xs text-steel hover:text-silver disabled:opacity-50 disabled:hover:text-steel font-body transition-colors"
+              >
+                {isLoading ? 'Resending…' : cooldown > 0 ? `Resend link in ${cooldown}s` : "Didn't get it? Resend link"}
+              </button>
             </div>
           ) : (
             <>

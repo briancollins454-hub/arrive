@@ -16,7 +16,7 @@ import {
   CreditCard, Smartphone, Wifi, Signal, Receipt, Ban, Plus,
   ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
   CalendarClock, Network, BookOpen, ShieldCheck, Download,
-  FileDown, UserX, AlertCircle, Copy, Link2, Loader2, ShoppingBag, Send,
+  FileDown, UserX, AlertCircle, Copy, Link2, Loader2, ShoppingBag, Send, KeyRound,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -133,7 +133,7 @@ export function SettingsPage() {
   const {
     staff: rawStaff, isLoadingStaff,
     invites, // isLoadingInvites available if needed
-    sendInvite, resendInvite, revokeInvite,
+    sendInvite, resendInvite, revokeInvite, resetStaffPassword,
     updateStaff, toggleActive, deleteStaff, changeRole,
   } = useStaff();
   const staff: StaffDisplayMember[] = rawStaff.map(toDisplayMember);
@@ -1283,6 +1283,18 @@ export function SettingsPage() {
                     )}
 
                     <div className="flex items-center gap-1">
+                      {member.is_active && (
+                        <button
+                          onClick={() => resetStaffPassword.mutate(member.id)}
+                          disabled={resetStaffPassword.isPending}
+                          className="p-2 rounded-lg text-steel hover:text-teal hover:bg-teal/10 transition-all disabled:opacity-50"
+                          title="Email this user a password reset link"
+                        >
+                          {resetStaffPassword.isPending && resetStaffPassword.variables === member.id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <KeyRound size={14} />}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleToggleActive(member.id)}
                         className={cn('p-2 rounded-lg text-xs transition-all', member.is_active ? 'text-steel hover:text-amber-400 hover:bg-amber-400/10' : 'text-steel hover:text-emerald-400 hover:bg-emerald-400/10')}

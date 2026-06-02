@@ -3,9 +3,9 @@
 // Platform email sender + branded HTML templates.
 // ============================================================
 // Uses a SINGLE platform-wide Resend account (RESEND_API_KEY) so
-// onboarding/invite emails always send without per-property setup.
-// Password-reset / confirmation emails are handled separately by
-// Supabase Auth's own SMTP (configured to the same Resend account).
+// onboarding/invite AND password-reset emails always send without
+// per-property setup and without relying on Supabase Auth's built-in
+// SMTP (which has low rate limits and unbranded templates).
 // ============================================================
 
 const BRAND = {
@@ -115,6 +115,27 @@ export function staffInviteEmail(args: { name: string; propertyName: string; rol
     ${button(inviteUrl, 'Accept invitation')}
     <p style="margin:0 0 4px;color:${BRAND.muted};font-size:13px;">This secure link expires in 7 days.</p>
     ${linkFallback(inviteUrl)}
+  `);
+  return { subject, html };
+}
+
+/** Password reset email — sent via the platform Resend account. */
+export function passwordResetEmail(args: { name?: string; resetUrl: string; byManager?: boolean; propertyName?: string }): { subject: string; html: string } {
+  const { name, resetUrl, byManager, propertyName } = args;
+  const greeting = name ? `Hi ${escapeHtml(name)},` : 'Hi there,';
+  const subject = byManager
+    ? `Reset your ${BRAND.name} password`
+    : `Reset your ${BRAND.name} password`;
+  const intro = byManager
+    ? `A password reset was requested for your ${BRAND.name} account${propertyName ? ` at <strong style="color:#fff;">${escapeHtml(propertyName)}</strong>` : ''}.`
+    : `We received a request to reset the password for your ${BRAND.name} account.`;
+  const html = shell('Reset your password', `
+    <p style="margin:0 0 12px;">${greeting}</p>
+    <p style="margin:0 0 12px;">${intro}</p>
+    <p style="margin:0 0 4px;">Click below to choose a new password. This link expires in 1 hour.</p>
+    ${button(resetUrl, 'Reset my password')}
+    <p style="margin:0 0 4px;color:${BRAND.muted};font-size:13px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+    ${linkFallback(resetUrl)}
   `);
   return { subject, html };
 }

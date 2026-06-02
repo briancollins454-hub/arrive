@@ -139,6 +139,35 @@ export function useStaff() {
     },
   });
 
+  // ── Reset an active staff member's password ────────────────
+  // For staff who forget their password. Verified server-side: only an
+  // owner/GM/front-office manager of the property (or platform admin) can
+  // trigger it. Emails a branded reset link via the platform Resend account.
+  const resetStaffPassword = useMutation({
+    mutationFn: async (staffId: string) => {
+      if (isDemoMode) {
+        toast.success('Password reset email sent (demo mode)');
+        return { email_sent: true };
+      }
+      const { data, error } = await supabase.functions.invoke('reset-staff-password', {
+        body: { staff_id: staffId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      return data as { email_sent: boolean; email_error?: string; email?: string };
+    },
+    onSuccess: (data) => {
+      if (data?.email_sent) {
+        toast.success(`Password reset link emailed${data.email ? ` to ${data.email}` : ''}`);
+      } else if (data) {
+        toast.error(`Could not send reset email (${data.email_error ?? 'unknown'}).`);
+      }
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to send reset link');
+    },
+  });
+
   // ── Revoke invite ──────────────────────────────────────────
   const revokeInvite = useMutation({
     mutationFn: async (inviteId: string) => {
@@ -228,6 +257,7 @@ export function useStaff() {
     // Mutations
     sendInvite,
     resendInvite,
+    resetStaffPassword,
     revokeInvite,
     updateStaff,
     toggleActive,

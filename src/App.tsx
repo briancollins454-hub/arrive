@@ -36,6 +36,13 @@ import { CityLedgerPage } from '@/pages/dashboard/CityLedgerPage';
 import { GroupDashboardPage } from '@/pages/dashboard/GroupDashboardPage';
 import { AdminPage } from '@/pages/dashboard/AdminPage';
 import { AIAssistantPage } from '@/pages/dashboard/AIAssistantPage';
+import { AccountPage } from '@/pages/dashboard/AccountPage';
+import { BillingPage } from '@/pages/dashboard/BillingPage';
+
+// Pages — Platform Admin
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminHotelsPage } from '@/pages/admin/AdminHotelsPage';
+import { AdminBillingPage } from '@/pages/admin/AdminBillingPage';
 import { FeatureTogglesPage } from '@/pages/dashboard/FeatureTogglesPage';
 import { GuestLifecyclePage } from '@/pages/dashboard/GuestLifecyclePage';
 
@@ -112,10 +119,21 @@ function App() {
             <Route path="waitlist" element={<RequirePermission permission="waitlist.view"><WaitlistPage /></RequirePermission>} />
             <Route path="messages" element={<RequirePermission permission="messages.view"><MessagesPage /></RequirePermission>} />
             <Route path="settings" element={<RequirePermission permission="settings.view"><SettingsPage /></RequirePermission>} />
+            <Route path="account" element={<AccountPage />} />
+            <Route path="billing" element={<BillingPage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="ai-assistant" element={<AIAssistantPage />} />
             <Route path="feature-toggles" element={<RequirePermission permission="settings.manage"><FeatureTogglesPage /></RequirePermission>} />
             <Route path="guest-lifecycle" element={<RequirePermission permission="email_templates.view"><GuestLifecyclePage /></RequirePermission>} />
+          </Route>
+
+          {/* ============================== */}
+          {/* PLATFORM ADMIN (you only)      */}
+          {/* ============================== */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminHotelsPage />} />
+            <Route path="onboard" element={<AdminPage />} />
+            <Route path="billing" element={<AdminBillingPage />} />
           </Route>
 
           {/* ============================== */}
