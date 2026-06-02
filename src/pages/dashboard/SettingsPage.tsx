@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProperty } from '@/hooks/useProperty';
 import { useStaff } from '@/hooks/useStaff';
 import type { StaffInvite } from '@/hooks/useStaff';
-import { isDemoMode } from '@/lib/supabase';
+import { isDemoMode, supabase } from '@/lib/supabase';
 import { PageSpinner } from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -16,7 +16,7 @@ import {
   CreditCard, Smartphone, Wifi, Signal, Receipt, Ban, Plus,
   ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
   CalendarClock, Network, BookOpen, ShieldCheck, Download,
-  FileDown, UserX, AlertCircle, Copy, Link2, Loader2, ShoppingBag,
+  FileDown, UserX, AlertCircle, Copy, Link2, Loader2, ShoppingBag, Send,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -133,7 +133,7 @@ export function SettingsPage() {
   const {
     staff: rawStaff, isLoadingStaff,
     invites, // isLoadingInvites available if needed
-    sendInvite, revokeInvite,
+    sendInvite, resendInvite, revokeInvite,
     updateStaff, toggleActive, deleteStaff, changeRole,
   } = useStaff();
   const staff: StaffDisplayMember[] = rawStaff.map(toDisplayMember);
@@ -290,19 +290,29 @@ export function SettingsPage() {
 
   // Stripe / payments state
   const [stripePublishableKey, setStripePublishableKey] = useState(property?.stripe_publishable_key ?? '');
-  const [stripeSecretKey, setStripeSecretKey] = useState(property?.stripe_secret_key ?? '');
+  const [stripeSecretKey, setStripeSecretKey] = useState('');
+  const [stripeSecretConfigured, setStripeSecretConfigured] = useState(false);
   const [stripeSaving, setStripeSaving] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
 
-  // Sync Stripe keys when property loads / changes
+  // Sync the (public) publishable key when property loads / changes
   useEffect(() => {
     if (property?.stripe_publishable_key !== undefined) {
       setStripePublishableKey(property.stripe_publishable_key ?? '');
     }
-    if (property?.stripe_secret_key !== undefined) {
-      setStripeSecretKey(property.stripe_secret_key ?? '');
-    }
-  }, [property?.stripe_publishable_key, property?.stripe_secret_key]);
+  }, [property?.stripe_publishable_key]);
+
+  // The Stripe secret key lives in the locked-down property_secrets table and
+  // is only ever read server-side. We never load its value into the client —
+  // we only check whether one is configured.
+  useEffect(() => {
+    if (!property?.id || isDemoMode) return;
+    let cancelled = false;
+    supabase
+      .rpc('property_has_secret', { p_property_id: property.id, p_key: 'stripe_secret_key' })
+      .then(({ data }) => { if (!cancelled) setStripeSecretConfigured(!!data); });
+    return () => { cancelled = true; };
+  }, [property?.id]);
 
   // Extras / upsells state
   const defaultExtras: PropertyExtrasItem[] = [
@@ -388,7 +398,6 @@ export function SettingsPage() {
     if (!newUser.name || !newUser.email) { toast.error('Name and email are required'); return; }
     try {
       await sendInvite.mutateAsync({ name: newUser.name, email: newUser.email, role: newUser.role });
-      toast.success(`Invite sent to ${newUser.email}`);
       setNewUser({ name: '', email: '', role: 'receptionist' });
       setShowAddUser(false);
     } catch (err) {
@@ -531,8 +540,24 @@ export function SettingsPage() {
     try {
       await updateProperty({
         stripe_publishable_key: stripePublishableKey || null,
-        stripe_secret_key: stripeSecretKey || null,
       });
+      // The secret key is stored separately in the locked-down property_secrets
+      // table and is only ever read server-side by the create-payment-intent
+      // edge function. It is never written back to the publicly-readable
+      // properties row.
+      if (stripeSecretKey.trim()) {
+        if (!isDemoMode) {
+          const { error } = await supabase.from('property_secrets').upsert({
+            property_id: property.id,
+            secret_key: 'stripe_secret_key',
+            secret_value: stripeSecretKey.trim(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'property_id,secret_key' });
+          if (error) throw error;
+        }
+        setStripeSecretConfigured(true);
+        setStripeSecretKey('');
+      }
       toast.success('Stripe keys saved');
     } catch {
       toast.error('Failed to save Stripe keys');
@@ -678,10 +703,10 @@ export function SettingsPage() {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                 <div className={cn(
                   'w-2.5 h-2.5 rounded-full',
-                  stripePublishableKey && stripeSecretKey ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-amber-400'
+                  stripePublishableKey && (stripeSecretConfigured || stripeSecretKey) ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-amber-400'
                 )} />
                 <span className="text-sm font-body text-silver">
-                  {stripePublishableKey && stripeSecretKey
+                  {stripePublishableKey && (stripeSecretConfigured || stripeSecretKey)
                     ? stripePublishableKey.startsWith('pk_live_') ? 'Live mode — processing real payments' : 'Test mode — no real charges'
                     : 'Not connected — payments will be simulated'}
                 </span>
@@ -718,12 +743,15 @@ export function SettingsPage() {
               {/* Secret key */}
               <div>
                 <Label variant="dark">Secret Key</Label>
-                <p className="text-[10px] text-steel/60 font-body mb-1.5">Starts with sk_test_ or sk_live_ — stored securely, never exposed to guests</p>
+                <p className="text-[10px] text-steel/60 font-body mb-1.5">
+                  Starts with sk_test_ or sk_live_ — stored securely server-side, never exposed to guests or staff.
+                  {stripeSecretConfigured && ' A key is already saved — enter a new one only to replace it.'}
+                </p>
                 <div className="relative">
                   <Input
                     variant="dark"
                     type={showSecretKey ? 'text' : 'password'}
-                    placeholder="sk_test_..."
+                    placeholder={stripeSecretConfigured ? '•••••••••••• (saved — leave blank to keep)' : 'sk_test_...'}
                     value={stripeSecretKey}
                     onChange={(e) => setStripeSecretKey(e.target.value.trim())}
                     spellCheck={false}
@@ -741,12 +769,24 @@ export function SettingsPage() {
               </div>
 
               {/* Clear keys option */}
-              {(stripePublishableKey || stripeSecretKey) && (
+              {(stripePublishableKey || stripeSecretKey || stripeSecretConfigured) && (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setStripePublishableKey('');
                     setStripeSecretKey('');
+                    try {
+                      await updateProperty({ stripe_publishable_key: null });
+                      if (!isDemoMode && property) {
+                        await supabase.from('property_secrets').delete()
+                          .eq('property_id', property.id)
+                          .eq('secret_key', 'stripe_secret_key');
+                      }
+                      setStripeSecretConfigured(false);
+                      toast.success('Stripe disconnected');
+                    } catch {
+                      toast.error('Failed to disconnect Stripe');
+                    }
                   }}
                   className="text-xs text-red-400 hover:text-red-300 font-body underline underline-offset-2 transition-colors"
                 >
@@ -1169,6 +1209,16 @@ export function SettingsPage() {
                         >
                           {copiedInviteId === inv.id ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy Link</>}
                         </button>
+                        {!isDemoMode && (
+                          <button
+                            onClick={() => resendInvite.mutate(inv.id)}
+                            disabled={resendInvite.isPending}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body text-gold hover:bg-gold/10 border border-gold/20 transition-all disabled:opacity-50"
+                            title="Resend invite email"
+                          >
+                            {resendInvite.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Resend
+                          </button>
+                        )}
                         <button
                           onClick={() => revokeInvite.mutate(inv.id)}
                           className="p-2 rounded-lg text-steel hover:text-red-400 hover:bg-red-400/10 transition-all"

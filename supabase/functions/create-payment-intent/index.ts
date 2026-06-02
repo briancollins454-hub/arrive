@@ -3,8 +3,9 @@
 // Supabase Edge Function — Create Stripe PaymentIntent
 // ============================================================
 // Called from the frontend via supabase.functions.invoke().
-// Reads the hotel's Stripe secret key from the properties table,
-// then creates a PaymentIntent using the Stripe API.
+// Reads the hotel's Stripe secret key from the locked-down property_secrets
+// table (service role only) and creates a PaymentIntent via the Stripe API.
+// The secret key is NEVER stored on the publicly-readable properties row.
 // ============================================================
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
@@ -61,37 +62,46 @@ serve(async (req: Request) => {
       );
     }
 
-    // Verify user belongs to this property (is on the staff list)
-    const { data: staffRecord } = await supabaseAdmin
-      .from('staff_members')
-      .select('id')
-      .eq('property_id', property_id)
-      .eq('id', user.id)
-      .eq('is_active', true)
-      .single();
+    // Verify user belongs to this property (staff_members OR staff_properties)
+    const [{ data: staffRecord }, { data: staffPropertyRecord }] = await Promise.all([
+      supabaseAdmin
+        .from('staff_members')
+        .select('id')
+        .eq('property_id', property_id)
+        .eq('id', user.id)
+        .eq('is_active', true)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('staff_properties')
+        .select('id')
+        .eq('property_id', property_id)
+        .eq('staff_id', user.id)
+        .maybeSingle(),
+    ]);
 
-    if (!staffRecord) {
+    if (!staffRecord && !staffPropertyRecord) {
       return new Response(
         JSON.stringify({ error: 'Not authorised for this property' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get the property's Stripe secret key
-    const { data: propData, error: propError } = await supabaseAdmin
-      .from('properties')
-      .select('stripe_secret_key')
-      .eq('id', property_id)
-      .single();
+    // Get the property's Stripe secret key from the locked-down secrets table.
+    const { data: secretRow, error: secretError } = await supabaseAdmin
+      .from('property_secrets')
+      .select('secret_value')
+      .eq('property_id', property_id)
+      .eq('secret_key', 'stripe_secret_key')
+      .maybeSingle();
 
-    if (propError || !propData?.stripe_secret_key) {
+    const stripeSecretKey = (secretRow?.secret_value ?? '').trim();
+
+    if (secretError || !stripeSecretKey) {
       return new Response(
         JSON.stringify({ error: 'Stripe is not configured for this property. Add your Stripe keys in Settings → Payments.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const stripeSecretKey = propData.stripe_secret_key;
 
     // Enforce minimum amount (Stripe requires >= 30 for GBP, 50 for USD)
     const minAmount = (currency || 'gbp') === 'gbp' ? 30 : 50;

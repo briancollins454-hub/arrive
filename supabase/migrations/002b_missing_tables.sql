@@ -1,6 +1,7 @@
 -- ============================================================
 -- ARRIVÉ — Missing Tables & Columns
--- Migration: 002_missing_tables.sql
+-- Migration: 002b_missing_tables.sql (renumbered from 002 to disambiguate
+--            from 002_multi_property.sql; applies immediately after it)
 -- Adds: folio_entries, activity_log, notifications tables
 --        + housekeeping_status column on rooms
 -- ============================================================

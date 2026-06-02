@@ -43,7 +43,6 @@ const demoProperties: Property[] = [
     },
     stripe_account_id: null,
     stripe_publishable_key: null,
-    stripe_secret_key: null,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -85,7 +84,6 @@ const demoProperties: Property[] = [
     },
     stripe_account_id: null,
     stripe_publishable_key: null,
-    stripe_secret_key: null,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -127,7 +125,6 @@ const demoProperties: Property[] = [
     },
     stripe_account_id: null,
     stripe_publishable_key: null,
-    stripe_secret_key: null,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -237,7 +234,6 @@ export function useProperty() {
         branding: merged.branding,
         stripe_account_id: merged.stripe_account_id,
         stripe_publishable_key: merged.stripe_publishable_key,
-        stripe_secret_key: merged.stripe_secret_key,
       })
       .eq('id', activeProperty.id);
 
@@ -272,7 +268,7 @@ export function useProperty() {
           allow_same_day_booking: true, max_advance_days: 365,
         },
         branding: { primary_color: '#D4A853', accent_color: '#0D9488', logo_url: null, cover_images: [] },
-        stripe_account_id: null, stripe_publishable_key: null, stripe_secret_key: null,
+        stripe_account_id: null, stripe_publishable_key: null,
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

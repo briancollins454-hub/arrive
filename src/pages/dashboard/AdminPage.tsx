@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import {
   Building2, Plus, Users, CheckCircle2, Copy, Loader2,
-  MapPin, Phone, Globe, Mail,
+  MapPin, Phone, Globe, Mail, ArrowRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -41,12 +41,12 @@ const emptyProperty: NewProperty = {
 export function AdminPage() {
   const user = useAppStore((s) => s.user);
   const [step, setStep] = useState<'form' | 'invite' | 'done'>('form');
-  const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [prop, setProp] = useState<NewProperty>(emptyProperty);
   const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null);
   const [owner, setOwner] = useState<OwnerInvite>({ name: '', email: '' });
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState<boolean>(false);
 
   // Only the platform admin can access this page
   if (!isPlatformAdmin(user?.email)) {
@@ -65,83 +65,62 @@ export function AdminPage() {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   };
 
-  const handleCreateProperty = async () => {
+  const handleContinueToOwner = () => {
     if (!prop.name.trim()) { toast.error('Hotel name is required'); return; }
     if (!prop.slug.trim()) { toast.error('URL slug is required'); return; }
-
-    setIsCreating(true);
-    try {
-      if (isDemoMode) {
-        setCreatedPropertyId(`demo-${Date.now()}`);
-        setStep('invite');
-        toast.success('Property created (demo mode)');
-        setIsCreating(false);
-        return;
-      }
-
-      const { data, error } = await supabase.from('properties').insert({
-        name: prop.name.trim(),
-        slug: prop.slug.trim(),
-        description: prop.description.trim() || null,
-        address: {
-          line1: prop.address_line1, line2: prop.address_line2,
-          city: prop.city, county: prop.county,
-          postcode: prop.postcode, country: prop.country,
-        },
-        contact: {
-          phone: prop.phone, email: prop.email, website: prop.website,
-        },
-      }).select('id').single();
-
-      if (error) throw error;
-      setCreatedPropertyId(data.id);
-      setStep('invite');
-      toast.success(`"${prop.name}" created successfully`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create property';
-      toast.error(msg);
-    } finally {
-      setIsCreating(false);
+    if (!/^[a-z0-9-]+$/.test(prop.slug.trim())) {
+      toast.error('Slug may only contain lowercase letters, numbers and hyphens');
+      return;
     }
+    setStep('invite');
   };
 
-  const handleSendOwnerInvite = async () => {
-    if (!owner.name.trim() || !owner.email.trim()) { toast.error('Name and email are required'); return; }
-    if (!createdPropertyId) { toast.error('Property not created yet'); return; }
+  const handleOnboard = async () => {
+    if (!owner.name.trim() || !owner.email.trim()) { toast.error('Owner name and email are required'); return; }
 
     setIsSending(true);
     try {
       if (isDemoMode) {
+        setCreatedPropertyId(`demo-${Date.now()}`);
         setInviteLink(`${window.location.origin}/invite/demo-token-123`);
+        setEmailSent(true);
         setStep('done');
-        toast.success('Invite created (demo mode)');
+        toast.success('Hotel onboarded (demo mode)');
         setIsSending(false);
         return;
       }
 
-      // Generate invite token
-      const token = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
-
-      const { error: invErr } = await supabase.from('staff_invites').insert({
-        property_id: createdPropertyId,
-        email: owner.email.trim(),
-        name: owner.name.trim(),
-        role: 'owner',
-        token,
-        status: 'pending',
-        expires_at: expiresAt.toISOString(),
+      const { data, error } = await supabase.functions.invoke('onboard-hotel', {
+        body: {
+          name: prop.name.trim(),
+          slug: prop.slug.trim().toLowerCase(),
+          description: prop.description.trim(),
+          address: {
+            line1: prop.address_line1, line2: prop.address_line2,
+            city: prop.city, county: prop.county,
+            postcode: prop.postcode, country: prop.country,
+          },
+          contact: { phone: prop.phone, email: prop.email, website: prop.website },
+          owner: { name: owner.name.trim(), email: owner.email.trim() },
+        },
       });
 
-      if (invErr) throw invErr;
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
 
-      const link = `${window.location.origin}/invite/${token}`;
-      setInviteLink(link);
+      setCreatedPropertyId(data.property_id);
+      setInviteLink(data.invite_url);
+      setEmailSent(!!data.email_sent);
       setStep('done');
-      toast.success('Owner invite created');
+
+      if (data.email_sent) {
+        toast.success(`"${prop.name}" onboarded — setup email sent to ${owner.email.trim()}`);
+      } else {
+        toast.success(`"${prop.name}" onboarded`);
+        toast.error(`Email could not be sent (${data.email_error ?? 'unknown'}). Share the link manually.`);
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to send invite';
+      const msg = err instanceof Error ? err.message : 'Failed to onboard hotel';
       toast.error(msg);
     } finally {
       setIsSending(false);
@@ -160,6 +139,7 @@ export function AdminPage() {
     setOwner({ name: '', email: '' });
     setCreatedPropertyId(null);
     setInviteLink(null);
+    setEmailSent(false);
     setStep('form');
   };
 
@@ -273,8 +253,8 @@ export function AdminPage() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button onClick={handleCreateProperty} disabled={isCreating}>
-                {isCreating ? <><Loader2 size={16} className="animate-spin mr-2" /> Creating...</> : <><Plus size={16} className="mr-2" /> Create Property</>}
+              <Button onClick={handleContinueToOwner}>
+                Continue <ArrowRight size={16} className="ml-2" />
               </Button>
             </div>
           </CardContent>
@@ -291,14 +271,15 @@ export function AdminPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <p className="text-sm text-emerald-400 font-body flex items-center gap-2">
-                <CheckCircle2 size={14} />
-                <strong>{prop.name}</strong> created successfully
+            <div className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+              <p className="text-sm text-silver font-body flex items-center gap-2">
+                <Building2 size={14} className="text-gold" />
+                <strong className="text-white">{prop.name}</strong>
+                <span className="text-steel">· /book/{prop.slug}</span>
               </p>
             </div>
             <p className="text-sm text-steel font-body">
-              Enter the hotel owner's details. They'll receive a link to set their password and start configuring their hotel (room types, rooms, rates, staff).
+              Enter the hotel owner's details. We'll create the hotel and email them a secure link to set their password and start configuring it (room types, rooms, rates, staff).
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -310,12 +291,12 @@ export function AdminPage() {
                 <Input variant="dark" type="email" placeholder="john@hotel.com" value={owner.email} onChange={(e) => setOwner({ ...owner, email: e.target.value })} />
               </div>
             </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost-dark" onClick={() => { setStep('done'); setInviteLink(null); }}>
-                Skip — I'll send later
+            <div className="flex justify-between gap-3 pt-2">
+              <Button variant="ghost-dark" onClick={() => setStep('form')} disabled={isSending}>
+                Back
               </Button>
-              <Button onClick={handleSendOwnerInvite} disabled={isSending}>
-                {isSending ? <><Loader2 size={16} className="animate-spin mr-2" /> Sending...</> : 'Create Invite'}
+              <Button onClick={handleOnboard} disabled={isSending}>
+                {isSending ? <><Loader2 size={16} className="animate-spin mr-2" /> Onboarding...</> : <><CheckCircle2 size={16} className="mr-2" /> Onboard Hotel & Send Invite</>}
               </Button>
             </div>
           </CardContent>
@@ -340,6 +321,15 @@ export function AdminPage() {
               )}
             </div>
 
+            <div className={`p-3 rounded-lg border ${emailSent ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+              <p className={`text-sm font-body flex items-center gap-2 ${emailSent ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {emailSent ? <CheckCircle2 size={14} /> : <Mail size={14} />}
+                {emailSent
+                  ? <span>Setup email sent to <strong>{owner.email}</strong></span>
+                  : <span>Email could not be sent automatically — share the link below with the owner.</span>}
+              </p>
+            </div>
+
             {inviteLink && (
               <div className="space-y-2">
                 <p className="text-sm text-silver font-body"><strong className="text-white">Owner Invite:</strong> {owner.name} ({owner.email})</p>
@@ -349,12 +339,8 @@ export function AdminPage() {
                     <Copy size={14} />
                   </Button>
                 </div>
-                <p className="text-[10px] text-steel font-body">Send this link to the owner. It expires in 7 days.</p>
+                <p className="text-[10px] text-steel font-body">This secure link expires in 7 days.</p>
               </div>
-            )}
-
-            {!inviteLink && (
-              <p className="text-sm text-amber-400 font-body">No invite sent — you can send one later from the hotel's settings.</p>
             )}
 
             <div className="border-t border-white/[0.06] pt-4">

@@ -89,66 +89,40 @@ export function InviteAcceptPage() {
     setSubmitting(true);
 
     try {
-      // 1. Sign up the new user with Supabase Auth
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: invite.email,
-        password,
-        options: {
-          data: { name: invite.name, invite_token: token },
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
+      // 1. Create the confirmed account + link staff rows via the
+      //    accept-invite edge function (service role).
+      const { data, error: fnError } = await supabase.functions.invoke('accept-invite', {
+        body: { token, password, name: invite.name },
       });
 
-      if (signUpError) {
-        // If user already exists, try to sign in instead
-        if (signUpError.message.includes('already registered') || signUpError.message.includes('already been registered')) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: invite.email,
-            password,
-          });
-          if (signInError) {
-            setError('An account with this email already exists. Please sign in at the login page.');
-            setSubmitting(false);
-            return;
-          }
-          // User signed in — accept the invite
-          const user = (await supabase.auth.getUser()).data.user;
-          if (user) {
-            await supabase.rpc('accept_invite', {
-              invite_token: token,
-              new_user_id: user.id,
-            });
-          }
-          setDone(true);
-          setTimeout(() => navigate('/dashboard'), 2000);
-          return;
-        }
-        throw signUpError;
-      }
+      if (fnError) throw new Error(fnError.message);
 
-      // 2. Accept the invite — creates staff_members row via DB function
-      const userId = signUpData.user?.id;
-      if (userId) {
-        const { data: result } = await supabase.rpc('accept_invite', {
-          invite_token: token,
-          new_user_id: userId,
-        });
-
-        if (result && !result.success) {
-          setError(result.error || 'Failed to accept invite');
+      if (data?.error) {
+        if (data.code === 'user_exists') {
+          setError('An account with this email already exists. Please sign in at the login page.');
           setSubmitting(false);
           return;
         }
+        throw new Error(data.error);
       }
 
-      // Check if email confirmation is needed (no session returned)
-      const hasSession = !!signUpData.session;
+      // 2. Sign in with the new credentials — email is confirmed, so
+      //    this returns a session immediately.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invite.email,
+        password,
+      });
+
+      if (signInError) {
+        // Account created but auto sign-in failed — send them to login.
+        setDone(true);
+        setTimeout(() => navigate('/login'), 2500);
+        return;
+      }
 
       setDone(true);
-      if (hasSession) {
-        setTimeout(() => navigate('/dashboard'), 2000);
-      }
-      // If no session, user needs to confirm email first — the done state will show a message
+      // Hard redirect ensures all module-level demo state is re-evaluated.
+      setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -156,8 +130,16 @@ export function InviteAcceptPage() {
     }
   };
 
-  /** Whether signup completed but email confirmation is required */
-  const needsEmailConfirmation = done && !submitting;
+  // Lightweight password strength (0-3) for the meter.
+  const passwordScore = (() => {
+    let s = 0;
+    if (password.length >= 8) s++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) s++;
+    if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) s++;
+    return s;
+  })();
+  const strengthLabel = ['Too short', 'Weak', 'Good', 'Strong'][password.length === 0 ? 0 : passwordScore];
+  const strengthColor = ['bg-steel/30', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400'][password.length === 0 ? 0 : passwordScore];
 
   const roleLabel = (role: string) =>
     role.split('_').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ');
@@ -198,19 +180,9 @@ export function InviteAcceptPage() {
             <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-4" />
             <h2 className="text-xl font-display text-white mb-2">You're All Set!</h2>
             <p className="text-sm text-steel font-body mb-4">
-              Your account has been created.
+              Your account has been created. Signing you in…
             </p>
-            {needsEmailConfirmation && (
-              <p className="text-sm text-gold font-body">
-                Check your email for a confirmation link, then{' '}
-                <button onClick={() => navigate('/login')} className="underline hover:text-gold/80 transition-colors">
-                  sign in here
-                </button>.
-              </p>
-            )}
-            {!needsEmailConfirmation && (
-              <p className="text-sm text-steel font-body">Redirecting to dashboard…</p>
-            )}
+            <Loader2 size={20} className="animate-spin text-gold mx-auto" />
           </div>
         )}
 
@@ -262,6 +234,14 @@ export function InviteAcceptPage() {
                     minLength={8}
                   />
                 </div>
+                {password.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex-1 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className={`h-full transition-all duration-300 ${strengthColor}`} style={{ width: `${(passwordScore / 3) * 100}%` }} />
+                    </div>
+                    <span className="text-[10px] text-steel font-body w-16 text-right">{strengthLabel}</span>
+                  </div>
+                )}
               </div>
 
               {/* Confirm Password */}

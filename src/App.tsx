@@ -51,6 +51,8 @@ import { SelfCheckInPage } from '@/pages/booking/SelfCheckInPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { LandingPage } from '@/pages/LandingPage';
 import { InviteAcceptPage } from '@/pages/InviteAcceptPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 // Layouts
@@ -133,6 +135,8 @@ function App() {
           {/* ============================== */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/invite/:token" element={<InviteAcceptPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Landing page */}
           <Route path="/" element={<LandingPage />} />

@@ -106,8 +106,6 @@ export function CheckoutPage() {
   }, [stripeReady, totalWithTax]);
 
   const handleCheckout = (data: CheckoutFormData, _paymentIntentId?: string) => {
-    const confirmationCode = `AR-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-
     // Create the booking in the system
     createBooking.mutate({
       property_id: property?.id ?? '',
@@ -126,7 +124,10 @@ export function CheckoutPage() {
         phone: data.phone || '',
       },
     }, {
-      onSuccess: () => {
+      onSuccess: (booking) => {
+        // Use the confirmation code the database actually generated (single
+        // source of truth) rather than a client-side guess.
+        const confirmationCode = booking?.confirmation_code ?? '';
         const params = new URLSearchParams({
           code: confirmationCode,
           check_in: checkIn,

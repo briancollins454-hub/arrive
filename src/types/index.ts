@@ -75,7 +75,9 @@ export interface Property {
   branding: PropertyBranding;
   stripe_account_id: string | null;
   stripe_publishable_key: string | null;
-  stripe_secret_key: string | null;
+  // NOTE: the Stripe secret key is intentionally NOT exposed to the client.
+  // It lives in the locked-down `property_secrets` table and is only read
+  // server-side by the create-payment-intent edge function (service role).
   is_active: boolean;
   created_at: string;
   updated_at: string;

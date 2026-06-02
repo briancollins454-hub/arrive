@@ -34,9 +34,9 @@ export function LoginPage() {
       const { error: authError } = await signIn(email, password);
       if (authError) {
         setError(authError.message || 'Invalid email or password');
-      } else {
-        navigate('/dashboard');
       }
+      // On success, signIn performs a hard redirect to /dashboard, so no
+      // client-side navigate is needed here (avoids a double redirect).
     } catch {
       setError('Invalid email or password');
     } finally {
@@ -129,7 +129,16 @@ export function LoginPage() {
                 </div>
 
                 <div>
-                  <Label variant="dark">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label variant="dark">Password</Label>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/forgot-password')}
+                      className="text-[11px] text-gold/80 hover:text-gold font-body transition-colors mb-1.5"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                     <Input

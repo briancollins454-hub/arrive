@@ -11,59 +11,39 @@ import { useAppStore } from '@/store/useAppStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import toast from 'react-hot-toast';
 
 // ============================================================
-// API key persistence — saved to property_secrets table in DB
-// localStorage is used as a fast cache only
+// Claude API key — the secret value is NEVER loaded into the browser.
+// It lives in the locked-down property_secrets table and is read only
+// server-side by the ai-chat edge function. Here we just check whether a
+// key is configured (via a SECURITY DEFINER RPC) and let owners set/replace
+// it (owners-only write enforced by RLS).
 // ============================================================
-const API_KEY_CACHE_PREFIX = 'arrive_ai_key_';
 
-function getCachedApiKey(propertyId: string): string {
-  try {
-    return localStorage.getItem(API_KEY_CACHE_PREFIX + propertyId) ?? '';
-  } catch {
-    return '';
-  }
-}
-
-function cacheApiKey(propertyId: string, key: string) {
-  try {
-    if (key) localStorage.setItem(API_KEY_CACHE_PREFIX + propertyId, key);
-    else localStorage.removeItem(API_KEY_CACHE_PREFIX + propertyId);
-  } catch { /* ignore */ }
-}
-
-/** Hook to load/save the Claude API key for the current property */
+/** Hook to check/save the Claude API key for the current property */
 function usePropertyApiKey() {
   const queryClient = useQueryClient();
   const propertyId = useAppStore((s) => s.property?.id);
 
-  const { data: apiKey = '', isLoading } = useQuery({
-    queryKey: ['property-api-key', propertyId],
+  const { data: hasApiKey = false, isLoading } = useQuery({
+    queryKey: ['property-has-ai-key', propertyId],
     queryFn: async () => {
-      if (!propertyId || isDemoMode) return '';
+      if (!propertyId || isDemoMode) return false;
 
-      // Try DB first
-      const { data, error } = await supabase
-        .from('property_secrets')
-        .select('secret_value')
-        .eq('property_id', propertyId)
-        .eq('secret_key', 'claude_api_key')
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('property_has_secret', {
+        p_property_id: propertyId,
+        p_key: 'claude_api_key',
+      });
 
       if (error) {
-        console.warn('[AI] Failed to load API key from DB:', error.message);
-        // Fall back to localStorage cache
-        return getCachedApiKey(propertyId);
+        console.warn('[AI] Failed to check API key:', error.message);
+        return false;
       }
-
-      const key = data?.secret_value ?? '';
-      if (key) cacheApiKey(propertyId, key);
-      return key;
+      return !!data;
     },
     enabled: !!propertyId && !isDemoMode,
-    staleTime: 1000 * 60 * 30, // 30 min
-    initialData: propertyId ? getCachedApiKey(propertyId) : '',
+    staleTime: 1000 * 60 * 5,
   });
 
   const saveKey = useMutation({
@@ -80,15 +60,14 @@ function usePropertyApiKey() {
         }, { onConflict: 'property_id,secret_key' });
 
       if (error) throw error;
-      cacheApiKey(propertyId, newKey);
       return newKey;
     },
-    onSuccess: (newKey) => {
-      queryClient.setQueryData(['property-api-key', propertyId], newKey);
+    onSuccess: () => {
+      queryClient.setQueryData(['property-has-ai-key', propertyId], true);
     },
   });
 
-  return { apiKey, isLoading, saveKey };
+  return { hasApiKey, isLoading, saveKey };
 }
 
 // ============================================================
@@ -147,23 +126,24 @@ function AIAssistantInner() {
   } = useAIAssistant();
 
   const property = useAppStore((s) => s.property);
-  const { apiKey, isLoading: apiKeyLoading, saveKey } = usePropertyApiKey();
+  const { hasApiKey, isLoading: apiKeyLoading, saveKey } = usePropertyApiKey();
   const [input, setInput] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
   // Show API key input if no key is saved (after loading) and not in demo mode
   useEffect(() => {
-    if (!apiKeyLoading && !apiKey && !isDemoMode) {
+    if (!apiKeyLoading && !hasApiKey && !isDemoMode) {
       setShowApiKeyInput(true);
     }
-  }, [apiKeyLoading, apiKey]);
+  }, [apiKeyLoading, hasApiKey]);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // In demo mode, API key is not needed — the demo AI runs locally
-  const effectiveApiKey = isDemoMode ? 'demo' : apiKey;
+  // In demo mode the local responder is always available; in live mode we
+  // need a configured key. We never hold the key value itself.
+  const hasKey = isDemoMode || hasApiKey;
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -177,10 +157,10 @@ function AIAssistantInner() {
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
-    if (!trimmed || isStreaming || !effectiveApiKey) return;
+    if (!trimmed || isStreaming || !hasKey) return;
     setInput('');
-    sendMessage(trimmed, effectiveApiKey);
-  }, [input, isStreaming, effectiveApiKey, sendMessage]);
+    sendMessage(trimmed);
+  }, [input, isStreaming, hasKey, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -192,10 +172,8 @@ function AIAssistantInner() {
   const handleSaveApiKey = (key: string) => {
     saveKey.mutate(key, {
       onSuccess: () => setShowApiKeyInput(false),
-      onError: () => {
-        // Still cache locally if DB save fails
-        cacheApiKey(property?.id ?? '', key);
-        setShowApiKeyInput(false);
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to save API key');
       },
     });
   };
@@ -315,7 +293,7 @@ function AIAssistantInner() {
                 onClick={() => setShowApiKeyInput((v) => !v)}
                 className={cn(
                   'p-2 rounded-lg transition-all',
-                  apiKey
+                  hasApiKey
                     ? 'text-teal/60 hover:text-teal hover:bg-teal/10'
                     : 'text-amber-400 hover:bg-amber-400/10 animate-pulse'
                 )}
@@ -330,9 +308,9 @@ function AIAssistantInner() {
         {/* API key banner */}
         {showApiKeyInput && (
           <ApiKeyBanner
-            apiKey={apiKey}
+            configured={hasApiKey}
             onSave={handleSaveApiKey}
-            onCancel={() => apiKey && setShowApiKeyInput(false)}
+            onCancel={() => hasApiKey && setShowApiKeyInput(false)}
             showApiKey={showApiKey}
             setShowApiKey={setShowApiKey}
           />
@@ -341,11 +319,11 @@ function AIAssistantInner() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           {!activeConversationId ? (
-            <EmptyState onNew={handleNewConversation} hasApiKey={!!effectiveApiKey} />
+            <EmptyState onNew={handleNewConversation} hasApiKey={hasKey} />
           ) : messages.length === 0 ? (
             <EmptyConversation onSuggest={(text) => {
-              if (!effectiveApiKey || isStreaming) return;
-              sendMessage(text, effectiveApiKey);
+              if (!hasKey || isStreaming) return;
+              sendMessage(text);
             }} />
           ) : (
             messages.map((msg) => (
@@ -378,8 +356,8 @@ function AIAssistantInner() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={effectiveApiKey ? 'Ask about your property…' : 'Enter your Claude API key first'}
-                  disabled={!effectiveApiKey || isStreaming}
+                  placeholder={hasKey ? 'Ask about your property…' : 'Enter your Claude API key first'}
+                  disabled={!hasKey || isStreaming}
                   rows={1}
                   className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white font-body placeholder:text-steel/40 outline-none focus:border-teal/30 focus:ring-1 focus:ring-teal/20 resize-none transition-all disabled:opacity-50"
                   style={{ maxHeight: 160 }}
@@ -401,7 +379,7 @@ function AIAssistantInner() {
               ) : (
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim() || !effectiveApiKey}
+                  disabled={!input.trim() || !hasKey}
                   className="p-3 rounded-xl bg-gradient-to-r from-teal/20 to-purple-500/10 text-teal hover:from-teal/30 hover:to-purple-500/20 border border-teal/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Send (Enter)"
                 >
@@ -424,15 +402,15 @@ function AIAssistantInner() {
 // ============================================================
 
 function ApiKeyBanner({
-  apiKey, onSave, onCancel, showApiKey, setShowApiKey,
+  configured, onSave, onCancel, showApiKey, setShowApiKey,
 }: {
-  apiKey: string;
+  configured: boolean;
   onSave: (key: string) => void;
   onCancel: () => void;
   showApiKey: boolean;
   setShowApiKey: (v: boolean) => void;
 }) {
-  const [value, setValue] = useState(apiKey);
+  const [value, setValue] = useState('');
 
   return (
     <div className="px-4 py-3 border-b border-white/[0.06] bg-gradient-to-r from-amber-500/[0.05] to-purple-500/[0.03]">
@@ -442,7 +420,9 @@ function ApiKeyBanner({
           <p className="text-xs font-body font-semibold text-white">Claude API Key</p>
         </div>
         <p className="text-[11px] text-steel font-body mb-3">
-          Enter your Anthropic API key to connect. Your key is saved securely to this property — all authorised staff will have access.
+          {configured
+            ? 'A key is already configured. Enter a new key below to replace it. For security, the saved key is never shown.'
+            : 'Enter your Anthropic API key to connect. Your key is stored securely server-side and used by the AI on your behalf — it is never exposed to the browser.'}
         </p>
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -467,7 +447,7 @@ function ApiKeyBanner({
           >
             Save
           </button>
-          {apiKey && (
+          {configured && (
             <button
               onClick={onCancel}
               className="px-3 py-2 rounded-lg text-steel text-sm font-body hover:bg-white/[0.04] transition-all"

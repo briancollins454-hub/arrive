@@ -1,0 +1,112 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase, isDemoMode } from '@/lib/supabase';
+import { Logo } from '@/components/shared/Logo';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+
+export function ForgotPasswordPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (isDemoMode) {
+      setError('Password reset is unavailable in demo mode.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      // Always show success — never reveal whether an account exists.
+      if (resetError && !resetError.message.toLowerCase().includes('rate')) {
+        console.warn('[Arrivé] reset error:', resetError.message);
+      }
+      setSent(true);
+    } catch {
+      setSent(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-midnight relative overflow-hidden flex items-center justify-center p-6">
+      <div className="absolute inset-0 mesh-gradient" />
+      <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-gold/[0.04] rounded-full blur-[120px] animate-aurora" />
+      <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal/[0.04] rounded-full blur-[100px] animate-aurora-2" />
+
+      <div className="relative z-10 w-full max-w-md">
+        <div className="flex justify-center mb-8">
+          <Logo variant="dark" size="lg" />
+        </div>
+
+        <div className="glass-panel p-8 border border-white/[0.08]">
+          {sent ? (
+            <div className="text-center">
+              <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-4" />
+              <h2 className="text-xl font-display text-white mb-2">Check Your Email</h2>
+              <p className="text-sm text-steel font-body mb-6">
+                If an account exists for <span className="text-silver">{email}</span>, you'll receive a link to reset your password shortly.
+              </p>
+              <Button className="w-full" onClick={() => navigate('/login')}>Back to Sign In</Button>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-display text-white mb-1.5">Forgot Password?</h2>
+                <p className="text-sm text-steel font-body">Enter your email and we'll send you a reset link</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label variant="dark">Email</Label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
+                    <Input
+                      variant="dark"
+                      type="email"
+                      placeholder="you@hotel.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 text-red-400 text-sm font-body bg-red-400/10 rounded-lg px-3 py-2">
+                    <AlertCircle size={14} />
+                    {error}
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Sending…' : 'Send Reset Link'}
+                </Button>
+              </form>
+
+              <button
+                onClick={() => navigate('/login')}
+                className="mt-6 w-full flex items-center justify-center gap-1.5 text-xs text-steel hover:text-silver font-body transition-colors"
+              >
+                <ArrowLeft size={13} /> Back to Sign In
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

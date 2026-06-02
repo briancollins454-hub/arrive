@@ -150,99 +150,37 @@ export function useBookings() {
         return newBooking;
       }
 
-      // Find or create guest (manual select-then-insert to avoid PostgREST ON CONFLICT limitations)
-      let guest: Guest;
-      const guestEmail = input.guest.email?.trim() || null;
-
-      if (guestEmail) {
-        // Check if guest already exists for this property
-        const { data: existing } = await supabase
-          .from('guests')
-          .select()
-          .eq('property_id', input.property_id)
-          .eq('email', guestEmail)
-          .maybeSingle();
-
-        if (existing) {
-          // Update existing guest details
-          const { data, error: guestError } = await supabase
-            .from('guests')
-            .update({
-              first_name: input.guest.first_name,
-              last_name: input.guest.last_name,
-              phone: input.guest.phone ?? null,
-            })
-            .eq('id', existing.id)
-            .select().single();
-          if (guestError) throw guestError;
-          guest = data as Guest;
-        } else {
-          // Insert new guest
-          const { data, error: guestError } = await supabase
-            .from('guests')
-            .insert({
-              property_id: input.property_id, first_name: input.guest.first_name,
-              last_name: input.guest.last_name, email: guestEmail,
-              phone: input.guest.phone ?? null,
-            })
-            .select().single();
-          if (guestError) throw guestError;
-          guest = data as Guest;
-        }
-      } else {
-        // No email — always insert a new guest (walk-in / phone)
-        const { data, error: guestError } = await supabase
-          .from('guests')
-          .insert({
-            property_id: input.property_id, first_name: input.guest.first_name,
-            last_name: input.guest.last_name, email: null,
-            phone: input.guest.phone ?? null,
-          })
-          .select().single();
-        if (guestError) throw guestError;
-        guest = data as Guest;
-      }
-
-      const nights = Math.ceil(
-        (new Date(input.check_out).getTime() - new Date(input.check_in).getTime()) / 86400000
-      );
-      const { data: roomType } = await supabase.from('room_types').select('base_rate').eq('id', input.room_type_id).single();
-      const rate = input.nightly_rate ?? roomType?.base_rate ?? 0;
-
-      const { data: inserted, error } = await supabase.from('bookings').insert({
-        property_id: input.property_id, guest_id: guest.id, room_type_id: input.room_type_id,
-        check_in: input.check_in, check_out: input.check_out, num_guests: input.num_guests,
-        source: input.source ?? 'direct', special_requests: input.special_requests ?? null,
-        nightly_rate: rate, total_amount: rate * nights, status: 'confirmed',
-        confirmation_code: `AR-${Date.now().toString(36).toUpperCase().slice(-6)}`,
-      }).select().single();
+      // Live mode: create guest + booking + folio atomically in a single
+      // SECURITY DEFINER RPC. This guarantees a booking never exists without
+      // its folio (4.5), lets the DB trigger own the confirmation code so it
+      // can't collide (4.4), and computes the room rate server-side so a
+      // browser can't tamper with the price (5.3).
+      const { data, error } = await supabase.rpc('create_booking', {
+        p_property_id: input.property_id,
+        p_room_type_id: input.room_type_id,
+        p_check_in: input.check_in,
+        p_check_out: input.check_out,
+        p_num_guests: input.num_guests,
+        p_guest: {
+          first_name: input.guest.first_name,
+          last_name: input.guest.last_name,
+          email: input.guest.email ?? '',
+          phone: input.guest.phone ?? '',
+        },
+        p_source: input.source ?? 'direct',
+        p_special_requests: input.special_requests ?? null,
+        p_nightly_rate: input.nightly_rate ?? null,
+        p_room_id: input.room_id ?? null,
+      });
 
       if (error) throw error;
-
-      // Auto-post room charges to folio
-      const rtName = (await supabase.from('room_types').select('name').eq('id', input.room_type_id).single()).data?.name ?? 'Room';
-      const { error: folioError } = await supabase.from('folio_entries').insert({
-        booking_id: inserted.id,
-        type: 'charge',
-        category: 'room',
-        description: `Room Charge — ${rtName} × ${nights} night${nights !== 1 ? 's' : ''}`,
-        amount: rate * nights,
-        quantity: nights,
-        unit_price: rate,
-        posted_by: 'System',
-        posted_at: new Date().toISOString(),
-        is_voided: false,
-      });
-      if (folioError) {
-        console.error('[Arrivé] Failed to post room charges to folio:', folioError);
-        toast.error('Booking created but room charges could not be posted to folio');
-      }
+      const inserted = data as Booking;
 
       // Ensure folio cache is fresh
       queryClient.invalidateQueries({ queryKey: ['folio', inserted.id] });
 
       toast.success('Booking created successfully');
-      return inserted as Booking;
+      return inserted;
     },
     onSuccess: () => { if (!isDemoMode) queryClient.invalidateQueries({ queryKey: ['bookings'] }); },
     onError: (err: Error) => { toast.error(err.message ?? 'Failed to create booking'); },

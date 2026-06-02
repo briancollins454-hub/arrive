@@ -312,40 +312,6 @@ The AI has access to staff data when connected to your live property database. I
 }
 
 // ============================================================
-// System prompt builder — feeds ALL property data to Claude (live mode)
-// ============================================================
-
-function buildSystemPrompt(propertyContext: Record<string, unknown> | null, propertyName: string): string {
-  const contextJson = propertyContext ? JSON.stringify(propertyContext, null, 0) : 'No property data loaded.';
-
-  return `You are Arrivé AI, an expert hotel management assistant. You have full access to all data for "${propertyName}".
-
-Your capabilities:
-- Analyse occupancy, revenue, ADR, RevPAR, and booking trends
-- Review guest profiles, preferences, and stay history
-- Monitor housekeeping status, maintenance work orders, and room availability
-- Track arrivals, departures, in-house guests, and no-shows
-- Review rate periods, packages, and pricing strategy
-- Analyse guest requests, concierge tasks, and service quality
-- Review group bookings, waitlist, and lost & found items
-- Provide actionable recommendations for revenue optimisation
-- Draft guest communications and operational summaries
-- Answer any question about the property's operations
-
-Rules:
-- Always base your answers on the ACTUAL data provided below. Never invent data.
-- Use UK English spelling (analyse, colour, optimise, etc.)
-- Format monetary values with £ symbol
-- When showing stats, use clear headers and bullet points
-- If data is missing for a query, say so honestly rather than guessing
-- Be concise but thorough. Hotel managers are busy.
-- Proactively suggest actions when you spot issues (e.g. dirty rooms before arrivals, overdue checkouts)
-
-CURRENT PROPERTY DATA (live snapshot):
-${contextJson}`;
-}
-
-// ============================================================
 // Hook
 // ============================================================
 
@@ -479,8 +445,8 @@ export function useAIAssistant() {
     },
   });
 
-  // ---- Send message (calls Claude API in live mode, demo responder in demo mode) ----
-  const sendMessage = useCallback(async (content: string, apiKey: string) => {
+  // ---- Send message (calls the ai-chat edge function in live mode, demo responder in demo mode) ----
+  const sendMessage = useCallback(async (content: string) => {
     if (!activeConversationId) return;
 
     const userMsg: AIMessage = {
@@ -531,49 +497,31 @@ export function useAIAssistant() {
       return;
     }
 
-    // --- LIVE MODE: call Claude API ---
-    // Save user message to DB
-    await supabase.from('ai_messages').insert({
-      conversation_id: activeConversationId,
-      role: 'user',
-      content,
-    });
-
-    // Build messages array for Claude
+    // --- LIVE MODE: call the ai-chat edge function ---
+    // The Anthropic API key never touches the browser — the edge function
+    // reads it server-side from property_secrets (service role), builds the
+    // property context, calls Claude, and persists both messages.
     const currentMessages = queryClient.getQueryData<AIMessage[]>(['ai-messages', activeConversationId]) ?? [];
-    const claudeMessages = currentMessages.map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })).filter((m) => m.role !== 'system' as string);
-
-    abortRef.current = new AbortController();
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 4096,
-          system: buildSystemPrompt(propertyContext ?? null, property?.name ?? 'Unknown Property'),
-          messages: claudeMessages,
-        }),
-        signal: abortRef.current.signal,
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { conversation_id: activeConversationId, content },
       });
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error?.message ?? `API error: ${response.status}`);
+      if (error) {
+        let message = error.message ?? 'Failed to get AI response';
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            if (body?.error) message = body.error;
+          }
+        } catch { /* ignore parse errors */ }
+        throw new Error(message);
       }
 
-      const data = await response.json();
-      const assistantContent = data.content?.[0]?.text ?? 'No response received.';
-      const tokensUsed = (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0);
+      const assistantContent = (data?.content as string) ?? 'No response received.';
+      const tokensUsed = (data?.tokens_used as number) ?? 0;
 
       const assistantMsg: AIMessage = {
         id: crypto.randomUUID(),
@@ -588,25 +536,12 @@ export function useAIAssistant() {
         [...(old ?? []), assistantMsg]
       );
 
-      // Persist assistant message
-      await supabase.from('ai_messages').insert({
-        conversation_id: activeConversationId,
-        role: 'assistant',
-        content: assistantContent,
-        tokens_used: tokensUsed,
-      });
-
-      // Update conversation title from first exchange
+      // The edge function may have set the conversation title on the first
+      // exchange — refresh the list so it shows.
       if (currentMessages.filter((m) => m.role === 'user').length <= 1) {
-        const title = content.length > 60 ? content.slice(0, 57) + '...' : content;
-        await supabase
-          .from('ai_conversations')
-          .update({ title, updated_at: new Date().toISOString() })
-          .eq('id', activeConversationId);
         queryClient.invalidateQueries({ queryKey: ['ai-conversations', propertyId] });
       }
     } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') return;
       const message = err instanceof Error ? err.message : 'Failed to get AI response';
       toast.error(message);
 
@@ -618,7 +553,7 @@ export function useAIAssistant() {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [activeConversationId, propertyContext, property?.name, propertyId, queryClient]);
+  }, [activeConversationId, propertyId, queryClient]);
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
