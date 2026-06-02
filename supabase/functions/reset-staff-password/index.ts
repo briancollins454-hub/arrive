@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { passwordResetEmail, sendPlatformEmail } from '../_shared/email.ts';
+import { resolveAppUrl, buildRecoveryUrl } from '../_shared/recovery.ts';
 
 const MANAGER_ROLES = ['owner', 'general_manager', 'front_office_manager'];
 
@@ -49,7 +50,7 @@ serve(async (req: Request) => {
       return json({ error: 'You are not authorized to reset this user\'s password.' }, 403);
     }
 
-    const appUrl = (Deno.env.get('APP_URL') ?? '').trim().replace(/\/$/, '');
+    const appUrl = resolveAppUrl();
     const email = (target.email as string).toLowerCase();
 
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
@@ -58,7 +59,8 @@ serve(async (req: Request) => {
       options: { redirectTo: `${appUrl}/reset-password` },
     });
 
-    if (linkError || !linkData?.properties?.action_link) {
+    const resetUrl = linkData?.properties ? buildRecoveryUrl(appUrl, linkData.properties) : null;
+    if (linkError || !resetUrl) {
       return json({ error: linkError?.message || 'Could not generate reset link' }, 400);
     }
 
@@ -67,7 +69,7 @@ serve(async (req: Request) => {
     try {
       const { subject, html } = passwordResetEmail({
         name: target.name as string,
-        resetUrl: linkData.properties.action_link,
+        resetUrl,
         byManager: true,
         propertyName,
       });

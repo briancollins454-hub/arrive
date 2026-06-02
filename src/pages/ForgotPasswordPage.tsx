@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -28,17 +29,27 @@ export function ForgotPasswordPage() {
     }
     setIsLoading(true);
     try {
-      // Branded reset email is delivered via the send-password-reset edge
-      // function (platform Resend). It always returns success and never
-      // reveals whether an account exists.
-      await supabase.functions.invoke('send-password-reset', {
+      // Branded reset email via send-password-reset (Resend). Never use
+      // supabase.auth.resetPasswordForEmail — that sends Supabase's template.
+      const { data, error } = await supabase.functions.invoke('send-password-reset', {
         body: { email: email.trim().toLowerCase() },
       });
-    } catch (err) {
-      console.warn('[Arrivé] reset invoke error:', err);
-    } finally {
+      if (error) {
+        console.warn('[Arrivé] reset invoke error:', error);
+        setError('Could not send reset email. Please try again in a moment.');
+        return;
+      }
+      if (data?.error) {
+        setError(String(data.error));
+        return;
+      }
       setSent(true);
       setCooldown(30);
+      toast.success('If that email is registered, a reset link is on its way.');
+    } catch (err) {
+      console.warn('[Arrivé] reset invoke error:', err);
+      setError('Could not send reset email. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };

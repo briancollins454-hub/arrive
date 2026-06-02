@@ -15,30 +15,64 @@ export function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Supabase places a recovery session in the URL (detectSessionInUrl).
-  // Wait for either an existing session or the PASSWORD_RECOVERY event.
+  // Recovery can arrive as:
+  // 1) ?token_hash=...&type=recovery (custom Resend email — preferred)
+  // 2) #access_token=... (Supabase verify redirect — legacy)
   useEffect(() => {
     if (isDemoMode) { setStatus('invalid'); return; }
 
     let resolved = false;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { resolved = true; setStatus('ready'); }
-    });
+    const clearRecoveryQuery = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token_hash');
+      url.searchParams.delete('type');
+      const qs = url.searchParams.toString();
+      window.history.replaceState({}, '', url.pathname + (qs ? `?${qs}` : '') + url.hash);
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled || resolved) return;
       if (event === 'PASSWORD_RECOVERY' || (session && event === 'SIGNED_IN')) {
         resolved = true;
         setStatus('ready');
       }
     });
 
-    // If nothing resolves quickly, the link is missing/expired.
-    const timer = setTimeout(() => {
-      if (!resolved) setStatus((s) => (s === 'verifying' ? 'invalid' : s));
-    }, 3000);
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const tokenHash = params.get('token_hash');
+      if (params.get('type') === 'recovery' && tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+        clearRecoveryQuery();
+        if (cancelled) return;
+        resolved = true;
+        setStatus(error ? 'invalid' : 'ready');
+        if (error) console.warn('[Arrivé] recovery verifyOtp:', error.message);
+        return;
+      }
 
-    return () => { subscription.unsubscribe(); clearTimeout(timer); };
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled || resolved) return;
+      if (session) {
+        resolved = true;
+        setStatus('ready');
+      }
+    }
+
+    init();
+
+    timer = setTimeout(() => {
+      if (!cancelled && !resolved) setStatus((s) => (s === 'verifying' ? 'invalid' : s));
+    }, 8000);
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   const passwordScore = (() => {

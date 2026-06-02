@@ -12,6 +12,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { passwordResetEmail, sendPlatformEmail } from '../_shared/email.ts';
+import { resolveAppUrl, buildRecoveryUrl } from '../_shared/recovery.ts';
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -26,22 +27,21 @@ serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-    const appUrl = (Deno.env.get('APP_URL') ?? '').trim().replace(/\/$/, '');
+    const appUrl = resolveAppUrl();
+    const redirectTo = `${appUrl}/reset-password`;
 
-    // Generate a recovery link. Errors (e.g. user not found) are swallowed
-    // so we always return the same neutral response.
+    // generateLink does NOT send email — we send via Resend only.
     const { data, error } = await admin.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: { redirectTo: `${appUrl}/reset-password` },
+      options: { redirectTo },
     });
 
-    if (error || !data?.properties?.action_link) {
-      console.warn('[send-password-reset] no link:', error?.message ?? 'unknown');
+    const resetUrl = data?.properties ? buildRecoveryUrl(appUrl, data.properties) : null;
+    if (error || !resetUrl) {
+      console.warn('[send-password-reset] no link:', error?.message ?? 'missing token');
       return neutral;
     }
-
-    const resetUrl = data.properties.action_link;
 
     // Try to use the person's name if we have a staff record.
     let name: string | undefined;
