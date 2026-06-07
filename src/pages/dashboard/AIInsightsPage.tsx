@@ -142,7 +142,7 @@ export function AIInsightsPage() {
           <Brain size={20} className="text-purple-400" />
         </div>
         <div>
-          <h1 className="text-3xl font-display text-white tracking-tight">AI Insights</h1>
+          <h1 className="text-3xl font-display gradient-text-vibrant tracking-tight">AI Insights</h1>
           <p className="text-sm text-steel font-body">Powered by predictive analytics{!isDemoMode && ' · Forecasts are estimates based on current data'}</p>
         </div>
       </div>

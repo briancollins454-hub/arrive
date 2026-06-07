@@ -140,7 +140,7 @@ export function WaitlistPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight flex items-center gap-2">
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight flex items-center gap-2">
             <ClipboardList size={24} className="text-teal" />
             Waitlist
           </h1>

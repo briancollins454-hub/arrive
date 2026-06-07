@@ -59,4 +59,22 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  build: {
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        // Split heavy vendors into their own cacheable chunks so the
+        // richer UI/motion layer doesn't bloat the main app bundle.
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          motion: ['framer-motion'],
+          supabase: ['@supabase/supabase-js'],
+          stripe: ['@stripe/react-stripe-js', '@stripe/stripe-js'],
+          markdown: ['react-markdown', 'remark-gfm'],
+          query: ['@tanstack/react-query'],
+          charts: ['date-fns'],
+        },
+      },
+    },
+  },
 });

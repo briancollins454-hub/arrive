@@ -71,7 +71,7 @@ export function LoginPage() {
               <h1 className="text-5xl font-display text-white leading-tight mb-4">
                 The all-in-one platform for
                 <br />
-                <span className="gradient-text">boutique hotels</span>
+                <span className="gradient-text-vibrant">boutique hotels</span>
               </h1>
               <p className="text-silver/60 font-body text-sm leading-relaxed max-w-sm">
                 Manage bookings, guests, rooms, and revenue — all from a single beautiful dashboard. No commissions. No complexity.

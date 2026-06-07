@@ -29,7 +29,7 @@ export function BillingPage() {
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Subscription & Billing</h1>
+        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Subscription & Billing</h1>
         <p className="text-sm text-steel font-body">Your Arrivé plan for {property?.name}</p>
       </div>
 
@@ -103,7 +103,7 @@ export function BillingPage() {
                     {p.room_min}{p.room_max ? `–${p.room_max}` : '+'} rooms
                   </p>
                   <div className="mb-4">
-                    <span className="text-3xl font-display text-white">{formatGBP(p.monthly_price_pence)}</span>
+                    <span className="text-3xl font-display gradient-text-vibrant">{formatGBP(p.monthly_price_pence)}</span>
                     <span className="text-steel text-sm font-body"> / month</span>
                   </div>
                   <Button

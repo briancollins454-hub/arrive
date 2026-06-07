@@ -202,7 +202,7 @@ export function BookingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">
             {viewParam === 'arrivals' ? 'Arrivals' : viewParam === 'departures' ? 'Departures' : 'Bookings'}
           </h1>
           <p className="text-sm text-steel font-body tracking-wide">

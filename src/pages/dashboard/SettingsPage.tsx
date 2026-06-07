@@ -570,7 +570,7 @@ export function SettingsPage() {
     <div className="p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Settings</h1>
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Settings</h1>
           <p className="text-sm text-steel font-body">Manage property, users, and system configuration</p>
         </div>
       </div>

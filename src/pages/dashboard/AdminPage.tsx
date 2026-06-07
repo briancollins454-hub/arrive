@@ -146,7 +146,7 @@ export function AdminPage() {
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Onboard New Hotel</h1>
+        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Onboard New Hotel</h1>
         <p className="text-sm text-steel font-body">Create a new property and send an owner invite</p>
       </div>
 

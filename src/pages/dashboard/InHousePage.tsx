@@ -87,7 +87,7 @@ export function InHousePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">In-House</h1>
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">In-House</h1>
           <p className="text-sm text-steel font-body">
             Currently occupied rooms & guests in residence
           </p>

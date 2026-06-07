@@ -171,7 +171,7 @@ export function ActivityLogPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Activity Log</h1>
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Activity Log</h1>
           <p className="text-sm text-steel font-body">
             Full audit trail of all actions across the property
           </p>

@@ -69,7 +69,7 @@ export function AccountPage() {
   return (
     <div className="p-6 lg:p-8 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">My Account</h1>
+        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">My Account</h1>
         <p className="text-sm text-steel font-body">Manage your profile and password</p>
       </div>
 

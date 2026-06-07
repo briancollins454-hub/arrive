@@ -21,8 +21,12 @@ export const HotelHero: FC<HotelHeroProps> = ({ property }) => {
         />
       )}
 
+      {/* Vibrant ambient glow */}
+      <div className="pointer-events-none absolute -top-24 left-1/4 w-[420px] h-[420px] rounded-full bg-magenta/[0.1] blur-[120px] animate-aurora-float-1" />
+      <div className="pointer-events-none absolute -bottom-24 right-1/4 w-[420px] h-[420px] rounded-full bg-electric/[0.1] blur-[120px] animate-aurora-float-2" />
+
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <h1 className="text-3xl sm:text-5xl font-display mb-3">
+        <h1 className="text-4xl sm:text-6xl font-display mb-3 tracking-tight">
           {property.name}
         </h1>
 

@@ -14,7 +14,13 @@ function goDemo(path: string) {
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-midnight text-white">
+    <div className="min-h-screen bg-midnight text-white relative overflow-hidden">
+      {/* Ambient vibrant background */}
+      <div className="pointer-events-none absolute inset-0 mesh-gradient opacity-80" />
+      <div className="pointer-events-none absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full bg-magenta/[0.06] blur-[140px] animate-aurora-float-1" />
+      <div className="pointer-events-none absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-electric/[0.06] blur-[130px] animate-aurora-float-2" />
+      <div className="pointer-events-none absolute top-1/2 left-0 w-[500px] h-[500px] rounded-full bg-purple/[0.05] blur-[130px] animate-aurora-float-3" />
+      <div className="relative z-10">
       {/* Nav */}
       <header className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -31,18 +37,18 @@ export function LandingPage() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 border border-gold/20 text-gold text-xs uppercase tracking-widest mb-6">
-          <Sparkles className="w-3 h-3" /> Built for independent hotels
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-mist text-xs uppercase tracking-widest mb-6 vibrant-ring">
+          <Sparkles className="w-3 h-3 text-gold" /> Built for independent hotels
         </div>
-        <h1 className="text-5xl md:text-6xl font-display tracking-tight mb-5 leading-[1.05]">
+        <h1 className="text-5xl md:text-7xl font-display tracking-tight mb-5 leading-[1.05]">
           Hotel software that actually<br />
-          <span className="text-gold">works like you do.</span>
+          <span className="gradient-text-vibrant">works like you do.</span>
         </h1>
         <p className="text-lg text-silver max-w-2xl mx-auto mb-8 font-body">
           A modern PMS, direct booking engine, and guest lifecycle toolkit for boutique and independent properties. Flat pricing from £149/mo. Zero commission on direct bookings. No bloat.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link to="/login" onClick={goDemo('/login')} className="px-6 py-3 rounded-lg bg-gold text-midnight font-semibold hover:bg-gold-light transition-colors flex items-center gap-2">
+          <Link to="/login" onClick={goDemo('/login')} className="btn-vibrant sheen px-6 py-3 flex items-center gap-2 text-base">
             Try the live demo <ArrowRight className="w-4 h-4" />
           </Link>
           <a href="#pricing" className="px-6 py-3 rounded-lg border border-white/15 hover:bg-white/[0.06] transition-colors">See pricing</a>
@@ -205,6 +211,7 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }

@@ -38,7 +38,7 @@ export function AdminBillingPage() {
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Billing</h1>
+        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Billing</h1>
         <p className="text-sm text-steel font-body">Subscriptions and recurring revenue across all hotels</p>
       </div>
 

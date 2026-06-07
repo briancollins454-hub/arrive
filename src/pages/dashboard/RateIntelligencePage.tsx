@@ -119,7 +119,7 @@ export function RateIntelligencePage() {
           <Globe size={20} className="text-gold" />
         </div>
         <div className="flex-1">
-          <h1 className="text-3xl font-display text-white tracking-tight">Rate Intelligence</h1>
+          <h1 className="text-3xl font-display gradient-text-vibrant tracking-tight">Rate Intelligence</h1>
           <p className="text-sm text-steel font-body">Competitor monitoring · Rate parity · Dynamic pricing</p>
         </div>
         <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-body font-semibold bg-white/[0.05] border border-white/[0.1] text-steel hover:text-white hover:bg-white/[0.08] transition-all">

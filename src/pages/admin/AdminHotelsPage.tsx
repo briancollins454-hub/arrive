@@ -18,10 +18,10 @@ export function AdminHotelsPage() {
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-display text-white mb-1.5 tracking-tight">Hotels</h1>
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Hotels</h1>
           <p className="text-sm text-steel font-body">All properties on the platform</p>
         </div>
-        <Button onClick={() => navigate('/admin/onboard')}>
+        <Button variant="vibrant" onClick={() => navigate('/admin/onboard')}>
           <Plus size={16} className="mr-2" /> Onboard Hotel
         </Button>
       </div>
