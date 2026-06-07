@@ -289,9 +289,9 @@ export function DashboardHome() {
       {/* Hero Header — cinematic welcome */}
       <div className="opacity-0 animate-fade-in mb-6 sm:mb-10 relative z-10">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="hero-glow">
+          <div className="hero-glow vibrant-aura">
             <div className="flex items-center gap-3 mb-3">
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-display text-white tracking-tight leading-none">{getGreeting()}</h1>
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-display gradient-text-vibrant tracking-tight leading-none">{getGreeting()}</h1>
               <Sparkles size={20} className="text-gold animate-pulse-soft drop-shadow-[0_0_12px_rgba(201,168,76,0.5)]" />
             </div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -303,7 +303,7 @@ export function DashboardHome() {
               </div>
             </div>
           </div>
-          <Button onClick={() => setShowNewBooking(true)} className="shadow-[0_4px_24px_rgba(201,168,76,0.3)] hover:shadow-[0_8px_40px_rgba(201,168,76,0.4)] transition-all duration-500 w-full sm:w-auto">
+          <Button variant="vibrant" onClick={() => setShowNewBooking(true)} className="transition-all duration-500 w-full sm:w-auto">
             <Plus size={16} className="mr-2" />
             New Booking
           </Button>

@@ -94,6 +94,8 @@ export const DashboardStats: FC<{ stats: StatCardProps[] }> = ({ stats }) => {
             i === 3 && 'animate-stagger-4',
           )}
         >
+          {/* Vibrant top accent bar — reveals on hover */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-vibrant bg-[length:200%_100%] animate-gradient-pan opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           {/* Large ambient glow orb */}
           <div className={cn(
             'absolute -top-12 -right-12 w-36 h-36 rounded-full blur-[50px] opacity-0 group-hover:opacity-100 transition-all duration-700',

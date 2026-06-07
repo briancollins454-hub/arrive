@@ -67,6 +67,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { BookingLayout } from '@/components/booking/BookingLayout';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { MotionProvider } from '@/lib/motion';
 import { RequirePermission } from '@/components/shared/RequirePermission';
 import InstallPrompt from '@/components/shared/InstallPrompt';
 
@@ -83,6 +84,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
+      <MotionProvider>
       <BrowserRouter>
         <Routes>
           {/* ============================== */}
@@ -166,6 +168,7 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
+      </MotionProvider>
       </ErrorBoundary>
 
       <Toaster
@@ -173,11 +176,18 @@ function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#1E293B',
+            background: 'linear-gradient(135deg, rgba(20,24,37,0.97), rgba(10,14,26,0.97))',
             color: '#E2E8F0',
-            borderRadius: '10px',
-            border: '1px solid #334155',
+            borderRadius: '14px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 12px 40px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
+            fontSize: '13px',
+            fontWeight: 500,
+            padding: '12px 16px',
+            backdropFilter: 'blur(12px)',
           },
+          success: { iconTheme: { primary: '#0ea5a0', secondary: '#0a0e1a' } },
+          error: { iconTheme: { primary: '#fb3b6c', secondary: '#0a0e1a' } },
         }}
       />
 

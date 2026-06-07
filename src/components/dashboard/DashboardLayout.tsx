@@ -20,6 +20,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { isDemoMode, supabase, exitDemoMode } from '@/lib/supabase';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { useMySubscription, isLocked } from '@/hooks/useBilling';
+import { PageTransition } from '@/lib/motion';
 import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 import { formatDistanceToNow } from 'date-fns';
 import type { StaffRole } from '@/types';
@@ -356,7 +357,9 @@ export function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gradient-to-b from-midnight via-midnight to-[#070b14] relative">
-          {billingLocked ? <BillingGate status={subscription?.status} onGoToBilling={() => navigate('/dashboard/billing')} /> : <Outlet />}
+          {billingLocked
+            ? <BillingGate status={subscription?.status} onGoToBilling={() => navigate('/dashboard/billing')} />
+            : <PageTransition><Outlet /></PageTransition>}
         </main>
 
         {/* Ambient floating light orbs — fixed position, behind all content */}

@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { CheckCircle2, Calendar, BedDouble, User, CreditCard } from 'lucide-react';
 import { formatCurrency, formatDate, calculateNights } from '@/lib/utils';
+import { Confetti } from '@/components/shared/Confetti';
 
 interface BookingConfirmationProps {
   confirmationCode: string;
@@ -29,14 +30,19 @@ export const BookingConfirmation: FC<BookingConfirmationProps> = ({
 
   return (
     <div className="max-w-lg mx-auto text-center">
-      {/* Success icon */}
+      <Confetti />
+      {/* Success icon with celebratory pulse rings */}
       <div className="flex justify-center mb-4">
-        <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-          <CheckCircle2 size={40} className="text-success" />
+        <div className="relative w-20 h-20 flex items-center justify-center">
+          <span className="absolute inset-0 rounded-full bg-success/30 animate-pulse-ring" />
+          <span className="absolute inset-0 rounded-full bg-success/20 animate-pulse-ring" style={{ animationDelay: '0.6s' }} />
+          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-success/20 to-teal/10 border border-success/30 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+            <CheckCircle2 size={40} className="text-success animate-pop-in" />
+          </div>
         </div>
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-display text-midnight mb-2">
+      <h1 className="text-3xl sm:text-4xl font-display text-midnight mb-2">
         Booking Confirmed!
       </h1>
       <p className="text-steel font-body mb-6">

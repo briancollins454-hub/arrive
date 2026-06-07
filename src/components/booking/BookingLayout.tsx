@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { BookingPropertyProvider } from '@/hooks/useBookingProperty';
+import { PageTransition } from '@/lib/motion';
 
 export function BookingLayout() {
   return (
@@ -21,7 +22,7 @@ export function BookingLayout() {
 
         {/* Page Content */}
         <main className="min-h-[calc(100vh-60px)]">
-          <Outlet />
+          <PageTransition><Outlet /></PageTransition>
         </main>
 
         {/* Footer */}
