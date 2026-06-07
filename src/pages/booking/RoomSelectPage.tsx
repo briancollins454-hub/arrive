@@ -39,7 +39,7 @@ export function RoomSelectPage() {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-display text-midnight mb-1">Choose Your Room</h1>
+            <h1 className="text-3xl font-display gradient-text-vibrant mb-1">Choose Your Room</h1>
             <p className="text-sm text-charcoal/60 font-body">
               {format(new Date(checkIn), 'MMM d')} – {format(new Date(checkOut), 'MMM d, yyyy')} · {guests} guest{guests !== 1 ? 's' : ''}
             </p>

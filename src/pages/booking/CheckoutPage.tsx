@@ -145,7 +145,7 @@ export function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-display text-midnight mb-6">Complete Your Booking</h1>
+      <h1 className="text-3xl font-display gradient-text-vibrant mb-6">Complete Your Booking</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Checkout Form */}

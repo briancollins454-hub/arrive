@@ -250,7 +250,7 @@ export function CityLedgerPage() {
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold gradient-text-vibrant tracking-tight flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-gradient-to-br from-gold/20 to-gold/5 border border-gold/20">
               <Landmark size={22} className="text-gold" />
             </div>

@@ -251,7 +251,7 @@ export function TapeChartPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Tape Chart</h1>
+          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Tape Chart</h1>
           <p className="text-silver text-sm mt-1">
             Visual room availability — {format(startDate, 'MMM d')} to {format(addDays(startDate, viewSpan - 1), 'MMM d, yyyy')}
           </p>

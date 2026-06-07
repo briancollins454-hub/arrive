@@ -46,7 +46,7 @@ export function FeatureTogglesPage() {
           <Shield size={20} className="text-teal" />
         </div>
         <div>
-          <h1 className="text-lg font-display text-white">Feature Toggles</h1>
+          <h1 className="text-lg font-display gradient-text-vibrant">Feature Toggles</h1>
           <p className="text-xs text-steel font-body">
             Enable or disable features for this property. {!isOwner && 'Only the property owner can change these settings.'}
           </p>

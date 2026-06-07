@@ -105,7 +105,7 @@ export function PackagesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Packages & Add-ons</h1>
+          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Packages & Add-ons</h1>
           <p className="text-silver text-sm mt-1">
             Create rate packages guests can add to their stay
           </p>

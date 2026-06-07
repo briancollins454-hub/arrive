@@ -122,7 +122,7 @@ export function SelfCheckInPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 text-gold text-xs uppercase tracking-widest mb-4">
             <Sparkles className="w-3 h-3" /> Online check-in
           </div>
-          <h1 className="text-3xl font-display text-midnight mb-2">
+          <h1 className="text-3xl font-display gradient-text-vibrant mb-2">
             Welcome {property?.name ? `to ${property.name}` : ''}
           </h1>
           <p className="text-steel text-sm">
@@ -179,7 +179,7 @@ export function SelfCheckInPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-display text-midnight mb-2">
+        <h1 className="text-3xl font-display gradient-text-vibrant mb-2">
           Hi {booking.guest_first_name}, let's get you checked in
         </h1>
         <p className="text-steel text-sm">A few quick details to speed up your arrival.</p>

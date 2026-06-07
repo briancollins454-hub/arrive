@@ -240,7 +240,7 @@ export function HousekeepingPage() {
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold gradient-text-vibrant tracking-tight flex items-center gap-3">
             <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-teal/20 to-teal/5 border border-teal/20">
               <SprayCan size={20} className="text-teal sm:w-[22px] sm:h-[22px]" />
             </div>

@@ -621,7 +621,7 @@ export function BookingDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-display text-white tracking-tight">
+            <h1 className="text-3xl font-display gradient-text-vibrant tracking-tight">
               {booking.confirmation_code}
             </h1>
             <StatusBadge status={booking.status} />

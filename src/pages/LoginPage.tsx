@@ -107,7 +107,7 @@ export function LoginPage() {
 
             <div className="glass-panel p-8 border border-white/[0.08] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.5)]">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-display text-white mb-1.5">Welcome Back</h2>
+                <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">Welcome Back</h2>
                 <p className="text-sm text-steel font-body">Sign in to your dashboard</p>
               </div>
 

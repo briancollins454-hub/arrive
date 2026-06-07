@@ -190,7 +190,7 @@ export function InviteAcceptPage() {
         {!loading && invite && !done && (
           <div className="glass-panel p-8 border border-white/[0.08]">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-display text-white mb-1.5">You're Invited</h2>
+              <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">You're Invited</h2>
               {invite.property_name && (
                 <p className="text-sm text-gold font-body font-medium">{invite.property_name}</p>
               )}

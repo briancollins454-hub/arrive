@@ -348,7 +348,7 @@ export function FinancialDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Financial Dashboard</h1>
+          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Financial Dashboard</h1>
           <p className="text-sm text-steel font-body tracking-wide mt-1">
             {property?.name ?? 'Property'} — {periodLabel}
           </p>

@@ -91,7 +91,7 @@ export function ForgotPasswordPage() {
           ) : (
             <>
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-display text-white mb-1.5">Forgot Password?</h2>
+                <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">Forgot Password?</h2>
                 <p className="text-sm text-steel font-body">Enter your email and we'll send you a reset link</p>
               </div>
 

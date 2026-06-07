@@ -42,7 +42,7 @@ export function HotelPage() {
               <div className="flex items-center gap-2 mb-4">
                 <DirectBookingBadge />
               </div>
-              <h2 className="text-3xl font-display text-midnight mb-4">
+              <h2 className="text-3xl font-display gradient-text-vibrant mb-4">
                 Welcome to {property.name}
               </h2>
               <p className="text-charcoal/70 font-body leading-relaxed">

@@ -85,7 +85,7 @@ export function ConciergePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Concierge</h1>
+          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Concierge</h1>
           <p className="text-silver text-sm mt-1">Guest requests, wake-up calls & services</p>
         </div>
         <Button variant="teal" onClick={() => setShowForm(true)}>

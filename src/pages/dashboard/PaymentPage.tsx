@@ -224,7 +224,7 @@ export function PaymentPage() {
     <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-display font-bold text-white tracking-tight">Payment Terminal</h1>
+        <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Payment Terminal</h1>
         <p className="text-silver text-sm mt-1">Process guest payments securely</p>
       </div>
 

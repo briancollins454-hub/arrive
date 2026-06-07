@@ -136,7 +136,7 @@ export function GuestMessagingPage() {
     <div className="h-[calc(100vh-8rem)] p-6 lg:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Guest Messaging</h1>
+          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Guest Messaging</h1>
           <p className="text-silver text-sm mt-1">WhatsApp & SMS conversations with in-house guests</p>
         </div>
       </div>

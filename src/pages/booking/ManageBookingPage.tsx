@@ -100,7 +100,7 @@ export function ManageBookingPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-display text-midnight mb-2">Manage Your Booking</h1>
+      <h1 className="text-3xl font-display gradient-text-vibrant mb-2">Manage Your Booking</h1>
       <p className="text-charcoal/60 font-body mb-8">
         Enter your confirmation code and email to view or modify your booking
       </p>
