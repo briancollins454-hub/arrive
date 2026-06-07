@@ -197,8 +197,10 @@ export function LandingPage() {
       <footer className="border-t border-white/[0.08] py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-steel font-body">
           <span>© {new Date().getFullYear()} Arrivé. Built for hoteliers who've had enough.</span>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-5">
             <Link to="/login" className="hover:text-white">Sign in</Link>
+            <Link to="/privacy" className="hover:text-white">Privacy</Link>
+            <Link to="/terms" className="hover:text-white">Terms</Link>
             <a href="mailto:brian@thesupportsdesk.com" className="hover:text-white">brian@thesupportsdesk.com</a>
           </div>
         </div>

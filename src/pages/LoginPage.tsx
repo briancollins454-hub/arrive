@@ -184,6 +184,12 @@ export function LoginPage() {
                   <p className="mt-5 text-center text-[11px] text-steel/40 font-body tracking-wide">
                     Full access, no sign-up required
                   </p>
+
+                  <div className="mt-6 flex items-center justify-center gap-4 text-[11px] text-steel/50 font-body">
+                    <button onClick={() => navigate('/privacy')} className="hover:text-silver transition-colors">Privacy</button>
+                    <span className="text-steel/20">·</span>
+                    <button onClick={() => navigate('/terms')} className="hover:text-silver transition-colors">Terms</button>
+                  </div>
             </div>
           </div>
         </div>

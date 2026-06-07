@@ -151,6 +151,12 @@ export function CheckoutPage() {
         {/* Checkout Form */}
         <div className="lg:col-span-2">
           <CheckoutForm onSubmit={handleCheckout} isLoading={false} totalAmount={totalWithTax} currency="GBP" clientSecret={clientSecret} />
+          <p className="mt-4 text-xs text-charcoal/50 font-body">
+            By completing this booking you agree to our{' '}
+            <a href="/terms" target="_blank" rel="noreferrer" className="text-teal hover:underline">Terms of Service</a>{' '}
+            and{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer" className="text-teal hover:underline">Privacy Policy</a>.
+          </p>
         </div>
 
         {/* Order Summary */}

@@ -57,6 +57,7 @@ import { SelfCheckInPage } from '@/pages/booking/SelfCheckInPage';
 // Pages — Auth & Misc
 import { LoginPage } from '@/pages/LoginPage';
 import { LandingPage } from '@/pages/LandingPage';
+import { LegalPage } from '@/pages/LegalPage';
 import { InviteAcceptPage } from '@/pages/InviteAcceptPage';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
@@ -155,6 +156,10 @@ function App() {
           <Route path="/invite/:token" element={<InviteAcceptPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+          {/* Legal */}
+          <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+          <Route path="/terms" element={<LegalPage doc="terms" />} />
 
           {/* Landing page */}
           <Route path="/" element={<LandingPage />} />
