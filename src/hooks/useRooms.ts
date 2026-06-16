@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { useProperty } from './useProperty';
 import { logActivity } from './useActivityLog';
-import { getDemoRoomTypes, getDemoRooms } from './demoData';
+import { getDemoRoomTypes, getDemoRooms, saveDemoRoomTypes } from './demoData';
 import type { RoomType, Room, RoomStatus, HousekeepingStatus } from '@/types';
 import type { RoomFormData, RoomTypeFormData } from '@/lib/validators';
 import toast from 'react-hot-toast';
@@ -61,6 +61,7 @@ export function useRooms() {
           is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         };
         queryClient.setQueryData<RoomType[]>(['room-types', propertyId], (old) => [...(old ?? []), newRT]);
+        saveDemoRoomTypes(propertyId!, queryClient.getQueryData<RoomType[]>(['room-types', propertyId]) ?? []);
         toast.success('Room type created');
         return;
       }
@@ -81,6 +82,7 @@ export function useRooms() {
         queryClient.setQueryData<RoomType[]>(['room-types', propertyId], (old) =>
           (old ?? []).map((rt) => rt.id === id ? { ...rt, ...input, updated_at: new Date().toISOString() } : rt)
         );
+        saveDemoRoomTypes(propertyId!, queryClient.getQueryData<RoomType[]>(['room-types', propertyId]) ?? []);
         toast.success('Room type updated');
         return;
       }
@@ -105,6 +107,7 @@ export function useRooms() {
         queryClient.setQueryData<RoomType[]>(['room-types', propertyId], (old) =>
           (old ?? []).filter((rt) => rt.id !== id)
         );
+        saveDemoRoomTypes(propertyId!, queryClient.getQueryData<RoomType[]>(['room-types', propertyId]) ?? []);
         toast.success('Room type deleted');
         return;
       }

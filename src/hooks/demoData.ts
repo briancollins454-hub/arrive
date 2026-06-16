@@ -305,8 +305,39 @@ const currentBookingsLookup: Record<string, Booking[]> = {
 const historicalCache = new Map<string, Booking[]>();
 const allBookingsCache = new Map<string, Booking[]>();
 
+// ── Demo persistence ─────────────────────────────────────────
+// Demo mode normally keeps everything in memory, which means edits vanish
+// on reload or when the booking site opens in a new tab. We persist
+// room-type edits (incl. uploaded photos) to localStorage so they survive
+// across tabs/reloads and show up on the public booking site.
+const DEMO_RT_KEY = 'arrive_demo_room_types_v1';
+
+function loadDemoRoomTypeOverrides(): Record<string, RoomType[]> {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(DEMO_RT_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, RoomType[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Persist the full room-type list for a property in demo mode. */
+export function saveDemoRoomTypes(propertyId: string, roomTypes: RoomType[]): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const all = loadDemoRoomTypeOverrides();
+    all[propertyId] = roomTypes;
+    localStorage.setItem(DEMO_RT_KEY, JSON.stringify(all));
+  } catch {
+    // Ignore (e.g. storage quota exceeded) — falls back to in-memory only.
+  }
+}
+
 /** Room types for the given property (or default property) */
 export function getDemoRoomTypes(propertyId: string): RoomType[] {
+  const overrides = loadDemoRoomTypeOverrides();
+  if (overrides[propertyId]) return overrides[propertyId]!;
   return roomTypesLookup[propertyId] ?? p1RoomTypes;
 }
 
