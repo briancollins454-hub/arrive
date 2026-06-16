@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase, isDemoMode, isPlatformAdmin } from '@/lib/supabase';
+import { supabase, isDemoMode, isPlatformAdmin, getEdgeFunctionError } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -105,7 +105,7 @@ export function AdminPage() {
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(await getEdgeFunctionError(error, 'Failed to onboard hotel'));
       if (data?.error) throw new Error(data.error);
 
       setCreatedPropertyId(data.property_id);

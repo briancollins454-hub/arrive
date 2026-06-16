@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase, isDemoMode } from '@/lib/supabase';
+import { supabase, isDemoMode, getEdgeFunctionError } from '@/lib/supabase';
 import { Logo } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -95,7 +95,7 @@ export function InviteAcceptPage() {
         body: { token, password, name: invite.name },
       });
 
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) throw new Error(await getEdgeFunctionError(fnError, 'Could not create your account'));
 
       if (data?.error) {
         if (data.code === 'user_exists') {

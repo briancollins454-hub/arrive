@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient, FunctionsHttpError, type SupabaseClient } from '@supabase/supabase-js';
 // import type { Database } from '@/types/database';
 // ^ Uncomment after running: npx supabase gen types typescript > src/types/database.ts
 
@@ -65,4 +65,32 @@ export const PLATFORM_ADMIN_EMAIL = (import.meta.env.VITE_PLATFORM_ADMIN_EMAIL ?
 export function isPlatformAdmin(email: string | undefined | null): boolean {
   if (!PLATFORM_ADMIN_EMAIL || !email) return false;
   return email.toLowerCase() === PLATFORM_ADMIN_EMAIL;
+}
+
+/**
+ * Extract a human-readable message from a Supabase Edge Function error.
+ *
+ * `supabase.functions.invoke` reports any non-2xx response as a generic
+ * "Edge Function returned a non-2xx status code" error. The actual reason
+ * lives in the response body (our functions return `{ error: '…' }`), which
+ * is only reachable via `error.context`. This reads that body so callers can
+ * show the real message instead of the unhelpful default.
+ */
+export async function getEdgeFunctionError(
+  error: unknown,
+  fallback = 'Something went wrong. Please try again.',
+): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const res = error.context as Response;
+      const cloned = typeof res?.clone === 'function' ? res.clone() : res;
+      const body = await cloned.json();
+      if (body?.error) return String(body.error);
+      if (body?.message) return String(body.message);
+    } catch {
+      // Body wasn't JSON — fall through to the generic message below.
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
 }
