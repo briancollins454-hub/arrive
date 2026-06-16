@@ -10,7 +10,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/Select';
 import { AMENITIES, BED_TYPES } from '@/lib/constants';
-import { Plus, Trash2, ImagePlus, Star, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, Star, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { RoomType } from '@/types';
 
@@ -104,7 +104,6 @@ export const RoomTypeEditor: FC<RoomTypeEditorProps> = ({
   const images = watch('images') ?? [];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
 
   const setImages = (next: string[]) => setValue('images', next, { shouldDirty: true });
 
@@ -126,17 +125,6 @@ export const RoomTypeEditor: FC<RoomTypeEditorProps> = ({
       setIsProcessing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
-
-  const addImageUrl = () => {
-    const url = urlInput.trim();
-    if (!url) return;
-    if (!/^https?:\/\//i.test(url)) {
-      toast.error('Enter a valid image URL (https://…)');
-      return;
-    }
-    setImages([...images, url]);
-    setUrlInput('');
   };
 
   const removeImage = (idx: number) => setImages(images.filter((_, i) => i !== idx));
@@ -289,39 +277,22 @@ export const RoomTypeEditor: FC<RoomTypeEditorProps> = ({
           onChange={(e) => handleFiles(e.target.files)}
         />
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            type="button"
-            variant="ghost-dark"
-            size="sm"
-            disabled={isProcessing}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {isProcessing ? (
-              <><Loader2 size={14} className="mr-1.5 animate-spin" /> Processing…</>
-            ) : (
-              <><ImagePlus size={14} className="mr-1.5" /> Upload photos</>
-            )}
-          </Button>
-
-          <div className="flex items-center gap-2 flex-1">
-            <Input
-              variant="dark"
-              placeholder="…or paste an image URL"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addImageUrl();
-                }
-              }}
-            />
-            <Button type="button" variant="ghost-dark" size="icon-sm" onClick={addImageUrl} title="Add URL">
-              <LinkIcon size={14} />
-            </Button>
-          </div>
-        </div>
+        <button
+          type="button"
+          disabled={isProcessing}
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full flex flex-col items-center justify-center gap-2 py-6 rounded-lg border border-dashed border-slate hover:border-gold/50 bg-slate/20 hover:bg-slate/30 text-steel hover:text-silver transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isProcessing ? (
+            <><Loader2 size={20} className="animate-spin" /> <span className="text-sm font-body">Processing…</span></>
+          ) : (
+            <>
+              <ImagePlus size={20} />
+              <span className="text-sm font-body font-medium">Upload photos</span>
+              <span className="text-xs font-body text-steel/70">Click to choose images from your device</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Actions */}
