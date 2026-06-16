@@ -56,7 +56,7 @@ export function useRooms() {
           id, property_id: propertyId!, name: input.name,
           description: input.description ?? '', base_rate: input.base_rate,
           max_occupancy: input.max_occupancy, amenities: input.amenities ?? [],
-          images: [], bed_config: input.bed_config ?? [],
+          images: input.images ?? [], bed_config: input.bed_config ?? [],
           sort_order: (queryClient.getQueryData<RoomType[]>(['room-types', propertyId])?.length ?? 0) + 1,
           is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         };

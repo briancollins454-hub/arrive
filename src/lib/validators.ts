@@ -49,6 +49,7 @@ export const roomTypeSchema = z.object({
   base_rate: z.number().min(0, 'Rate must be positive'),
   max_occupancy: z.number().min(1).max(20),
   amenities: z.array(z.string()).optional(),
+  images: z.array(z.string()).optional(),
   bed_config: z.array(z.object({
     type: z.string(),
     count: z.number().min(1),

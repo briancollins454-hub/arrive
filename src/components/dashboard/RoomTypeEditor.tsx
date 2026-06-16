@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { type FC, useRef, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { roomTypeSchema, type RoomTypeFormData } from '@/lib/validators';
@@ -10,8 +10,45 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/Select';
 import { AMENITIES, BED_TYPES } from '@/lib/constants';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, Star, Link as LinkIcon, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { RoomType } from '@/types';
+
+/**
+ * Read an image File and return a downscaled, compressed data URL.
+ * Storing data URLs in the room_types.images text[] column keeps photos
+ * working identically in demo mode (in-memory) and real Supabase mode,
+ * with no storage bucket to provision. Raster images are resized to keep
+ * the encoded string small; vector/animated formats pass through untouched.
+ */
+async function fileToDataUrl(file: File, maxDim = 1280, quality = 0.82): Promise<string> {
+  const original = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+
+  if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) return original;
+
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(original);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(original);
+    img.src = original;
+  });
+}
 
 interface RoomTypeEditorProps {
   roomType?: RoomType | null;
@@ -41,6 +78,7 @@ export const RoomTypeEditor: FC<RoomTypeEditorProps> = ({
       base_rate: roomType?.base_rate ?? 0,
       max_occupancy: roomType?.max_occupancy ?? 2,
       amenities: roomType?.amenities ?? [],
+      images: roomType?.images ?? [],
       bed_config: roomType?.bed_config ?? [{ type: 'double', count: 1 }],
       sort_order: roomType?.sort_order ?? 0,
       is_active: roomType?.is_active ?? true,
@@ -60,6 +98,53 @@ export const RoomTypeEditor: FC<RoomTypeEditorProps> = ({
       ? current.filter((a) => a !== amenityId)
       : [...current, amenityId];
     setValue('amenities', next);
+  };
+
+  // ---- Photos ----
+  const images = watch('images') ?? [];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+
+  const setImages = (next: string[]) => setValue('images', next, { shouldDirty: true });
+
+  const handleFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+    if (files.length === 0) {
+      toast.error('Please choose image files');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const dataUrls = await Promise.all(files.map((f) => fileToDataUrl(f)));
+      setImages([...images, ...dataUrls]);
+      toast.success(`${dataUrls.length} photo${dataUrls.length !== 1 ? 's' : ''} added`);
+    } catch {
+      toast.error('Could not process one or more images');
+    } finally {
+      setIsProcessing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const addImageUrl = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      toast.error('Enter a valid image URL (https://…)');
+      return;
+    }
+    setImages([...images, url]);
+    setUrlInput('');
+  };
+
+  const removeImage = (idx: number) => setImages(images.filter((_, i) => i !== idx));
+
+  const makeCover = (idx: number) => {
+    const picked = images[idx];
+    if (idx === 0 || picked === undefined) return;
+    setImages([picked, ...images.filter((_, i) => i !== idx)]);
   };
 
   return (
@@ -145,6 +230,97 @@ export const RoomTypeEditor: FC<RoomTypeEditorProps> = ({
               {a.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Photos */}
+      <div>
+        <Label variant="dark">Photos</Label>
+        <p className="text-xs text-steel font-body mt-0.5 mb-2">
+          Add photos guests will see when booking this room. The first photo is used as the cover.
+        </p>
+
+        {images.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+            {images.map((src, idx) => (
+              <div
+                key={`${src.slice(0, 24)}-${idx}`}
+                className="group relative aspect-[4/3] rounded-lg overflow-hidden border border-slate bg-slate/30"
+              >
+                <img src={src} alt={`Room photo ${idx + 1}`} className="w-full h-full object-cover" />
+
+                {idx === 0 && (
+                  <span className="absolute top-1 left-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gold/90 text-midnight text-[10px] font-body font-semibold">
+                    <Star size={10} className="fill-current" /> Cover
+                  </span>
+                )}
+
+                <div className="absolute inset-0 bg-midnight/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                  {idx !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => makeCover(idx)}
+                      title="Set as cover"
+                      className="p-1.5 rounded-md bg-white/10 text-white hover:bg-gold hover:text-midnight transition-colors"
+                    >
+                      <Star size={14} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    title="Remove photo"
+                    className="p-1.5 rounded-md bg-white/10 text-white hover:bg-danger hover:text-white transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            type="button"
+            variant="ghost-dark"
+            size="sm"
+            disabled={isProcessing}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isProcessing ? (
+              <><Loader2 size={14} className="mr-1.5 animate-spin" /> Processing…</>
+            ) : (
+              <><ImagePlus size={14} className="mr-1.5" /> Upload photos</>
+            )}
+          </Button>
+
+          <div className="flex items-center gap-2 flex-1">
+            <Input
+              variant="dark"
+              placeholder="…or paste an image URL"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addImageUrl();
+                }
+              }}
+            />
+            <Button type="button" variant="ghost-dark" size="icon-sm" onClick={addImageUrl} title="Add URL">
+              <LinkIcon size={14} />
+            </Button>
+          </div>
         </div>
       </div>
 

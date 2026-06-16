@@ -357,9 +357,25 @@ export function RoomsPage() {
               return (
                 <Card key={rt.id} variant="dark">
                   <CardHeader className="flex flex-row items-start justify-between pb-2">
-                    <div>
-                      <CardTitle className="text-white text-lg">{rt.name}</CardTitle>
-                      <p className="text-steel text-xs font-body mt-1">{rt.description}</p>
+                    <div className="flex items-start gap-3 min-w-0">
+                      {rt.images?.[0] ? (
+                        <img
+                          src={rt.images[0]}
+                          alt={rt.name}
+                          className="w-16 h-16 rounded-lg object-cover border border-white/[0.08] shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
+                          <BedDouble size={22} className="text-steel/50" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <CardTitle className="text-white text-lg">{rt.name}</CardTitle>
+                        <p className="text-steel text-xs font-body mt-1 line-clamp-2">{rt.description}</p>
+                        {(rt.images?.length ?? 0) > 1 && (
+                          <p className="text-steel/60 text-[11px] font-body mt-1">{rt.images.length} photos</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button

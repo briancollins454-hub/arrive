@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Users, BedDouble, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,7 @@ export const RoomTypeCard: FC<RoomTypeCardProps> = ({ room, slug }) => {
   const checkIn = searchParams.get('check_in') ?? '';
   const checkOut = searchParams.get('check_out') ?? '';
   const nights = checkIn && checkOut ? calculateNights(checkIn, checkOut) : 1;
+  const [activeImage, setActiveImage] = useState(0);
 
   const handleSelect = () => {
     const params = new URLSearchParams({
@@ -34,16 +35,40 @@ export const RoomTypeCard: FC<RoomTypeCardProps> = ({ room, slug }) => {
 
   return (
     <div className="card-light flex flex-col sm:flex-row gap-5">
-      {/* Image placeholder */}
-      <div className="sm:w-64 h-48 sm:h-auto rounded-lg bg-gradient-to-br from-snow to-cloud flex items-center justify-center shrink-0">
-        {room.images.length > 0 ? (
-          <img
-            src={room.images[0]}
-            alt={room.room_type_name}
-            className="w-full h-full object-cover rounded-lg"
-          />
-        ) : (
-          <BedDouble size={48} className="text-cloud" />
+      {/* Photos */}
+      <div className="sm:w-64 shrink-0 flex flex-col gap-2">
+        <div className="h-48 sm:h-44 rounded-lg bg-gradient-to-br from-snow to-cloud flex items-center justify-center overflow-hidden">
+          {room.images.length > 0 ? (
+            <img
+              src={room.images[Math.min(activeImage, room.images.length - 1)]}
+              alt={room.room_type_name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <BedDouble size={48} className="text-cloud" />
+          )}
+        </div>
+        {room.images.length > 1 && (
+          <div className="flex gap-1.5">
+            {room.images.slice(0, 4).map((src, i) => (
+              <button
+                key={`${src.slice(0, 24)}-${i}`}
+                type="button"
+                onClick={() => setActiveImage(i)}
+                className={`relative h-12 w-full rounded-md overflow-hidden border transition-all ${
+                  activeImage === i ? 'border-gold ring-1 ring-gold' : 'border-cloud hover:border-steel'
+                }`}
+                aria-label={`View photo ${i + 1}`}
+              >
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                {i === 3 && room.images.length > 4 && (
+                  <span className="absolute inset-0 bg-midnight/60 text-white text-xs font-body flex items-center justify-center">
+                    +{room.images.length - 4}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
