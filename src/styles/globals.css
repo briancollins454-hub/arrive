@@ -60,8 +60,6 @@
            bg-gradient-to-r from-gold via-gold-light to-gold text-midnight
            shadow-gold hover:shadow-gold-lg transition-all duration-300
            hover:-translate-y-0.5 active:translate-y-0 active:shadow-gold;
-    background-size: 200% 100%;
-    animation: gradientShift 3s ease infinite;
   }
   .btn-primary {
     @apply px-5 py-2.5 rounded-xl font-semibold text-sm font-body
@@ -79,17 +77,8 @@
            bg-transparent text-midnight border-2 border-cloud
            hover:border-mist hover:bg-snow transition-all duration-200;
   }
-  /* Signature vibrant CTA — multi-color animated gradient */
   .btn-vibrant {
-    @apply px-5 py-2.5 rounded-xl font-semibold text-sm font-body text-white
-           transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0
-           shadow-vibrant relative overflow-hidden;
-    background-image: linear-gradient(120deg, #c9a84c 0%, #ff4dd9 38%, #b667ff 64%, #2dd4ff 100%);
-    background-size: 200% 100%;
-    animation: gradientPan 8s ease infinite;
-  }
-  .btn-vibrant:hover {
-    box-shadow: 0 14px 48px -8px rgba(182, 103, 255, 0.5), 0 6px 20px -4px rgba(45, 212, 255, 0.35);
+    @apply btn-gold;
   }
 
   /* ============================================================
@@ -113,10 +102,9 @@
     padding: 1px;
     background: linear-gradient(
       135deg,
-      rgba(201,168,76,0.45) 0%,
-      rgba(255,77,217,0.25) 35%,
-      rgba(182,103,255,0.22) 60%,
-      rgba(45,212,255,0.35) 100%
+      rgba(201,168,76,0.35) 0%,
+      rgba(227,201,110,0.15) 50%,
+      rgba(14,165,160,0.25) 100%
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -180,39 +168,10 @@
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
-    animation: borderGlow 4s ease-in-out infinite;
   }
 
   /* ============================================================
-     GRADIENT BORDER — shimmer effect
-     ============================================================ */
-  .gradient-border {
-    position: relative;
-    border: none !important;
-  }
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      135deg,
-      rgba(201, 168, 76, 0.4),
-      rgba(14, 165, 160, 0.3),
-      rgba(168, 85, 247, 0.2),
-      rgba(201, 168, 76, 0.4)
-    );
-    background-size: 300% 300%;
-    animation: gradientShift 6s ease infinite;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-  }
-
-  /* ============================================================
-     STATUS BADGES — with subtle glow
+     STATUS BADGES
      ============================================================ */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold font-body tracking-wide;
@@ -263,92 +222,28 @@
      BACKGROUNDS — Atmospheric effects
      ============================================================ */
 
-  /* Rich mesh gradient — deeper, more cinematic */
-  .mesh-gradient {
-    background:
-      radial-gradient(ellipse at 20% 0%, rgba(201, 168, 76, 0.07) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 10%, rgba(14, 165, 160, 0.06) 0%, transparent 45%),
-      radial-gradient(ellipse at 60% 60%, rgba(168, 85, 247, 0.035) 0%, transparent 50%),
-      radial-gradient(ellipse at 10% 80%, rgba(59, 130, 246, 0.025) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, #141825 0%, #0a0e1a 100%);
-  }
-
   /* Dot grid overlay */
   .dot-grid {
     background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 
-  /* Cinematic ambient light system — floating gradient orbs */
-  .aurora-bg {
-    position: relative;
-    overflow: hidden;
-  }
-  .aurora-bg::before,
-  .aurora-bg::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .aurora-bg::before {
-    width: 600px;
-    height: 600px;
-    top: -150px;
-    left: -100px;
-    background: radial-gradient(circle, rgba(201,168,76,0.1) 0%, rgba(227,201,110,0.04) 40%, transparent 70%);
-    animation: auroraFloat1 20s ease-in-out infinite;
-  }
-  .aurora-bg::after {
-    width: 500px;
-    height: 500px;
-    bottom: -120px;
-    right: -80px;
-    background: radial-gradient(circle, rgba(14,165,160,0.08) 0%, rgba(34,211,198,0.03) 40%, transparent 70%);
-    animation: auroraFloat2 24s ease-in-out infinite;
-  }
-
   /* ============================================================
-     TEXT EFFECTS — Luxurious gradient typography
+     TEXT EFFECTS
      ============================================================ */
   .gradient-text {
-    background: linear-gradient(135deg, #c9a84c 0%, #e3c96e 25%, #f5ecd7 50%, #e3c96e 75%, #c9a84c 100%);
-    background-size: 400% auto;
+    background: linear-gradient(135deg, #c9a84c 0%, #e3c96e 50%, #c9a84c 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: shimmer 6s ease-in-out infinite;
-  }
-
-  /* Signature vibrant multi-color text */
-  .gradient-text-vibrant {
-    background: linear-gradient(120deg, #c9a84c 0%, #ff4dd9 35%, #b667ff 60%, #2dd4ff 100%);
-    background-size: 300% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientPan 8s ease infinite;
   }
 
   .gradient-text-teal {
-    background: linear-gradient(135deg, #0ea5a0 0%, #22d3c6 40%, #6ee7b7 60%, #22d3c6 80%, #0ea5a0 100%);
-    background-size: 300% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shimmer 5s ease-in-out infinite;
+    color: #22d3c6;
   }
 
-  /* Vivid hero gradient text */
   .gradient-text-hero {
-    background: linear-gradient(135deg, #ffffff 0%, #c9a84c 30%, #e3c96e 50%, #22d3c6 75%, #ffffff 100%);
-    background-size: 400% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shimmer 8s ease-in-out infinite;
+    color: #ffffff;
   }
 
   /* ============================================================
@@ -401,55 +296,6 @@
   }
 
   /* ============================================================
-     AMBIENT LIGHT SYSTEM — Floating orbs for page backgrounds
-     ============================================================ */
-  .ambient-light {
-    position: fixed;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-    backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
-  }
-  .ambient-light-gold {
-    width: 900px;
-    height: 900px;
-    background: radial-gradient(circle,
-      rgba(201,168,76,0.14) 0%,
-      rgba(201,168,76,0.08) 15%,
-      rgba(201,168,76,0.03) 35%,
-      rgba(201,168,76,0.01) 55%,
-      transparent 70%
-    );
-    animation: auroraFloat1 30s ease-in-out infinite;
-  }
-  .ambient-light-teal {
-    width: 800px;
-    height: 800px;
-    background: radial-gradient(circle,
-      rgba(14,165,160,0.12) 0%,
-      rgba(14,165,160,0.07) 15%,
-      rgba(14,165,160,0.03) 35%,
-      rgba(14,165,160,0.01) 55%,
-      transparent 70%
-    );
-    animation: auroraFloat2 35s ease-in-out infinite;
-  }
-  .ambient-light-purple {
-    width: 700px;
-    height: 700px;
-    background: radial-gradient(circle,
-      rgba(168,85,247,0.10) 0%,
-      rgba(168,85,247,0.05) 15%,
-      rgba(168,85,247,0.02) 35%,
-      rgba(168,85,247,0.005) 55%,
-      transparent 70%
-    );
-    animation: auroraFloat3 28s ease-in-out infinite;
-  }
-
-  /* ============================================================
      SHIMMER LOADING EFFECT
      ============================================================ */
   .shimmer-loading {
@@ -463,78 +309,6 @@
     animation: shimmer 2s ease-in-out infinite;
   }
 
-  /* ============================================================
-     STAT CARD — Premium hover glow with animated radiance
-     ============================================================ */
-  .stat-card-glow {
-    position: relative;
-    overflow: hidden;
-  }
-  .stat-card-glow::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 30%, var(--glow-color, rgba(14,165,160,0.08)) 0%, transparent 50%);
-    opacity: 0;
-    transition: opacity 0.6s ease;
-    pointer-events: none;
-  }
-  .stat-card-glow:hover::after {
-    opacity: 1;
-  }
-
-  /* Animated shimmer border for stat cards */
-  .stat-shimmer-border {
-    position: relative;
-  }
-  .stat-shimmer-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      135deg,
-      var(--shimmer-color-1, rgba(201,168,76,0.3)) 0%,
-      transparent 25%,
-      transparent 50%,
-      var(--shimmer-color-2, rgba(14,165,160,0.2)) 75%,
-      transparent 100%
-    );
-    background-size: 300% 300%;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    animation: gradientShift 4s ease infinite;
-  }
-  .stat-shimmer-border:hover::before {
-    opacity: 1;
-  }
-
-  /* ============================================================
-     PREMIUM PAGE HEADER — Cinematic hero effect
-     ============================================================ */
-  .hero-glow {
-    position: relative;
-  }
-  .hero-glow::before {
-    content: '';
-    position: absolute;
-    top: -40px;
-    left: -20px;
-    width: 300px;
-    height: 120px;
-    background: radial-gradient(ellipse, rgba(201,168,76,0.08) 0%, transparent 70%);
-    filter: blur(40px);
-    pointer-events: none;
-    animation: breathe 6s ease-in-out infinite;
-  }
 
   /* ============================================================
      HOVER SPOTLIGHT — Mouse-tracking light effect
@@ -561,66 +335,6 @@
     opacity: 1;
   }
 
-  /* ============================================================
-     VIBRANT UTILITIES — signature bold accents
-     ============================================================ */
-
-  /* Animated multi-color gradient border ring (wrap any element) */
-  .vibrant-ring {
-    position: relative;
-  }
-  .vibrant-ring::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1.5px;
-    background: linear-gradient(120deg, #c9a84c, #ff4dd9, #b667ff, #2dd4ff, #c9a84c);
-    background-size: 300% 300%;
-    animation: gradientPan 6s ease infinite;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-  }
-
-  /* Sweeping light sheen — add to relative, overflow-hidden elements */
-  .sheen {
-    position: relative;
-    overflow: hidden;
-  }
-  .sheen::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 40%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
-    transform: translateX(-150%) skewX(-20deg);
-    pointer-events: none;
-  }
-  .sheen:hover::after {
-    animation: sheen 1.1s ease-in-out;
-  }
-
-  /* Soft animated vibrant aura behind hero elements */
-  .vibrant-aura {
-    position: relative;
-  }
-  .vibrant-aura::before {
-    content: '';
-    position: absolute;
-    inset: -30% -10%;
-    z-index: -1;
-    background:
-      radial-gradient(40% 60% at 20% 30%, rgba(255,77,217,0.18) 0%, transparent 70%),
-      radial-gradient(40% 60% at 80% 20%, rgba(45,212,255,0.16) 0%, transparent 70%),
-      radial-gradient(50% 70% at 60% 90%, rgba(182,103,255,0.14) 0%, transparent 70%);
-    filter: blur(40px);
-    pointer-events: none;
-    animation: breathe 8s ease-in-out infinite;
-  }
 }
 
 /* ============================================================

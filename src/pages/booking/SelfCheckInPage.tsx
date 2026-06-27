@@ -4,9 +4,10 @@ import { useBookingProperty } from '@/hooks/useBookingProperty';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { FormField } from '@/components/ui/FormField';
 import { Textarea } from '@/components/ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { CheckCircle2, Calendar, Clock, Search, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -41,7 +42,6 @@ export function SelfCheckInPage() {
   const [booking, setBooking] = useState<LookupResult | null>(null);
   const [error, setError] = useState('');
 
-  // Check-in form state
   const [arrivalTime, setArrivalTime] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [idType, setIdType] = useState('passport');
@@ -76,7 +76,6 @@ export function SelfCheckInPage() {
     }
   };
 
-  // Auto-lookup if code came from URL and guest types last name
   useEffect(() => {
     if (prefilledCode && prefilledCode !== code) setCode(prefilledCode);
   }, [prefilledCode, code]);
@@ -114,33 +113,30 @@ export function SelfCheckInPage() {
     return Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
   }, [booking]);
 
-  // Step 1: Lookup form
   if (!booking) {
     return (
-      <div className="max-w-lg mx-auto px-4 sm:px-6 py-12">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 text-gold text-xs uppercase tracking-widest mb-4">
+      <div className="max-w-lg mx-auto">
+        <PageHeader
+          variant="light"
+          title={property?.name ? `Welcome to ${property.name}` : 'Online Check-in'}
+          description="Find your booking to complete check-in before arrival."
+        />
+
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 text-gold text-xs uppercase tracking-widest">
             <Sparkles className="w-3 h-3" /> Online check-in
           </div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-2">
-            Welcome {property?.name ? `to ${property.name}` : ''}
-          </h1>
-          <p className="text-steel text-sm">
-            Find your booking to complete check-in before arrival.
-          </p>
         </div>
 
         <Card>
           <CardContent className="p-6 sm:p-8">
             <form onSubmit={handleLookup} className="space-y-5">
-              <div>
-                <Label htmlFor="code">Confirmation code</Label>
+              <FormField label="Confirmation code" htmlFor="code" variant="light" required>
                 <Input id="code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. ARR-12345" required />
-              </div>
-              <div>
-                <Label htmlFor="last">Last name</Label>
+              </FormField>
+              <FormField label="Last name" htmlFor="last" variant="light" required>
                 <Input id="last" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="As it appears on your booking" required />
-              </div>
+              </FormField>
               {error && <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>}
               <Button type="submit" disabled={looking || !code || !lastName} className="w-full">
                 <Search className="w-4 h-4 mr-2" /> {looking ? 'Looking up…' : 'Find my booking'}
@@ -152,10 +148,9 @@ export function SelfCheckInPage() {
     );
   }
 
-  // Step 2: Already completed
   if (completed) {
     return (
-      <div className="max-w-lg mx-auto px-4 sm:px-6 py-12">
+      <div className="max-w-lg mx-auto">
         <Card>
           <CardContent className="p-8 text-center">
             <CheckCircle2 className="w-14 h-14 text-teal mx-auto mb-4" />
@@ -175,17 +170,14 @@ export function SelfCheckInPage() {
     );
   }
 
-  // Step 3: Check-in form
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-display gradient-text-vibrant mb-2">
-          Hi {booking.guest_first_name}, let's get you checked in
-        </h1>
-        <p className="text-steel text-sm">A few quick details to speed up your arrival.</p>
-      </div>
+    <div className="max-w-2xl mx-auto">
+      <PageHeader
+        variant="light"
+        title={`Hi ${booking.guest_first_name}, let's get you checked in`}
+        description="A few quick details to speed up your arrival."
+      />
 
-      {/* Booking summary */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-base">Your booking at {booking.property_name}</CardTitle>
@@ -239,19 +231,17 @@ export function SelfCheckInPage() {
             Providing your ID details now saves time on arrival. Your details are encrypted and visible only to reception.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-1">
-              <Label htmlFor="idType">Document type</Label>
+            <FormField label="Document type" htmlFor="idType" variant="light" className="sm:col-span-1">
               <select id="idType" value={idType} onChange={(e) => setIdType(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-cloud bg-white px-3 py-2 text-sm">
                 <option value="passport">Passport</option>
                 <option value="driving_license">Driving license</option>
                 <option value="national_id">National ID</option>
               </select>
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="idNumber">Document number</Label>
+            </FormField>
+            <FormField label="Document number" htmlFor="idNumber" variant="light" className="sm:col-span-2">
               <Input id="idNumber" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="Leave blank to skip" />
-            </div>
+            </FormField>
           </div>
         </CardContent>
       </Card>

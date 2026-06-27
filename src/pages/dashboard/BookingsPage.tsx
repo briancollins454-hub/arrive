@@ -5,14 +5,17 @@ import { useRooms } from '@/hooks/useRooms';
 import { getFolioBalance } from '@/hooks/useFolios';
 import { BookingCard } from '@/components/dashboard/BookingCard';
 import { RoomAssignmentBoard } from '@/components/dashboard/RoomAssignmentBoard';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/Dialog';
 import { BookingForm } from '@/components/dashboard/BookingForm';
-import { Plus, Search, List, LayoutGrid, LogIn, LogOut as LogOutIcon, Printer, Download } from 'lucide-react';
+import { Plus, Search, List, LayoutGrid, LogIn, LogOut as LogOutIcon, Printer, Download, BookOpen } from 'lucide-react';
 import { exportCSV } from '@/lib/exportUtils';
 import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -61,7 +64,13 @@ export function BookingsPage() {
     return m;
   }, [rooms]);
 
-  if (isLoading || isLoadingRooms) return <PageSpinner />;
+  if (isLoading || isLoadingRooms) {
+    return (
+      <PageShell>
+        <PageLoading layout="cards" />
+      </PageShell>
+    );
+  }
 
   const filtered = bookings.filter((b) => {
     // Arrivals / Departures view filter — uses dateRange
@@ -198,23 +207,19 @@ export function BookingsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">
-            {viewParam === 'arrivals' ? 'Arrivals' : viewParam === 'departures' ? 'Departures' : 'Bookings'}
-          </h1>
-          <p className="text-sm text-steel font-body tracking-wide">
-            {viewParam === 'arrivals'
-              ? `${filtered.length} arriving – ${dateRange.label}`
-              : viewParam === 'departures'
-              ? `${filtered.length} departing – ${dateRange.label}`
-              : `${bookings.length} total bookings`}
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title={viewParam === 'arrivals' ? 'Arrivals' : viewParam === 'departures' ? 'Departures' : 'Bookings'}
+        description={
+          viewParam === 'arrivals'
+            ? `${filtered.length} arriving – ${dateRange.label}`
+            : viewParam === 'departures'
+            ? `${filtered.length} departing – ${dateRange.label}`
+            : `${bookings.length} total bookings`
+        }
+        variant="dark"
+        actions={
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Arrivals / All / Departures toggle */}
           <div className="flex bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5">
             <button
               onClick={() => setSearchParams({ view: 'arrivals' })}
@@ -248,7 +253,6 @@ export function BookingsPage() {
             </button>
           </div>
 
-          {/* View toggle */}
           {!viewParam && (
             <div className="flex bg-white/[0.04] border border-white/[0.08] rounded-lg p-0.5">
               <button
@@ -304,7 +308,8 @@ export function BookingsPage() {
             </Button>
           )}
         </div>
-      </div>
+        }
+      />
 
       {/* Date Picker — always shown */}
       <div className="mb-6">
@@ -368,9 +373,18 @@ export function BookingsPage() {
 
           {/* Bookings Grid */}
           {filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-steel font-body">No bookings found</p>
-            </div>
+            <EmptyState
+              icon={BookOpen}
+              title="No bookings found"
+              description="Try adjusting your filters or create a new booking"
+              variant="dark"
+              action={
+                <Button onClick={() => setShowNewBooking(true)}>
+                  <Plus size={16} className="mr-2" />
+                  New Booking
+                </Button>
+              }
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((booking) => (
@@ -451,6 +465,6 @@ export function BookingsPage() {
           />
         );
       })()}
-    </div>
+    </PageShell>
   );
 }

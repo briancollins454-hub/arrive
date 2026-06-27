@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import { getFolioBalance } from '@/hooks/useFolios';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -39,7 +42,13 @@ export function InHousePage() {
     return m;
   }, [roomTypes]);
 
-  if (isLoading || isLoadingRooms) return <PageSpinner />;
+  if (isLoading || isLoadingRooms) {
+    return (
+      <PageShell>
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   const today = new Date();
 
@@ -83,16 +92,12 @@ export function InHousePage() {
   const occupancyPct = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">In-House</h1>
-          <p className="text-sm text-steel font-body">
-            Currently occupied rooms & guests in residence
-          </p>
-        </div>
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="In-House"
+        description="Currently occupied rooms & guests in residence"
+        variant="dark"
+      />
 
       {/* Summary row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -161,13 +166,12 @@ export function InHousePage() {
 
       {/* In-house list */}
       {sorted.length === 0 ? (
-        <Card variant="dark">
-          <CardContent className="p-12 text-center">
-            <BedDouble size={40} className="mx-auto mb-3 text-steel/30" />
-            <p className="text-white font-display mb-1">No guests in-house</p>
-            <p className="text-sm text-steel font-body">All rooms are currently vacant</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={BedDouble}
+          title="No guests in-house"
+          description="All rooms are currently vacant"
+          variant="dark"
+        />
       ) : (
         <div className="space-y-2">
           {sorted.map((booking) => {
@@ -379,6 +383,6 @@ export function InHousePage() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

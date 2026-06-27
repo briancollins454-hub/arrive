@@ -4,6 +4,9 @@ import {
   Eye, EyeOff, ChevronLeft, Sparkles, Database, Zap, Printer, Copy, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useFeatureToggles } from '@/hooks/useFeatureToggles';
@@ -81,26 +84,23 @@ export function AIAssistantPage() {
   // Only owners can see the AI assistant by default
   if (!isEnabled('ai_assistant')) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] p-6">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-teal/20 flex items-center justify-center mx-auto mb-4">
-            <Bot size={28} className="text-purple-400" />
-          </div>
-          <h2 className="text-xl font-display text-white mb-2">AI Assistant</h2>
-          <p className="text-sm text-steel font-body leading-relaxed mb-4">
-            The AI Assistant is a premium add-on that gives you a Claude-powered assistant with full access to all your property data.
-          </p>
-          {currentRole === 'owner' ? (
-            <p className="text-xs text-steel/60 font-body">
-              Enable it in <span className="text-teal">Settings → Feature Toggles</span>
-            </p>
-          ) : (
-            <p className="text-xs text-steel/60 font-body">
-              Ask your property owner to enable this feature.
-            </p>
-          )}
-        </div>
-      </div>
+      <PageShell>
+        <PageHeader
+          title="AI Assistant"
+          description="Claude-powered assistant with full access to your property data"
+          variant="dark"
+        />
+        <EmptyState
+          icon={Bot}
+          title="AI Assistant"
+          description={
+            currentRole === 'owner'
+              ? 'The AI Assistant is a premium add-on. Enable it in Settings → Feature Toggles.'
+              : 'Ask your property owner to enable this feature.'
+          }
+          variant="dark"
+        />
+      </PageShell>
     );
   }
 
@@ -194,7 +194,14 @@ function AIAssistantInner() {
     : null;
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <PageShell wide className="flex flex-col h-[calc(100vh-56px)] overflow-hidden">
+      <PageHeader
+        title="AI Assistant"
+        description={property?.name ? `Powered by Claude · ${property.name}` : 'Powered by Claude'}
+        variant="dark"
+        className="mb-0 shrink-0"
+      />
+    <div className="flex flex-1 overflow-hidden min-h-0">
       {/* ---- Conversation sidebar ---- */}
       {showSidebar && (
         <div className="w-64 flex-shrink-0 border-r border-white/[0.06] bg-white/[0.02] flex flex-col">
@@ -319,7 +326,7 @@ function AIAssistantInner() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           {!activeConversationId ? (
-            <EmptyState onNew={handleNewConversation} hasApiKey={hasKey} />
+            <AssistantEmptyState onNew={handleNewConversation} hasApiKey={hasKey} />
           ) : messages.length === 0 ? (
             <EmptyConversation onSuggest={(text) => {
               if (!hasKey || isStreaming) return;
@@ -394,6 +401,7 @@ function AIAssistantInner() {
         )}
       </div>
     </div>
+    </PageShell>
   );
 }
 
@@ -461,7 +469,7 @@ function ApiKeyBanner({
   );
 }
 
-function EmptyState({ onNew, hasApiKey }: { onNew: () => void; hasApiKey: boolean }) {
+function AssistantEmptyState({ onNew, hasApiKey }: { onNew: () => void; hasApiKey: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 via-teal/10 to-gold/10 flex items-center justify-center mb-6">

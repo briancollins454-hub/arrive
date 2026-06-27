@@ -22,7 +22,7 @@ const badgeVariants = cva(
         purple: 'bg-purple/10 text-purple-light border border-purple/20',
         electric: 'bg-electric/10 text-electric-light border border-electric/20',
         magenta: 'bg-magenta/10 text-magenta-light border border-magenta/20',
-        vibrant: 'text-white border-0 bg-[linear-gradient(120deg,#c9a84c,#ff4dd9,#b667ff,#2dd4ff)] bg-[length:200%_100%] animate-gradient-pan shadow-[0_2px_10px_-2px_rgba(182,103,255,0.5)]',
+        vibrant: 'bg-gold/10 text-gold border border-gold/15',
         outline: 'border border-white/[0.12] text-steel bg-transparent',
       },
     },

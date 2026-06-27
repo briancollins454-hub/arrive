@@ -3,6 +3,8 @@ import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import { useRatePeriods } from '@/hooks/useRatePeriods';
 import { useAllFolios } from '@/hooks/useFolios';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -163,22 +165,18 @@ export function ChannelManagerPage() {
   ];
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Channel Manager</h1>
-          <p className="text-sm text-steel font-body tracking-wide mt-1">
-            OTA connections, revenue attribution &amp; rate parity monitoring
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <PageShell className="space-y-6 min-h-full">
+      <PageHeader
+        title="Channel Manager"
+        description="OTA connections, revenue attribution & rate parity monitoring"
+        variant="dark"
+        actions={
           <Button variant="outline-dark" size="sm" onClick={() => handleSync('all')}>
             <RefreshCw size={14} className={cn('mr-1.5', syncingChannel === 'all' && 'animate-spin')} />
             Sync All
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Date Range Picker */}
       <div>
@@ -552,6 +550,6 @@ export function ChannelManagerPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

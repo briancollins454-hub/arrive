@@ -5,6 +5,9 @@ import { usePlans, useMySubscription, useBillingActions, formatGBP, statusMeta }
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Loader2, Check, Sparkles, CreditCard, ShieldCheck } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { cn } from '@/lib/utils';
 
 export function BillingPage() {
@@ -23,15 +26,20 @@ export function BillingPage() {
   const hasLiveSub = sub && (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'trialing') && !!sub.stripe_subscription_id;
 
   if (subLoading || plansLoading) {
-    return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-gold" /></div>;
+    return (
+      <PageShell className="max-w-4xl">
+        <PageLoading />
+      </PageShell>
+    );
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Subscription & Billing</h1>
-        <p className="text-sm text-steel font-body">Your Arrivé plan for {property?.name}</p>
-      </div>
+    <PageShell className="max-w-4xl">
+      <PageHeader
+        title="Subscription & Billing"
+        description={`Your Arrivé plan for ${property?.name}`}
+        variant="dark"
+      />
 
       {/* Current status */}
       <Card variant="dark" className="mb-6">
@@ -103,7 +111,7 @@ export function BillingPage() {
                     {p.room_min}{p.room_max ? `–${p.room_max}` : '+'} rooms
                   </p>
                   <div className="mb-4">
-                    <span className="text-3xl font-display gradient-text-vibrant">{formatGBP(p.monthly_price_pence)}</span>
+                    <span className="text-3xl font-display text-white">{formatGBP(p.monthly_price_pence)}</span>
                     <span className="text-steel text-sm font-body"> / month</span>
                   </div>
                   <Button
@@ -126,6 +134,6 @@ export function BillingPage() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

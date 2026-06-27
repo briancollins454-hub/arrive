@@ -3,8 +3,9 @@ import { useBookingProperty } from '@/hooks/useBookingProperty';
 import { HotelHero } from '@/components/booking/HotelHero';
 import { BookingBar } from '@/components/booking/BookingBar';
 import { DirectBookingBadge } from '@/components/booking/DirectBookingBadge';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
-import { Star, MapPin, Phone, Mail, Wifi, Car, Coffee, Waves } from 'lucide-react';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { Star, MapPin, Phone, Mail, Wifi, Car, Coffee, Waves, Building2 } from 'lucide-react';
 
 const DEFAULT_HIGHLIGHTS = [
   { icon: Wifi, label: 'Free Wi-Fi' },
@@ -17,32 +18,39 @@ export function HotelPage() {
   const { slug } = useParams<{ slug: string }>();
   const { property, isLoading } = useBookingProperty();
 
-  if (isLoading) return <PageSpinner />;
-  if (!property) return <div className="text-center py-20 text-charcoal/60 font-body">Property not found</div>;
+  if (isLoading) return <PageLoading variant="light" layout="detail" />;
+  if (!property) {
+    return (
+      <EmptyState
+        icon={Building2}
+        title="Property not found"
+        description="This hotel may no longer be available on our platform."
+        variant="light"
+      />
+    );
+  }
 
   const starRating = (property as { star_rating?: number }).star_rating ?? 4;
   const highlights = (property as { highlights?: typeof DEFAULT_HIGHLIGHTS }).highlights ?? DEFAULT_HIGHLIGHTS;
 
   return (
     <div>
-      {/* Hero */}
-      <HotelHero property={property} />
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-6 lg:-mt-8">
+        <HotelHero property={property} />
+      </div>
 
-      {/* Booking Bar */}
-      <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
+      <div className="-mt-8 relative z-10 max-w-5xl">
         <BookingBar slug={slug || property.slug} />
       </div>
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-12">
+      <div className="py-12 max-w-5xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* About */}
           <div className="lg:col-span-2 space-y-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <DirectBookingBadge />
               </div>
-              <h2 className="text-3xl font-display gradient-text-vibrant mb-4">
+              <h2 className="text-3xl font-display text-midnight mb-4">
                 Welcome to {property.name}
               </h2>
               <p className="text-charcoal/70 font-body leading-relaxed">
@@ -51,7 +59,6 @@ export function HotelPage() {
               </p>
             </div>
 
-            {/* Highlights */}
             <div>
               <h3 className="text-xl font-display text-midnight mb-4">Hotel Highlights</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -67,7 +74,6 @@ export function HotelPage() {
               </div>
             </div>
 
-            {/* Rating */}
             <div>
               <h3 className="text-xl font-display text-midnight mb-4">Guest Rating</h3>
               <div className="flex items-center gap-3">
@@ -85,7 +91,6 @@ export function HotelPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
             <div className="bg-cream rounded-2xl p-6 border border-stone/20">
               <h3 className="font-display text-midnight text-lg mb-4">Contact</h3>

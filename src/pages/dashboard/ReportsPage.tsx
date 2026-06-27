@@ -4,6 +4,8 @@ import { useRooms } from '@/hooks/useRooms';
 import { useProperty } from '@/hooks/useProperty';
 import { useAllFolios } from '@/hooks/useFolios';
 import { getSourceLabel } from '@/lib/constants';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Separator } from '@/components/ui/Separator';
@@ -774,18 +776,12 @@ export function ReportsPage() {
   );
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight flex items-center gap-2">
-            <BarChart3 size={24} className="text-teal" />
-            Reports
-          </h1>
-          <p className="text-sm text-steel font-body">
-            Comprehensive reporting — {periodLabel}
-          </p>
-        </div>
+    <PageShell wide>
+      <PageHeader
+        title="Reports"
+        description={`Comprehensive reporting — ${periodLabel}`}
+        variant="dark"
+        actions={
         <div className="flex items-center gap-2">
           <Button variant="outline-dark" onClick={() => {
             const rows = periodBookings.map(b => ({
@@ -828,7 +824,8 @@ export function ReportsPage() {
             <Printer size={16} className="mr-2" /> Print Report
           </Button>
         </div>
-      </div>
+        }
+      />
 
       {/* Period Selector */}
       <div className="mb-6">
@@ -1591,6 +1588,6 @@ export function ReportsPage() {
 
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

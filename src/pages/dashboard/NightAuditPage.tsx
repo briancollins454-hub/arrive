@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { format, isSameDay, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import toast from 'react-hot-toast';
 import { useProperty } from '@/hooks/useProperty';
 import type { FolioEntry } from '@/types';
@@ -345,42 +347,34 @@ export function NightAuditPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight flex items-center gap-2">
-            <Moon size={24} className="text-teal" />
-            Night Audit
-          </h1>
-          <p className="text-sm text-steel font-body">
-            End-of-day processing — {format(today, 'EEEE, MMMM d, yyyy')}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {auditComplete && (
-            <Button
-              variant="outline-dark"
-              onClick={handlePrintReport}
-            >
-              <Printer size={16} className="mr-2" /> Print Report
-            </Button>
-          )}
-          <Button
-            onClick={runNightAudit}
-            disabled={isRunning}
-            className={cn(isRunning && 'animate-pulse')}
-          >
-            {isRunning ? (
-              <><Clock size={16} className="mr-2 animate-spin" /> Running…</>
-            ) : auditComplete ? (
-              <><CheckCircle size={16} className="mr-2" /> Run Again</>
-            ) : (
-              <><Play size={16} className="mr-2" /> Run Night Audit</>
+    <PageShell className="max-w-4xl">
+      <PageHeader
+        title="Night Audit"
+        description={`End-of-day processing — ${format(today, 'EEEE, MMMM d, yyyy')}`}
+        variant="dark"
+        actions={
+          <div className="flex items-center gap-3">
+            {auditComplete && (
+              <Button variant="outline-dark" onClick={handlePrintReport}>
+                <Printer size={16} className="mr-2" /> Print Report
+              </Button>
             )}
-          </Button>
-        </div>
-      </div>
+            <Button
+              onClick={runNightAudit}
+              disabled={isRunning}
+              className={cn(isRunning && 'animate-pulse')}
+            >
+              {isRunning ? (
+                <><Clock size={16} className="mr-2 animate-spin" /> Running…</>
+              ) : auditComplete ? (
+                <><CheckCircle size={16} className="mr-2" /> Run Again</>
+              ) : (
+                <><Play size={16} className="mr-2" /> Run Night Audit</>
+              )}
+            </Button>
+          </div>
+        }
+      />
 
       {/* Pre-Audit Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -536,6 +530,6 @@ export function NightAuditPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

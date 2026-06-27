@@ -6,6 +6,8 @@ import {
   DollarSign, Percent, BarChart3, MapPin,
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { useProperty } from '@/hooks/useProperty';
 import { isDemoMode } from '@/lib/supabase';
 import { format } from 'date-fns';
@@ -254,18 +256,12 @@ export function GroupDashboardPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-bold gradient-text-vibrant">
-            Portfolio Overview
-          </h1>
-          <p className="text-sm text-steel font-body mt-1">
-            {format(new Date(), 'EEEE, d MMMM yyyy')} &middot; {totals.properties} properties
-          </p>
-        </div>
-      </div>
+    <PageShell className="space-y-8">
+      <PageHeader
+        title="Portfolio Overview"
+        description={`${format(new Date(), 'EEEE, d MMMM yyyy')} · ${totals.properties} properties`}
+        variant="dark"
+      />
 
       {/* Aggregate KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -364,6 +360,6 @@ export function GroupDashboardPage() {
           ))}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

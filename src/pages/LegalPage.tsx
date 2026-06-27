@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArrowLeft } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShellStandalone } from '@/components/shared/PageShell';
 import privacyMd from '../../legal/Arrive-Privacy-Policy.md?raw';
 import termsMd from '../../legal/Arrive-Terms-of-Service.md?raw';
 
@@ -13,10 +15,14 @@ const DOCS: Record<LegalDoc, string> = {
   terms: termsMd,
 };
 
-// Tailwind styling for rendered markdown (no typography plugin needed).
+const TITLES: Record<LegalDoc, string> = {
+  privacy: 'Privacy Policy',
+  terms: 'Terms of Service',
+};
+
 const mdComponents = {
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h1 className="text-3xl font-display text-white mb-2" {...props} />
+    <h1 className="sr-only" {...props} />
   ),
   h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h2 className="text-xl font-display text-white mt-10 mb-3" {...props} />
@@ -64,34 +70,29 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
   const content = DOCS[doc];
 
   return (
-    <div className="min-h-screen bg-midnight relative overflow-hidden">
-      <div className="absolute inset-0 mesh-gradient" />
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gold/[0.03] rounded-full blur-[120px]" />
-
-      <div className="relative z-10">
-        <header className="border-b border-white/[0.08]">
-          <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-            <Link to="/"><Logo variant="dark" /></Link>
-            <Link to="/" className="flex items-center gap-1.5 text-sm text-steel hover:text-white font-body transition-colors">
-              <ArrowLeft size={15} /> Back to site
-            </Link>
-          </div>
+    <PageShellStandalone variant="dark">
+      <div className="max-w-3xl mx-auto w-full">
+        <header className="border-b border-white/[0.08] pb-5 mb-8 flex items-center justify-between">
+          <Link to="/"><Logo variant="dark" /></Link>
+          <Link to="/" className="flex items-center gap-1.5 text-sm text-steel hover:text-white font-body transition-colors">
+            <ArrowLeft size={15} /> Back to site
+          </Link>
         </header>
 
-        <main className="max-w-3xl mx-auto px-6 py-12">
-          <article>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {content}
-            </ReactMarkdown>
-          </article>
+        <PageHeader variant="dark" title={TITLES[doc]} />
 
-          <div className="mt-12 pt-6 border-t border-white/[0.08] flex items-center gap-5 text-sm font-body">
-            <Link to="/privacy" className="text-steel hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="text-steel hover:text-white transition-colors">Terms of Service</Link>
-            <a href="mailto:brian@thesupportsdesk.com" className="text-steel hover:text-white transition-colors">Contact</a>
-          </div>
-        </main>
+        <article>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {content}
+          </ReactMarkdown>
+        </article>
+
+        <div className="mt-12 pt-6 border-t border-white/[0.08] flex items-center gap-5 text-sm font-body">
+          <Link to="/privacy" className="text-steel hover:text-white transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="text-steel hover:text-white transition-colors">Terms of Service</Link>
+          <a href="mailto:brian@thesupportsdesk.com" className="text-steel hover:text-white transition-colors">Contact</a>
+        </div>
       </div>
-    </div>
+    </PageShellStandalone>
   );
 }

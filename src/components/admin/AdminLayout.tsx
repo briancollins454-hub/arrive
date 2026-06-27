@@ -104,7 +104,9 @@ export function AdminLayout() {
       </aside>
 
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-midnight to-[#070b14]">
-        <Outlet />
+        <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -6,6 +6,9 @@ import {
   ChevronDown, ChevronUp, Clock, CheckCircle, AlertTriangle, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { useGroupBookings } from '@/hooks/useGroupBookings';
 import { useBookings } from '@/hooks/useBookings';
@@ -430,19 +433,17 @@ export function GroupBookingsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Group Bookings</h1>
-          <p className="text-silver text-sm mt-1">
-            Manage block bookings for weddings, conferences & corporate events
-          </p>
-        </div>
-        <Button variant="teal" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-1" /> New Group
-        </Button>
-      </div>
+    <PageShell className="space-y-6 min-h-full">
+      <PageHeader
+        title="Group Bookings"
+        description="Manage block bookings for weddings, conferences & corporate events"
+        variant="dark"
+        actions={
+          <Button variant="teal" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New Group
+          </Button>
+        }
+      />
 
       {/* Date Range Picker */}
       <div>
@@ -530,10 +531,17 @@ export function GroupBookingsPage() {
       {/* Groups List */}
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <div className="glass-panel rounded-xl p-8 text-center text-silver">
-            <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <p>No group bookings found</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No group bookings found"
+            description="Create a group booking for weddings, conferences, or events"
+            variant="dark"
+            action={
+              <Button variant="teal" onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4 mr-1" /> New Group
+              </Button>
+            }
+          />
         )}
 
         {filtered.map(group => {
@@ -652,6 +660,6 @@ export function GroupBookingsPage() {
           );
         })}
       </div>
-    </div>
+    </PageShell>
   );
 }

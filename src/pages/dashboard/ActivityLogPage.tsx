@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/Card';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import {
   LogIn, LogOut, BookOpen, Users, BedDouble, SprayCan,
   CreditCard, Banknote, Moon, Settings, MessageSquare,
@@ -97,7 +100,13 @@ export function ActivityLogPage() {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set(['today', 'yesterday']));
   const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('week'));
 
-  if (isLoading) return <PageSpinner />;
+  if (isLoading) {
+    return (
+      <PageShell>
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   // Filter
   const filtered = entries.filter((e) => {
@@ -167,15 +176,12 @@ export function ActivityLogPage() {
   }, {});
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Activity Log</h1>
-          <p className="text-sm text-steel font-body">
-            Full audit trail of all actions across the property
-          </p>
-        </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Activity Log"
+        description="Full audit trail of all actions across the property"
+        variant="dark"
+        actions={
         <button
           onClick={() => {
             const rows = filtered.map(e => ({
@@ -192,7 +198,8 @@ export function ActivityLogPage() {
         >
           <Download size={14} /> Export
         </button>
-      </div>
+        }
+      />
 
       {/* Date Range Picker */}
       <div>
@@ -239,13 +246,12 @@ export function ActivityLogPage() {
 
       {/* Timeline */}
       {grouped.length === 0 ? (
-        <Card variant="dark">
-          <CardContent className="p-12 text-center">
-            <Clock size={40} className="mx-auto mb-3 text-steel/30" />
-            <p className="text-white font-display mb-1">No activity found</p>
-            <p className="text-sm text-steel font-body">Try adjusting your search or filter criteria</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Clock}
+          title="No activity found"
+          description="Try adjusting your search or filter criteria"
+          variant="dark"
+        />
       ) : (
         <div className="space-y-4">
           {grouped.map(({ label, key, entries: dayEntries }) => {
@@ -311,6 +317,6 @@ export function ActivityLogPage() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

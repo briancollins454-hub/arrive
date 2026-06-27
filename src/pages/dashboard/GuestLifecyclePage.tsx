@@ -9,7 +9,9 @@ import {
   buildPostStayReviewEmail,
   buildMarketingEmail,
 } from '@/hooks/useGuestCommunications';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -21,7 +23,13 @@ export function GuestLifecyclePage() {
   const { guests, isLoading: loadingG } = useGuests();
   const { communications, sendEmail } = useGuestCommunications();
 
-  if (loadingB || loadingG) return <PageSpinner />;
+  if (loadingB || loadingG) {
+    return (
+      <PageShell>
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   const guestsById = new Map(guests.map((g) => [g.id, g] as const));
 
@@ -59,17 +67,16 @@ export function GuestLifecyclePage() {
   const totalPending = preArrivalQueue.length + postStayQueue.length;
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Guest Lifecycle</h1>
-          <p className="text-sm text-steel font-body tracking-wide">
-            {totalPending > 0
-              ? `${totalPending} email${totalPending === 1 ? '' : 's'} ready to send`
-              : 'Automated pre-arrival, post-stay and marketing emails'}
-          </p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Guest Lifecycle"
+        description={
+          totalPending > 0
+            ? `${totalPending} email${totalPending === 1 ? '' : 's'} ready to send`
+            : 'Automated pre-arrival, post-stay and marketing emails'
+        }
+        variant="dark"
+      />
 
       <Tabs defaultValue="pre">
         <TabsList className="mb-6">
@@ -169,7 +176,7 @@ export function GuestLifecyclePage() {
           <HistoryTable communications={communications} />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 

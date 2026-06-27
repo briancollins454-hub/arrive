@@ -1,5 +1,4 @@
 import { LazyMotion, domAnimation, m, useReducedMotion } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 /**
@@ -38,22 +37,7 @@ export const popIn = {
  * navigation re-mounts and replays the entrance. Respects reduced-motion.
  */
 export function PageTransition({ children, className }: { children: ReactNode; className?: string }) {
-  const location = useLocation();
-  const reduce = useReducedMotion();
-
-  if (reduce) return <div className={className}>{children}</div>;
-
-  return (
-    <m.div
-      key={location.pathname}
-      className={className}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {children}
-    </m.div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 /**

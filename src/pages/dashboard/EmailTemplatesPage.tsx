@@ -3,6 +3,8 @@ import {
   Mail, Plus, X, Edit, Eye, ToggleLeft, ToggleRight, Copy, Check, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { isDemoMode } from '@/lib/supabase';
 import { useProperty } from '@/hooks/useProperty';
@@ -143,19 +145,17 @@ export function EmailTemplatesPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Email Templates</h1>
-          <p className="text-silver text-sm mt-1">
-            Automated guest communications with merge fields
-          </p>
-        </div>
-        <Button variant="teal" onClick={() => { resetForm(); setShowForm(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> New Template
-        </Button>
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Email Templates"
+        description="Automated guest communications with merge fields"
+        variant="dark"
+        actions={
+          <Button variant="teal" onClick={() => { resetForm(); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> New Template
+          </Button>
+        }
+      />
 
       {/* Merge Fields Reference */}
       <div className="glass-panel rounded-xl p-5">
@@ -266,6 +266,6 @@ export function EmailTemplatesPage() {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }

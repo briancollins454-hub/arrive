@@ -5,6 +5,9 @@ import {
   Phone, Coffee, Car, Bed, Info, AlertTriangle, MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { useGuestRequests } from '@/hooks/useGuestRequests';
 import { useBookings } from '@/hooks/useBookings';
@@ -81,17 +84,17 @@ export function ConciergePage() {
   const inProgressCount = allRequests.filter(r => r.status === 'in_progress').length;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Concierge</h1>
-          <p className="text-silver text-sm mt-1">Guest requests, wake-up calls & services</p>
-        </div>
-        <Button variant="teal" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-1" /> New Request
-        </Button>
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Concierge"
+        description="Guest requests, wake-up calls & services"
+        variant="dark"
+        actions={
+          <Button variant="teal" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New Request
+          </Button>
+        }
+      />
 
       {/* Quick Stats */}
       <div className="flex items-center gap-4">
@@ -175,10 +178,17 @@ export function ConciergePage() {
       {/* Requests List */}
       <div className="space-y-2">
         {sorted.length === 0 && (
-          <div className="glass-panel rounded-xl p-8 text-center text-silver">
-            <Bell className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <p>No requests</p>
-          </div>
+          <EmptyState
+            icon={Bell}
+            title="No requests"
+            description="Create a new guest request to get started"
+            variant="dark"
+            action={
+              <Button variant="teal" onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4 mr-1" /> New Request
+              </Button>
+            }
+          />
         )}
         {sorted.map(req => {
           const cfg = statusConfig[req.status];
@@ -224,6 +234,6 @@ export function ConciergePage() {
           );
         })}
       </div>
-    </div>
+    </PageShell>
   );
 }

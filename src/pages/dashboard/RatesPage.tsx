@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useRooms } from '@/hooks/useRooms';
 import { useRatePeriods } from '@/hooks/useRatePeriods';
 import { RatePeriodEditor } from '@/components/dashboard/RatePeriodEditor';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
@@ -88,7 +91,13 @@ export function RatesPage() {
     0: 100, 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100,
   });
 
-  if (isLoadingTypes || isLoading) return <PageSpinner />;
+  if (isLoadingTypes || isLoading) {
+    return (
+      <PageShell>
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   // Filter
   const filtered = ratePeriods.filter((rp) => {
@@ -224,31 +233,31 @@ export function RatesPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Rates & Pricing</h1>
-          <p className="text-sm text-steel font-body">
-            Manage seasonal rates, pricing rules, and minimum stay requirements
-          </p>
-        </div>
-        {activeSubTab === 'periods' && (
-          <Button onClick={openCreate}>
-            <Plus size={16} className="mr-2" /> New Rate Period
-          </Button>
-        )}
-        {activeSubTab === 'promos' && (
-          <Button onClick={() => setShowAddPromo(true)}>
-            <Plus size={16} className="mr-2" /> New Promo Code
-          </Button>
-        )}
-        {activeSubTab === 'derived' && (
-          <Button onClick={() => setShowAddDerived(true)}>
-            <Plus size={16} className="mr-2" /> New Derived Plan
-          </Button>
-        )}
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Rates & Pricing"
+        description="Manage seasonal rates, pricing rules, and minimum stay requirements"
+        variant="dark"
+        actions={
+          <>
+            {activeSubTab === 'periods' && (
+              <Button onClick={openCreate}>
+                <Plus size={16} className="mr-2" /> New Rate Period
+              </Button>
+            )}
+            {activeSubTab === 'promos' && (
+              <Button onClick={() => setShowAddPromo(true)}>
+                <Plus size={16} className="mr-2" /> New Promo Code
+              </Button>
+            )}
+            {activeSubTab === 'derived' && (
+              <Button onClick={() => setShowAddDerived(true)}>
+                <Plus size={16} className="mr-2" /> New Derived Plan
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Date Range Picker */}
       <div>
@@ -396,13 +405,18 @@ export function RatesPage() {
 
       {filtered.length === 0 && (
         <Card variant="dark">
-          <CardContent className="p-12 text-center">
-            <Calendar size={40} className="mx-auto mb-3 text-steel/30" />
-            <p className="text-white font-display mb-1">No rate periods found</p>
-            <p className="text-sm text-steel font-body mb-4">Adjust your filters or create a new rate period</p>
-            <Button onClick={openCreate}>
-              <Plus size={16} className="mr-2" /> New Rate Period
-            </Button>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Calendar}
+              title="No rate periods found"
+              description="Adjust your filters or create a new rate period"
+              variant="dark"
+              action={
+                <Button onClick={openCreate}>
+                  <Plus size={16} className="mr-2" /> New Rate Period
+                </Button>
+              }
+            />
           </CardContent>
         </Card>
       )}
@@ -721,6 +735,6 @@ export function RatesPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

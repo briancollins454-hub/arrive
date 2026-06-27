@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { format, addDays, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { useRooms } from '@/hooks/useRooms';
 import toast from 'react-hot-toast';
 import { isDemoMode } from '@/lib/supabase';
@@ -136,22 +139,17 @@ export function WaitlistPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight flex items-center gap-2">
-            <ClipboardList size={24} className="text-teal" />
-            Waitlist
-          </h1>
-          <p className="text-sm text-steel font-body tracking-wide">
-            {waitingCount} waiting · {offeredCount} offered · {waitlist.length} total
-          </p>
-        </div>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
-          <Plus size={16} className="mr-2" /> Add to Waitlist
-        </Button>
-      </div>
+    <PageShell className="max-w-5xl">
+      <PageHeader
+        title="Waitlist"
+        description={`${waitingCount} waiting · ${offeredCount} offered · ${waitlist.length} total`}
+        variant="dark"
+        actions={
+          <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <Plus size={16} className="mr-2" /> Add to Waitlist
+          </Button>
+        }
+      />
 
       {/* Add Form */}
       {showAddForm && (
@@ -275,10 +273,17 @@ export function WaitlistPage() {
       {/* Waitlist entries */}
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <ClipboardList size={32} className="text-steel mx-auto mb-3" />
-            <p className="text-steel font-body">No waitlist entries</p>
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            title="No waitlist entries"
+            description="Add guests to the waitlist when rooms are fully booked"
+            variant="dark"
+            action={
+              <Button onClick={() => setShowAddForm(true)}>
+                <Plus size={16} className="mr-2" /> Add to Waitlist
+              </Button>
+            }
+          />
         )}
         {filtered.map((entry) => {
           const rt = roomTypes.find((r) => r.id === entry.room_type_id);
@@ -422,6 +427,6 @@ export function WaitlistPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

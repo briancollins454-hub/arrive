@@ -4,7 +4,7 @@ import { supabase, isDemoMode, getEdgeFunctionError } from '@/lib/supabase';
 import { Logo } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { FormField } from '@/components/ui/FormField';
 import { Lock, Mail, AlertCircle, User, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 interface InviteInfo {
@@ -146,11 +146,6 @@ export function InviteAcceptPage() {
 
   return (
     <div className="min-h-screen bg-midnight relative overflow-hidden flex items-center justify-center p-6">
-      {/* Background */}
-      <div className="absolute inset-0 mesh-gradient" />
-      <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-gold/[0.04] rounded-full blur-[120px] animate-aurora" />
-      <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal/[0.04] rounded-full blur-[100px] animate-aurora-2" />
-
       <div className="relative z-10 w-full max-w-md">
         <div className="flex justify-center mb-8">
           <Logo variant="dark" size="lg" />
@@ -190,7 +185,7 @@ export function InviteAcceptPage() {
         {!loading && invite && !done && (
           <div className="glass-panel p-8 border border-white/[0.08]">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">You're Invited</h2>
+              <h2 className="text-2xl font-display text-white mb-1.5">You're Invited</h2>
               {invite.property_name && (
                 <p className="text-sm text-gold font-body font-medium">{invite.property_name}</p>
               )}
@@ -200,27 +195,21 @@ export function InviteAcceptPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Pre-filled name */}
-              <div>
-                <Label variant="dark">Name</Label>
+              <FormField label="Name" variant="dark">
                 <div className="relative">
                   <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                   <Input variant="dark" value={invite.name} disabled className="pl-9 opacity-60" />
                 </div>
-              </div>
+              </FormField>
 
-              {/* Pre-filled email */}
-              <div>
-                <Label variant="dark">Email</Label>
+              <FormField label="Email" variant="dark">
                 <div className="relative">
                   <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                   <Input variant="dark" type="email" value={invite.email} disabled className="pl-9 opacity-60" />
                 </div>
-              </div>
+              </FormField>
 
-              {/* Password */}
-              <div>
-                <Label variant="dark">Create Password</Label>
+              <FormField label="Create Password" variant="dark">
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                   <Input
@@ -242,11 +231,9 @@ export function InviteAcceptPage() {
                     <span className="text-[10px] text-steel font-body w-16 text-right">{strengthLabel}</span>
                   </div>
                 )}
-              </div>
+              </FormField>
 
-              {/* Confirm Password */}
-              <div>
-                <Label variant="dark">Confirm Password</Label>
+              <FormField label="Confirm Password" variant="dark">
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                   <Input
@@ -260,7 +247,7 @@ export function InviteAcceptPage() {
                     minLength={8}
                   />
                 </div>
-              </div>
+              </FormField>
 
               {error && (
                 <div className="flex items-center gap-2 text-red-400 text-sm font-body bg-red-400/10 rounded-lg px-3 py-2">

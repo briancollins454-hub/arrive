@@ -4,6 +4,8 @@ import { useRooms } from '@/hooks/useRooms';
 import { useProperty } from '@/hooks/useProperty';
 import { useAllFolios } from '@/hooks/useFolios';
 import { getSourceLabel } from '@/lib/constants';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -344,33 +346,30 @@ export function FinancialDashboardPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Financial Dashboard</h1>
-          <p className="text-sm text-steel font-body tracking-wide mt-1">
-            {property?.name ?? 'Property'} — {periodLabel}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Period selector */}
-          <DashboardDatePicker
-            value={dateRange}
-            onChange={handleDateChange}
-            presets={['week', 'month', 'quarter', 'year']}
-          />
-          <Button variant="outline-dark" size="sm" onClick={handleExportCSV}>
-            <Download size={14} className="mr-1.5" /> Export
-          </Button>
-          <Button variant="outline-dark" size="sm" onClick={handleExportXero} title="Export invoices in Xero CSV format">
-            <Download size={14} className="mr-1.5" /> Xero
-          </Button>
-          <Button variant="outline-dark" size="sm" onClick={handleExportQuickBooks} title="Export invoices in QuickBooks CSV format">
-            <Download size={14} className="mr-1.5" /> QuickBooks
-          </Button>
-        </div>
-      </div>
+    <PageShell wide className="space-y-6 min-h-full">
+      <PageHeader
+        title="Financial Dashboard"
+        description={`${property?.name ?? 'Property'} — ${periodLabel}`}
+        variant="dark"
+        actions={
+          <div className="flex items-center gap-2">
+            <DashboardDatePicker
+              value={dateRange}
+              onChange={handleDateChange}
+              presets={['week', 'month', 'quarter', 'year']}
+            />
+            <Button variant="outline-dark" size="sm" onClick={handleExportCSV}>
+              <Download size={14} className="mr-1.5" /> Export
+            </Button>
+            <Button variant="outline-dark" size="sm" onClick={handleExportXero} title="Export invoices in Xero CSV format">
+              <Download size={14} className="mr-1.5" /> Xero
+            </Button>
+            <Button variant="outline-dark" size="sm" onClick={handleExportQuickBooks} title="Export invoices in QuickBooks CSV format">
+              <Download size={14} className="mr-1.5" /> QuickBooks
+            </Button>
+          </div>
+        }
+      />
 
       {/* ── Hero KPI Cards ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -606,6 +605,6 @@ export function FinancialDashboardPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

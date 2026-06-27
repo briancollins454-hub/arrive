@@ -1,5 +1,8 @@
-import { Shield, ToggleLeft, ToggleRight, Bot, ArrowRight, Sparkles } from 'lucide-react';
+import { ToggleLeft, ToggleRight, Bot, ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { cn } from '@/lib/utils';
 import { useFeatureToggles, ALL_FEATURES, type FeatureMeta } from '@/hooks/useFeatureToggles';
 import { useAppStore } from '@/store/useAppStore';
@@ -32,26 +35,19 @@ export function FeatureTogglesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-6 h-6 border-2 border-teal/30 border-t-teal rounded-full animate-spin" />
-      </div>
+      <PageShell className="max-w-3xl">
+        <PageLoading />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal/20 to-purple-500/10 flex items-center justify-center">
-          <Shield size={20} className="text-teal" />
-        </div>
-        <div>
-          <h1 className="text-lg font-display gradient-text-vibrant">Feature Toggles</h1>
-          <p className="text-xs text-steel font-body">
-            Enable or disable features for this property. {!isOwner && 'Only the property owner can change these settings.'}
-          </p>
-        </div>
-      </div>
+    <PageShell className="max-w-3xl space-y-8">
+      <PageHeader
+        title="Feature Toggles"
+        description={`Enable or disable features for this property.${!isOwner ? ' Only the property owner can change these settings.' : ''}`}
+        variant="dark"
+      />
 
       {/* Feature groups */}
       {grouped.map((group) => (
@@ -103,7 +99,7 @@ export function FeatureTogglesPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
 

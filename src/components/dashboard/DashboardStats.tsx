@@ -85,7 +85,7 @@ export const DashboardStats: FC<{ stats: StatCardProps[] }> = ({ stats }) => {
             '--shimmer-color-2': shimmer.c2,
           } as React.CSSProperties}
           className={cn(
-            'card-dark relative overflow-hidden group stat-card-glow stat-shimmer-border',
+            'card-dark relative overflow-hidden group',
             'border border-white/[0.06] hover:border-white/[0.14]',
             'opacity-0 animate-slide-up',
             i === 0 && 'animate-stagger-1',
@@ -95,7 +95,7 @@ export const DashboardStats: FC<{ stats: StatCardProps[] }> = ({ stats }) => {
           )}
         >
           {/* Vibrant top accent bar — reveals on hover */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-vibrant bg-[length:200%_100%] animate-gradient-pan opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold/60 to-teal/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           {/* Large ambient glow orb */}
           <div className={cn(
             'absolute -top-12 -right-12 w-36 h-36 rounded-full blur-[50px] opacity-0 group-hover:opacity-100 transition-all duration-700',

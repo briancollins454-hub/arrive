@@ -3,7 +3,9 @@ import { useProperty } from '@/hooks/useProperty';
 import { useStaff } from '@/hooks/useStaff';
 import type { StaffInvite } from '@/hooks/useStaff';
 import { isDemoMode, supabase } from '@/lib/supabase';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -356,7 +358,13 @@ export function SettingsPage() {
     } : undefined,
   });
 
-  if (!property) return <PageSpinner />;
+  if (!property) {
+    return (
+      <PageShell className="max-w-4xl">
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   const onSubmit = (data: SettingsFormValues) => {
     if (property) {
@@ -567,13 +575,12 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Settings</h1>
-          <p className="text-sm text-steel font-body">Manage property, users, and system configuration</p>
-        </div>
-      </div>
+    <PageShell className="max-w-4xl">
+      <PageHeader
+        title="Settings"
+        description="Manage property, users, and system configuration"
+        variant="dark"
+      />
 
       {/* Tab Bar */}
       <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-6 overflow-x-auto">
@@ -2779,6 +2786,6 @@ export function SettingsPage() {
           </div>
         </form>
       )}
-    </div>
+    </PageShell>
   );
 }

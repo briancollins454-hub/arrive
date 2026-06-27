@@ -4,7 +4,7 @@ import { supabase, isDemoMode } from '@/lib/supabase';
 import { Logo } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { FormField } from '@/components/ui/FormField';
 import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -62,10 +62,6 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-midnight relative overflow-hidden flex items-center justify-center p-6">
-      <div className="absolute inset-0 mesh-gradient" />
-      <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-gold/[0.04] rounded-full blur-[120px] animate-aurora" />
-      <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal/[0.04] rounded-full blur-[100px] animate-aurora-2" />
-
       <div className="relative z-10 w-full max-w-md">
         <div className="flex justify-center mb-8">
           <Logo variant="dark" size="lg" />
@@ -91,13 +87,12 @@ export function ForgotPasswordPage() {
           ) : (
             <>
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">Forgot Password?</h2>
+                <h2 className="text-2xl font-display text-white mb-1.5">Forgot Password?</h2>
                 <p className="text-sm text-steel font-body">Enter your email and we'll send you a reset link</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label variant="dark">Email</Label>
+                <FormField label="Email" variant="dark">
                   <div className="relative">
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                     <Input
@@ -110,7 +105,7 @@ export function ForgotPasswordPage() {
                       required
                     />
                   </div>
-                </div>
+                </FormField>
 
                 {error && (
                   <div className="flex items-center gap-2 text-red-400 text-sm font-body bg-red-400/10 rounded-lg px-3 py-2">

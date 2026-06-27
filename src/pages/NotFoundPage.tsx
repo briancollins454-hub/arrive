@@ -1,32 +1,36 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShellStandalone } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Home, ArrowLeft } from 'lucide-react';
 
 export function NotFoundPage() {
   const location = useLocation();
-  const isDashboard = location.pathname.startsWith('/dashboard');
+  const isDashboard = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin');
+  const variant = isDashboard ? 'dark' : 'light';
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isDashboard ? 'bg-midnight' : 'bg-cream'}`}>
-      <div className="text-center max-w-md">
+    <PageShellStandalone variant={variant}>
+      <div className="flex flex-col items-center text-center max-w-md mx-auto py-12">
         <div className="flex justify-center mb-6">
-          <Logo variant={isDashboard ? 'dark' : 'light'} size="md" />
+          <Logo variant={variant === 'dark' ? 'dark' : 'light'} size="md" />
         </div>
 
-        <h1 className={`text-7xl font-display mb-4 ${isDashboard ? 'text-gold' : 'text-midnight'}`}>
+        <p className={`text-7xl font-display mb-2 ${variant === 'dark' ? 'text-gold' : 'text-midnight'}`}>
           404
-        </h1>
-        <h2 className={`text-xl font-display mb-2 ${isDashboard ? 'text-white' : 'text-midnight'}`}>
-          Page Not Found
-        </h2>
-        <p className={`text-sm font-body mb-8 ${isDashboard ? 'text-steel' : 'text-charcoal/60'}`}>
-          The page you're looking for doesn't exist or has been moved.
         </p>
 
-        <div className="flex justify-center gap-3">
+        <PageHeader
+          variant={variant}
+          title="Page Not Found"
+          description="The page you're looking for doesn't exist or has been moved."
+          className="justify-center items-center text-center mb-2"
+        />
+
+        <div className="flex justify-center gap-3 mt-6">
           <Button
-            variant={isDashboard ? 'outline-dark' : 'outline'}
+            variant={variant === 'dark' ? 'outline-dark' : 'outline'}
             onClick={() => window.history.back()}
           >
             <ArrowLeft size={16} className="mr-2" />
@@ -40,6 +44,6 @@ export function NotFoundPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </PageShellStandalone>
   );
 }

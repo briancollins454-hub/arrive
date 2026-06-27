@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { format, addDays, subDays, startOfWeek, differenceInDays, isSameDay, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarDays, ArrowRightLeft, AlertCircle, Inbox, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
@@ -247,15 +249,12 @@ export function TapeChartPage() {
   }, [pendingMove, allRoomTypes, assignRoom]);
 
   return (
-    <div className="p-6 lg:p-8 space-y-4 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Tape Chart</h1>
-          <p className="text-silver text-sm mt-1">
-            Visual room availability — {format(startDate, 'MMM d')} to {format(addDays(startDate, viewSpan - 1), 'MMM d, yyyy')}
-          </p>
-        </div>
+    <PageShell wide className="space-y-4 min-h-full">
+      <PageHeader
+        title="Tape Chart"
+        description={`Visual room availability — ${format(startDate, 'MMM d')} to ${format(addDays(startDate, viewSpan - 1), 'MMM d, yyyy')}`}
+        variant="dark"
+        actions={
         <div className="flex items-center gap-2">
           <Button variant="outline-dark" size="sm" onClick={goPrev}>
             <ChevronLeft className="w-4 h-4" />
@@ -266,7 +265,6 @@ export function TapeChartPage() {
           <Button variant="outline-dark" size="sm" onClick={goNext}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-
           <div className="ml-4 flex items-center gap-1 glass-panel px-1 py-1 rounded-lg">
             <button
               onClick={() => setViewSpan(7)}
@@ -288,7 +286,8 @@ export function TapeChartPage() {
             </button>
           </div>
         </div>
-      </div>
+        }
+      />
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs flex-wrap">
@@ -734,6 +733,6 @@ export function TapeChartPage() {
           </p>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

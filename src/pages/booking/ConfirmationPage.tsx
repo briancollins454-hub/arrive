@@ -7,7 +7,7 @@ export function ConfirmationPage() {
   const { property } = useBookingProperty();
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className="max-w-2xl mx-auto">
       <BookingConfirmation
         confirmationCode={searchParams.get('code') || 'PENDING'}
         guestName={searchParams.get('name') || 'Guest'}

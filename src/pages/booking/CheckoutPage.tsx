@@ -6,6 +6,7 @@ import { useRatePeriods } from '@/hooks/useRatePeriods';
 import { useBookings } from '@/hooks/useBookings';
 import { useStripePayment } from '@/hooks/useStripePayment';
 import { CheckoutForm } from '@/components/booking/CheckoutForm';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';
 import { differenceInDays, format } from 'date-fns';
@@ -144,8 +145,8 @@ export function CheckoutPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-display gradient-text-vibrant mb-6">Complete Your Booking</h1>
+    <div>
+      <PageHeader variant="light" title="Complete Your Booking" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Checkout Form */}

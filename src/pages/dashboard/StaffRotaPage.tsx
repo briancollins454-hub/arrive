@@ -7,6 +7,8 @@ import {
   Download, AlertTriangle, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import {
   format, addDays, startOfWeek, isSameDay, subWeeks,
 } from 'date-fns';
@@ -231,24 +233,18 @@ export function StaffRotaPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Staff Rota</h1>
-          <p className="text-sm text-steel font-body tracking-wide mt-1">
-            Week of {format(weekStart, 'd MMM')} — {format(addDays(weekStart, 6), 'd MMM yyyy')}
-          </p>
-        </div>
+    <PageShell className="space-y-6 min-h-full">
+      <PageHeader
+        title="Staff Rota"
+        description={`Week of ${format(weekStart, 'd MMM')} — ${format(addDays(weekStart, 6), 'd MMM yyyy')}`}
+        variant="dark"
+        actions={
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Week navigation */}
           <DashboardDatePicker
             value={dateRange}
             onChange={setDateRange}
             presets={['week']}
           />
-
-          {/* Role filter */}
           <div className="flex flex-wrap gap-1 glass-panel rounded-xl p-1">
             {(['all', ...(Object.keys(ROLE_DEFINITIONS) as StaffRole[])] as const).map(r => (
               <button
@@ -263,7 +259,6 @@ export function StaffRotaPage() {
               </button>
             ))}
           </div>
-
           <Button variant="outline-dark" size="sm" onClick={copyPrevWeek} title="Copy last week's rota">
             <Copy size={14} className="mr-1" /> Copy Week
           </Button>
@@ -274,7 +269,8 @@ export function StaffRotaPage() {
             <Plus size={14} className="mr-1" /> Add Staff
           </Button>
         </div>
-      </div>
+        }
+      />
 
       {/* Shift Legend */}
       <div className="flex items-center gap-3 text-xs flex-wrap">
@@ -569,6 +565,6 @@ export function StaffRotaPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -5,7 +5,10 @@ import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import { useFolios } from '@/hooks/useFolios';
 import { useStripePayment } from '@/hooks/useStripePayment';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -347,18 +350,31 @@ export function BookingDetailPage() {
   const { accounts: cityLedgerCompanies_, createInvoice: clCreateInvoice } = useCityLedger();
   const cityLedgerCompanies = cityLedgerCompanies_.map(a => ({ id: a.id, name: a.company_name }));
 
-  if (isLoading) return <PageSpinner />;
+  if (isLoading) {
+    return (
+      <PageShell wide className="max-w-4xl">
+        <PageLoading layout="detail" />
+      </PageShell>
+    );
+  }
 
   const booking = bookings.find((b) => b.id === id);
 
   if (!booking) {
     return (
-      <div className="p-6 text-center">
-        <p className="text-steel font-body mb-4">Booking not found</p>
-        <Button variant="outline-dark" onClick={() => navigate('/dashboard/bookings')}>
-          <ArrowLeft size={16} className="mr-2" /> Back to Bookings
-        </Button>
-      </div>
+      <PageShell wide className="max-w-4xl">
+        <PageHeader title="Booking" description="Booking details" variant="dark" />
+        <EmptyState
+          icon={ArrowLeft}
+          title="Booking not found"
+          variant="dark"
+          action={
+            <Button variant="outline-dark" onClick={() => navigate('/dashboard/bookings')}>
+              <ArrowLeft size={16} className="mr-2" /> Back to Bookings
+            </Button>
+          }
+        />
+      </PageShell>
     );
   }
 
@@ -613,33 +629,24 @@ export function BookingDetailPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <Button variant="ghost-dark" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
-          <ArrowLeft size={20} />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-display gradient-text-vibrant tracking-tight">
-              {booking.confirmation_code}
-            </h1>
-            <StatusBadge status={booking.status} />
-          </div>
-          <p className="text-sm text-steel font-body mt-1">
-            Booked {format(new Date(booking.created_at), 'PPP')}
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
+    <PageShell wide className="max-w-4xl">
+      <PageHeader
+        title={booking.confirmation_code}
+        description={`Booked ${format(new Date(booking.created_at), 'PPP')}`}
+        variant="dark"
+        actions={
+        <div className="flex gap-2 flex-wrap items-center">
+          <Button variant="ghost-dark" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
+            <ArrowLeft size={20} />
+          </Button>
+          <StatusBadge status={booking.status} />
           {action && (
             <Button
               onClick={() => {
-                // Block checkout if outstanding folio balance
                 if (action.next === 'checked_out' && folio.balance > 0.01) {
                   setShowCheckoutBlockDialog(true);
                   return;
                 }
-                // Check-in: show upsell suggestions first
                 if (action.next === 'checked_in') {
                   if (!booking.room_id) {
                     toast.error('Please assign a room before checking in');
@@ -676,7 +683,8 @@ export function BookingDetailPage() {
             </Button>
           )}
         </div>
-      </div>
+        }
+      />
 
       {/* Returning guest / preferences banner — highly visible summary of what staff should know */}
       {guest && (guest.total_stays > 0 || guest.tags.length > 0 || Object.values(guest.preferences ?? {}).some(Boolean)) && (
@@ -3192,6 +3200,6 @@ export function BookingDetailPage() {
         }}
         autoStart={!isMasterKeyMode && keyCard.config.auto_encode_on_checkin}
       />
-    </div>
+    </PageShell>
   );
 }

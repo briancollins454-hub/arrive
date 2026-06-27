@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Lock, Mail, Shield, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import toast from 'react-hot-toast';
 
 export function AccountPage() {
@@ -67,11 +69,12 @@ export function AccountPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">My Account</h1>
-        <p className="text-sm text-steel font-body">Manage your profile and password</p>
-      </div>
+    <PageShell className="max-w-2xl">
+      <PageHeader
+        title="My Account"
+        description="Manage your profile and password"
+        variant="dark"
+      />
 
       <Card variant="dark" className="mb-6">
         <CardHeader>
@@ -177,6 +180,6 @@ export function AccountPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

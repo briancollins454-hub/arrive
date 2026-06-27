@@ -195,11 +195,8 @@ export function DashboardLayout() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#111827]/95 via-midnight/95 to-[#070b14] backdrop-blur-2xl" />
         {/* Luminous gradient edge — premium animated */}
         <div className="absolute right-0 top-0 bottom-0 w-px">
-          <div className="h-full bg-gradient-to-b from-gold/40 via-teal/25 via-60% via-purple/15 to-transparent animate-border-glow" />
+          <div className="h-full bg-gradient-to-b from-gold/40 via-teal/25 to-transparent" />
         </div>
-        {/* Layered ambient glows */}
-        <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-gold/[0.04] blur-[100px] pointer-events-none animate-aurora-float-1" />
-        <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full bg-teal/[0.03] blur-[80px] pointer-events-none animate-aurora-float-2" />
 
         <SidebarContent collapsed={collapsed} setCollapsed={setCollapsed} navigate={navigate} setShowCommandPalette={setShowCommandPalette} isMobile={false} onClose={() => {}} />
       </aside>
@@ -214,7 +211,7 @@ export function DashboardLayout() {
       )}>
         <div className="absolute inset-0 bg-gradient-to-b from-charcoal/95 via-midnight to-midnight backdrop-blur-2xl" />
         <div className="absolute right-0 top-0 bottom-0 w-px">
-          <div className="h-full bg-gradient-to-b from-gold/30 via-teal/20 via-purple/10 to-transparent" />
+          <div className="h-full bg-gradient-to-b from-gold/30 via-teal/20 to-transparent" />
         </div>
         <SidebarContent collapsed={false} setCollapsed={setCollapsed} navigate={navigate} setShowCommandPalette={setShowCommandPalette} isMobile onClose={() => setMobileOpen(false)} />
       </aside>
@@ -357,15 +354,13 @@ export function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gradient-to-b from-midnight via-midnight to-[#070b14] relative">
-          {billingLocked
-            ? <BillingGate status={subscription?.status} onGoToBilling={() => navigate('/dashboard/billing')} />
-            : <PageTransition><Outlet /></PageTransition>}
+          <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+            {billingLocked
+              ? <BillingGate status={subscription?.status} onGoToBilling={() => navigate('/dashboard/billing')} />
+              : <PageTransition><Outlet /></PageTransition>}
+          </div>
         </main>
 
-        {/* Ambient floating light orbs — fixed position, behind all content */}
-        <div className="ambient-light ambient-light-gold" style={{ top: '8%', right: '5%' }} />
-        <div className="ambient-light ambient-light-teal" style={{ bottom: '10%', left: '2%' }} />
-        <div className="ambient-light ambient-light-purple" style={{ top: '50%', right: '25%' }} />
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BedDouble, CalendarCheck, LogIn, LogOut as LogOutIcon, Plus,
-  TrendingUp, Clock, ArrowRight, Users, Sparkles,
-  AlertTriangle, Brain, Globe, Wrench, Hash, Loader2,
+  TrendingUp, ArrowRight, Users,
+  AlertTriangle, Brain, Globe, Wrench, Hash,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useBookings } from '@/hooks/useBookings';
@@ -15,6 +15,9 @@ import { useKeyCard } from '@/hooks/useKeyCard';
 import { KeyCardModal } from '@/components/dashboard/KeyCardModal';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -90,20 +93,6 @@ function RoomGrid({ rooms }: { rooms: { id: string; room_number: string; status:
   );
 }
 
-// Live clock
-function LiveClock() {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <span className="text-xs text-steel font-body tabular-nums">
-      {format(time, 'HH:mm:ss')}
-    </span>
-  );
-}
-
 export function DashboardHome() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -157,12 +146,9 @@ export function DashboardHome() {
 
   if (isLoadingBookings || isLoadingRooms || isLoadingGuests) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-gold mx-auto mb-2" />
-          <p className="text-steel text-sm">Loading dashboard...</p>
-        </div>
-      </div>
+      <PageShell>
+        <PageLoading layout="stats" />
+      </PageShell>
     );
   }
 
@@ -170,15 +156,14 @@ export function DashboardHome() {
   const needsSetup = roomTypes.length === 0;
   if (needsSetup) {
     return (
-      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[70vh]">
+      <PageShell className="flex items-center justify-center min-h-[70vh]">
         <div className="max-w-lg w-full text-center space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold/20 to-teal/10 border border-gold/20 flex items-center justify-center mx-auto">
-            <Sparkles size={28} className="text-gold" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-display text-white mb-2">Welcome to Arrivé</h1>
-            <p className="text-steel font-body">Let's get your hotel set up. Follow these steps to start taking bookings.</p>
-          </div>
+          <PageHeader
+            title="Welcome to Arrivé"
+            description="Let's get your hotel set up. Follow these steps to start taking bookings."
+            variant="dark"
+            className="mb-0"
+          />
           <div className="text-left space-y-3">
             {[
               { step: 1, label: 'Create your room types', desc: 'e.g. Standard Double, Deluxe King, Family Suite', path: '/dashboard/rooms', done: roomTypes.length > 0 },
@@ -206,7 +191,7 @@ export function DashboardHome() {
             ))}
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -278,43 +263,24 @@ export function DashboardHome() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 mesh-gradient min-h-full relative overflow-hidden">
-      {/* Cinematic ambient background orbs — layered for depth */}
-      <div className="pointer-events-none absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full bg-gradient-radial from-teal/[0.06] via-teal/[0.02] to-transparent blur-[120px] animate-aurora-float-2" />
-      <div className="pointer-events-none absolute -bottom-48 -left-24 w-[600px] h-[600px] rounded-full bg-gradient-radial from-gold/[0.05] via-gold/[0.015] to-transparent blur-[100px] animate-aurora-float-1" />
-      <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-gradient-radial from-purple/[0.03] to-transparent blur-[120px] animate-aurora-float-3" />
-      {/* Noise texture overlay for film grain effect */}
-      <div className="pointer-events-none absolute inset-0 noise-texture" />
-
-      {/* Hero Header — cinematic welcome */}
-      <div className="opacity-0 animate-fade-in mb-6 sm:mb-10 relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="hero-glow vibrant-aura">
-            <div className="flex items-center gap-3 mb-3">
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-display gradient-text-vibrant tracking-tight leading-none">{getGreeting()}</h1>
-              <Sparkles size={20} className="text-gold animate-pulse-soft drop-shadow-[0_0_12px_rgba(201,168,76,0.5)]" />
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-xs sm:text-sm text-silver/70 font-body tracking-wide">{todayStr}</p>
-              <span className="w-1 h-1 rounded-full bg-gold/40" />
-              <div className="flex items-center gap-1.5">
-                <Clock size={12} className="text-gold/40" />
-                <LiveClock />
-              </div>
-            </div>
-          </div>
-          <Button variant="vibrant" onClick={() => setShowNewBooking(true)} className="transition-all duration-500 w-full sm:w-auto">
+    <PageShell className="min-h-full relative">
+      <PageHeader
+        title={getGreeting()}
+        description={todayStr}
+        variant="dark"
+        actions={
+          <Button onClick={() => setShowNewBooking(true)} className="transition-all duration-500 w-full sm:w-auto">
             <Plus size={16} className="mr-2" />
             New Booking
           </Button>
-        </div>
-        <div className="mt-3">
-          <DashboardDatePicker
-            value={dateRange}
-            onChange={setDateRange}
-            presets={['today', 'week', 'month', 'year']}
-          />
-        </div>
+        }
+      />
+      <div className="mb-6">
+        <DashboardDatePicker
+          value={dateRange}
+          onChange={setDateRange}
+          presets={['today', 'week', 'month', 'year']}
+        />
       </div>
 
       {/* Stats */}
@@ -670,6 +636,6 @@ export function DashboardHome() {
           />
         );
       })()}
-    </div>
+    </PageShell>
   );
 }

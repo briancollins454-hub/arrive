@@ -3,8 +3,10 @@ import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import { isDemoMode } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import {
-  Brain, TrendingUp, TrendingDown, CheckCircle2,
+  TrendingUp, TrendingDown, CheckCircle2,
   Calendar, Users, Zap, Lightbulb, ArrowUpRight, ArrowDownRight,
   BedDouble, DollarSign, BarChart3, Target, Clock,
 } from 'lucide-react';
@@ -135,17 +137,12 @@ export function AIInsightsPage() {
   const forecastMax = Math.max(...forecast.map((d) => d.predicted));
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500/20 to-teal/20 border border-purple-500/20 flex items-center justify-center">
-          <Brain size={20} className="text-purple-400" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant tracking-tight">AI Insights</h1>
-          <p className="text-sm text-steel font-body">Powered by predictive analytics{!isDemoMode && ' · Forecasts are estimates based on current data'}</p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="AI Insights"
+        description={`Powered by predictive analytics${!isDemoMode ? ' · Forecasts are estimates based on current data' : ''}`}
+        variant="dark"
+      />
 
       {/* KPI Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -342,6 +339,6 @@ export function AIInsightsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

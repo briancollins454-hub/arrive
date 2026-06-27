@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isDemoMode } from '@/lib/supabase';
 import { useRooms } from '@/hooks/useRooms';
 import { useProperty } from '@/hooks/useProperty';
@@ -6,7 +6,7 @@ import type { RatePeriod } from '@/types';
 import toast from 'react-hot-toast';
 
 // ============================================================
-// Demo rate periods â€” seasonal pricing
+// Demo rate periods — seasonal pricing
 // ============================================================
 
 function buildDemoRates(roomTypes: { id: string; base_rate: number }[], propId: string): RatePeriod[] {

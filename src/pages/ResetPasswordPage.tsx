@@ -4,7 +4,7 @@ import { supabase, isDemoMode } from '@/lib/supabase';
 import { Logo } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { FormField } from '@/components/ui/FormField';
 import { Lock, AlertCircle, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 
 export function ResetPasswordPage() {
@@ -110,10 +110,6 @@ export function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-midnight relative overflow-hidden flex items-center justify-center p-6">
-      <div className="absolute inset-0 mesh-gradient" />
-      <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-gold/[0.04] rounded-full blur-[120px] animate-aurora" />
-      <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal/[0.04] rounded-full blur-[100px] animate-aurora-2" />
-
       <div className="relative z-10 w-full max-w-md">
         <div className="flex justify-center mb-8">
           <Logo variant="dark" size="lg" />
@@ -149,13 +145,12 @@ export function ResetPasswordPage() {
           {status === 'ready' && (
             <>
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">Set a New Password</h2>
+                <h2 className="text-2xl font-display text-white mb-1.5">Set a New Password</h2>
                 <p className="text-sm text-steel font-body">Choose a strong password for your account</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label variant="dark">New Password</Label>
+                <FormField label="New Password" variant="dark">
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                     <Input
@@ -177,10 +172,9 @@ export function ResetPasswordPage() {
                       <span className="text-[10px] text-steel font-body w-16 text-right">{strengthLabel}</span>
                     </div>
                   )}
-                </div>
+                </FormField>
 
-                <div>
-                  <Label variant="dark">Confirm Password</Label>
+                <FormField label="Confirm Password" variant="dark">
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" />
                     <Input
@@ -194,7 +188,7 @@ export function ResetPasswordPage() {
                       minLength={8}
                     />
                   </div>
-                </div>
+                </FormField>
 
                 {error && (
                   <div className="flex items-center gap-2 text-red-400 text-sm font-body bg-red-400/10 rounded-lg px-3 py-2">

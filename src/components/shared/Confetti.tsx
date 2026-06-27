@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
-const COLORS = ['#c9a84c', '#ff4dd9', '#b667ff', '#2dd4ff', '#0ea5a0', '#a3e635', '#ff7849'];
+const COLORS = ['#c9a84c', '#e3c96e', '#0ea5a0', '#22d3c6'];
 
 interface Piece {
   id: number;

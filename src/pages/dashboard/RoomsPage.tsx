@@ -4,7 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRooms } from '@/hooks/useRooms';
 import { useBookings } from '@/hooks/useBookings';
 import { RoomTypeEditor } from '@/components/dashboard/RoomTypeEditor';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -155,7 +157,13 @@ export function RoomsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rooms]);
 
-  if (isLoadingTypes) return <PageSpinner />;
+  if (isLoadingTypes) {
+    return (
+      <PageShell>
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   const handleSubmit = (data: RoomTypeFormData) => {
     if (editingRoomType) {
@@ -189,27 +197,25 @@ export function RoomsPage() {
   const filteredRooms = statusFilter === 'all' ? rooms : rooms.filter((r) => getEffectiveStatus(r) === statusFilter);
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Room Inventory</h1>
-          <p className="text-sm text-steel font-body">
-            {roomTypes.length} room types · {rooms.length} rooms
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline-dark" onClick={() => setShowFloorSetup(true)}>
-            <Layers size={16} className="mr-2" /> Floor Setup
-          </Button>
-          <Button variant="outline-dark" onClick={() => setShowAddRoom(true)}>
-            <DoorOpen size={16} className="mr-2" /> Add Room
-          </Button>
-          <Button onClick={() => setShowNewRoomType(true)}>
-            <Plus size={16} className="mr-2" /> New Room Type
-          </Button>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Room Inventory"
+        description={`${roomTypes.length} room types · ${rooms.length} rooms`}
+        variant="dark"
+        actions={
+          <>
+            <Button variant="outline-dark" onClick={() => setShowFloorSetup(true)}>
+              <Layers size={16} className="mr-2" /> Floor Setup
+            </Button>
+            <Button variant="outline-dark" onClick={() => setShowAddRoom(true)}>
+              <DoorOpen size={16} className="mr-2" /> Add Room
+            </Button>
+            <Button onClick={() => setShowNewRoomType(true)}>
+              <Plus size={16} className="mr-2" /> New Room Type
+            </Button>
+          </>
+        }
+      />
 
       <Tabs defaultValue="inventory" className="w-full">
         <TabsList variant="dark" className="mb-6">
@@ -719,6 +725,6 @@ export function RoomsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

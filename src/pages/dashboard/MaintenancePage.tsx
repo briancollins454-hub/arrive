@@ -5,6 +5,9 @@ import {
   ChevronDown, ChevronUp, MapPin, Trash2, CalendarClock, RotateCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { useWorkOrders } from '@/hooks/useWorkOrders';
 import { useRooms } from '@/hooks/useRooms';
@@ -104,17 +107,17 @@ export function MaintenancePage() {
   const urgentCount = dateFiltered.filter(w => w.priority === 'urgent' && w.status !== 'completed' && w.status !== 'cancelled').length;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Maintenance</h1>
-          <p className="text-silver text-sm mt-1">Work orders & maintenance tracking</p>
-        </div>
-        <Button variant="teal" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-1" /> New Work Order
-        </Button>
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Maintenance"
+        description="Work orders & maintenance tracking"
+        variant="dark"
+        actions={
+          <Button variant="teal" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New Work Order
+          </Button>
+        }
+      />
 
       {/* Date Range Picker */}
       <div>
@@ -373,10 +376,17 @@ export function MaintenancePage() {
       {/* Work Orders List */}
       <div className="space-y-2">
         {sorted.length === 0 && (
-          <div className="glass-panel rounded-xl p-8 text-center text-silver">
-            <Wrench className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <p>No work orders found</p>
-          </div>
+          <EmptyState
+            icon={Wrench}
+            title="No work orders found"
+            description="Create a work order to track maintenance tasks"
+            variant="dark"
+            action={
+              <Button variant="teal" onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4 mr-1" /> New Work Order
+              </Button>
+            }
+          />
         )}
         {sorted.map(wo => {
           const cfg = statusConfig[wo.status];
@@ -431,6 +441,6 @@ export function MaintenancePage() {
         })}
       </div>
       </>)}
-    </div>
+    </PageShell>
   );
 }

@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react';
 import {
   Building2, Search, Plus, ChevronDown, ChevronUp, CreditCard,
   Mail, Phone, FileText, Clock, AlertTriangle, Check, Trash2,
-  TrendingUp, Receipt, Download, Landmark, ReceiptText, Send, Ban,
+  TrendingUp, Receipt, Download, ReceiptText, Send, Ban,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { exportCSV } from '@/lib/exportUtils';
 import toast from 'react-hot-toast';
@@ -244,22 +246,13 @@ export function CityLedgerPage() {
   }, [invoices]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 mesh-gradient min-h-full">
-      <div className="dot-grid absolute inset-0 pointer-events-none" />
-
-      {/* Header */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold gradient-text-vibrant tracking-tight flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-gold/20 to-gold/5 border border-gold/20">
-              <Landmark size={22} className="text-gold" />
-            </div>
-            City Ledger
-          </h1>
-          <p className="text-xs sm:text-sm text-steel mt-1 font-body">Accounts receivable — company & agency direct billing</p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+    <PageShell className="space-y-6 min-h-full">
+      <PageHeader
+        title="City Ledger"
+        description="Accounts receivable — company & agency direct billing"
+        variant="dark"
+        actions={
+        <div className="flex items-center gap-2">
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-steel hover:text-silver text-xs font-body transition-all duration-200 touch-manipulation"
@@ -282,13 +275,14 @@ export function CityLedgerPage() {
           </button>
           <button
             onClick={() => setShowAddAccount(true)}
-            className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl bg-gradient-to-r from-gold/20 to-teal/10 border border-gold/25 text-gold hover:text-gold-light text-xs font-body font-semibold transition-all duration-200 touch-manipulation"
+            className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl bg-white/[0.05] border border-white/[0.1] text-gold hover:text-gold-light text-xs font-body font-semibold transition-all duration-200 touch-manipulation"
           >
             <Plus size={14} />
             New Account
           </button>
         </div>
-      </div>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -865,6 +859,6 @@ export function CityLedgerPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

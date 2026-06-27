@@ -6,6 +6,10 @@ import {
   Users, AlertCircle, Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { useRooms } from '@/hooks/useRooms';
 import { useBookings } from '@/hooks/useBookings';
 import { isDemoMode } from '@/lib/supabase';
@@ -227,36 +231,27 @@ export function HousekeepingPage() {
 
   if (isLoadingRooms) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
-      </div>
+      <PageShell>
+        <PageLoading />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 mesh-gradient min-h-full">
-      <div className="dot-grid absolute inset-0 pointer-events-none" />
-
-      {/* Header */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold gradient-text-vibrant tracking-tight flex items-center gap-3">
-            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-teal/20 to-teal/5 border border-teal/20">
-              <SprayCan size={20} className="text-teal sm:w-[22px] sm:h-[22px]" />
-            </div>
-            Housekeeping
-          </h1>
-          <p className="text-xs sm:text-sm text-steel mt-1 font-body">Room service board — grouped by priority</p>
-        </div>
-
-        <button
-          onClick={() => setSortBy((s) => s === 'room' ? 'floor' : 'room')}
-          className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:bg-white/[0.1] text-steel hover:text-silver text-xs font-body transition-all duration-200 self-start sm:self-auto touch-manipulation"
-        >
-          <ArrowUpDown size={14} />
-          Sort: {sortBy === 'room' ? 'Room №' : 'Floor'}
-        </button>
-        <div className="flex gap-2 self-start sm:self-auto">
+    <PageShell className="space-y-4 sm:space-y-6 min-h-full">
+      <PageHeader
+        title="Housekeeping"
+        description="Room service board — grouped by priority"
+        variant="dark"
+        actions={
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setSortBy((s) => s === 'room' ? 'floor' : 'room')}
+            className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:bg-white/[0.1] text-steel hover:text-silver text-xs font-body transition-all duration-200 touch-manipulation"
+          >
+            <ArrowUpDown size={14} />
+            Sort: {sortBy === 'room' ? 'Room №' : 'Floor'}
+          </button>
           <button
             onClick={() => setShowAttendantPanel(!showAttendantPanel)}
             className={cn(
@@ -295,7 +290,8 @@ export function HousekeepingPage() {
             <Download size={14} />
           </button>
         </div>
-      </div>
+        }
+      />
 
       {/* Summary cards */}
       <div className="relative grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
@@ -479,10 +475,11 @@ export function HousekeepingPage() {
 
       {/* Empty state */}
       {rooms.length > 0 && sectionOrder.every((k) => sections[k].length === 0) && (
-        <div className="text-center py-16">
-          <SprayCan size={48} className="mx-auto text-steel/30 mb-4" />
-          <p className="text-steel text-sm font-body">All rooms accounted for</p>
-        </div>
+        <EmptyState
+          icon={SprayCan}
+          title="All rooms accounted for"
+          variant="dark"
+        />
       )}
 
       {/* Refusal Reason Dialog */}
@@ -551,7 +548,7 @@ export function HousekeepingPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
 

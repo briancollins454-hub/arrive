@@ -26,7 +26,7 @@ export function EmptyState({
     <div className={cn('flex flex-col items-center justify-center text-center py-16 px-6', className)}>
       <div className="relative mb-5">
         {/* Vibrant glow halo */}
-        <div className="absolute inset-0 -m-4 rounded-full bg-gradient-vibrant opacity-20 blur-2xl animate-pulse-soft" />
+        <div className="absolute inset-0 -m-4 rounded-full bg-gold/10 blur-2xl" />
         <div
           className={cn(
             'relative w-16 h-16 rounded-2xl flex items-center justify-center border',

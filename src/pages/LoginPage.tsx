@@ -51,14 +51,6 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-midnight relative overflow-hidden">
-      {/* Layered background */}
-      <div className="absolute inset-0 mesh-gradient" />
-      
-      {/* Animated aurora orbs */}
-      <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-gold/[0.04] rounded-full blur-[120px] animate-aurora" />
-      <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal/[0.04] rounded-full blur-[100px] animate-aurora-2" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple/[0.02] rounded-full blur-[140px]" />
-
       <div className="relative z-10 min-h-screen flex">
         {/* Left side — branding & features */}
         <div className={`hidden lg:flex flex-col justify-between flex-1 p-12 transition-all duration-700 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
@@ -71,7 +63,7 @@ export function LoginPage() {
               <h1 className="text-5xl font-display text-white leading-tight mb-4">
                 The all-in-one platform for
                 <br />
-                <span className="gradient-text-vibrant">boutique hotels</span>
+                <span className="text-gold">boutique hotels</span>
               </h1>
               <p className="text-silver/60 font-body text-sm leading-relaxed max-w-sm">
                 Manage bookings, guests, rooms, and revenue — all from a single beautiful dashboard. No commissions. No complexity.
@@ -107,7 +99,7 @@ export function LoginPage() {
 
             <div className="glass-panel p-8 border border-white/[0.08] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.5)]">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-display gradient-text-vibrant mb-1.5">Welcome Back</h2>
+                <h2 className="text-2xl font-display text-white mb-1.5">Welcome Back</h2>
                 <p className="text-sm text-steel font-body">Sign in to your dashboard</p>
               </div>
 

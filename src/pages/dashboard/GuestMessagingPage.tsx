@@ -4,6 +4,8 @@ import {
   MessageCircle, Send, Phone, Mail, Search, CheckCheck, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { isDemoMode } from '@/lib/supabase';
 
@@ -133,13 +135,13 @@ export function GuestMessagingPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Guest Messaging</h1>
-          <p className="text-silver text-sm mt-1">WhatsApp & SMS conversations with in-house guests</p>
-        </div>
-      </div>
+    <PageShell className="h-[calc(100vh-8rem)]">
+      <PageHeader
+        title="Guest Messaging"
+        description="WhatsApp & SMS conversations with in-house guests"
+        variant="dark"
+        className="mb-4"
+      />
 
       <div className="flex gap-0 h-[calc(100%-3.5rem)] glass-panel rounded-xl overflow-hidden">
         {/* Thread List */}
@@ -254,6 +256,6 @@ export function GuestMessagingPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

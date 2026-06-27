@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { FormField } from '@/components/ui/FormField';
 import {
   Search, Calendar, BedDouble, Users, Mail, Phone, Pencil,
   Clock, AlertTriangle, Check, X, MessageSquare, ArrowLeft,
@@ -99,27 +101,26 @@ export function ManageBookingPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-display gradient-text-vibrant mb-2">Manage Your Booking</h1>
-      <p className="text-charcoal/60 font-body mb-8">
-        Enter your confirmation code and email to view or modify your booking
-      </p>
+    <div className="max-w-2xl mx-auto">
+      <PageHeader
+        variant="light"
+        title="Manage Your Booking"
+        description="Enter your confirmation code and email to view or modify your booking"
+      />
 
       {!found ? (
         <Card>
           <CardContent className="p-6">
             <form onSubmit={handleSearch} className="space-y-4">
-              <div>
-                <Label>Confirmation Code</Label>
+              <FormField label="Confirmation Code" variant="light">
                 <Input
                   placeholder="e.g. ARR-2024-001"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   required
                 />
-              </div>
-              <div>
-                <Label>Email Address</Label>
+              </FormField>
+              <FormField label="Email Address" variant="light">
                 <Input
                   type="email"
                   placeholder="your@email.com"
@@ -127,7 +128,7 @@ export function ManageBookingPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-              </div>
+              </FormField>
               {error && (
                 <p className="text-red-600 text-sm font-body">{error}</p>
               )}

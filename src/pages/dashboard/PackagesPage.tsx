@@ -3,6 +3,9 @@ import {
   Gift, Plus, X, Check, Trash2, Edit, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { usePackages } from '@/hooks/usePackages';
 import type { Package } from '@/types';
@@ -101,19 +104,17 @@ export function PackagesPage() {
   );
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Packages & Add-ons</h1>
-          <p className="text-silver text-sm mt-1">
-            Create rate packages guests can add to their stay
-          </p>
-        </div>
-        <Button variant="teal" onClick={() => { resetForm(); setShowForm(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> New Package
-        </Button>
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Packages & Add-ons"
+        description="Create rate packages guests can add to their stay"
+        variant="dark"
+        actions={
+          <Button variant="teal" onClick={() => { resetForm(); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> New Package
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="flex items-center gap-4 text-sm">
@@ -180,11 +181,18 @@ export function PackagesPage() {
       )}
 
       {allPackages.length === 0 && (
-        <div className="glass-panel rounded-xl p-8 text-center text-silver">
-          <Gift className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p>No packages created yet</p>
-        </div>
+        <EmptyState
+          icon={Gift}
+          title="No packages created yet"
+          description="Create your first package for guests to add to their stay"
+          variant="dark"
+          action={
+            <Button variant="teal" onClick={() => { resetForm(); setShowForm(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> New Package
+            </Button>
+          }
+        />
       )}
-    </div>
+    </PageShell>
   );
 }

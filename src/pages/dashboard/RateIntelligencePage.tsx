@@ -3,11 +3,13 @@ import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
 import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
-  Globe, Building2, BarChart3, Target,
+  Building2, BarChart3, Target,
   AlertTriangle, CheckCircle2, RefreshCcw,
   Shield, Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { isDemoMode } from '@/lib/supabase';
 
 // ── Simulated competitor data ─────────────────────────────────────
@@ -112,21 +114,18 @@ export function RateIntelligencePage() {
   const parityIssues = CHANNEL_RATES.filter((c) => !c.parity).length;
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gold/20 to-emerald-500/20 border border-gold/20 flex items-center justify-center">
-          <Globe size={20} className="text-gold" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-3xl font-display gradient-text-vibrant tracking-tight">Rate Intelligence</h1>
-          <p className="text-sm text-steel font-body">Competitor monitoring · Rate parity · Dynamic pricing</p>
-        </div>
-        <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-body font-semibold bg-white/[0.05] border border-white/[0.1] text-steel hover:text-white hover:bg-white/[0.08] transition-all">
-          <RefreshCcw size={12} />
-          Refresh Rates
-        </button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Rate Intelligence"
+        description="Competitor monitoring · Rate parity · Dynamic pricing"
+        variant="dark"
+        actions={
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-body font-semibold bg-white/[0.05] border border-white/[0.1] text-steel hover:text-white hover:bg-white/[0.08] transition-all">
+            <RefreshCcw size={12} />
+            Refresh Rates
+          </button>
+        }
+      />
 
       {/* KPI Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -407,6 +406,6 @@ export function RateIntelligencePage() {
           )}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

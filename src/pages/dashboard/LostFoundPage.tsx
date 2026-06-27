@@ -4,6 +4,9 @@ import {
   Search as SearchIcon, Plus, X, Package, CheckCircle, Archive, Send,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { useLostFound } from '@/hooks/useLostFound';
 import { useRooms } from '@/hooks/useRooms';
@@ -61,17 +64,17 @@ export function LostFoundPage() {
   const countByStatus = (s: LostFoundStatus) => allItems.filter(i => i.status === s).length;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Lost & Found</h1>
-          <p className="text-silver text-sm mt-1">Track items found on property</p>
-        </div>
-        <Button variant="teal" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Log Item
-        </Button>
-      </div>
+    <PageShell className="space-y-6">
+      <PageHeader
+        title="Lost & Found"
+        description="Track items found on property"
+        variant="dark"
+        actions={
+          <Button variant="teal" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Log Item
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -155,10 +158,17 @@ export function LostFoundPage() {
       {/* Items List */}
       <div className="space-y-2">
         {filtered.length === 0 && (
-          <div className="glass-panel rounded-xl p-8 text-center text-silver">
-            <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <p>No items found</p>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="No items found"
+            description="Log a found item to start tracking"
+            variant="dark"
+            action={
+              <Button variant="teal" onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Log Item
+              </Button>
+            }
+          />
         )}
         {filtered.map(item => {
           const roomNum = allRooms.find(r => r.id === item.room_id)?.room_number;
@@ -202,6 +212,6 @@ export function LostFoundPage() {
           );
         })}
       </div>
-    </div>
+    </PageShell>
   );
 }

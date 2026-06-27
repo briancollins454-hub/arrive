@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { supabase, isDemoMode, isPlatformAdmin, getEdgeFunctionError } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
@@ -51,13 +54,14 @@ export function AdminPage() {
   // Only the platform admin can access this page
   if (!isPlatformAdmin(user?.email)) {
     return (
-      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Building2 size={48} className="text-steel mx-auto mb-4" />
-          <h2 className="text-xl font-display text-white mb-2">Access Restricted</h2>
-          <p className="text-steel font-body text-sm">Only the platform administrator can onboard new hotels.</p>
-        </div>
-      </div>
+      <PageShell variant="dark">
+        <EmptyState
+          icon={Building2}
+          title="Access Restricted"
+          description="Only the platform administrator can onboard new hotels."
+          variant="dark"
+        />
+      </PageShell>
     );
   }
 
@@ -144,11 +148,12 @@ export function AdminPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Onboard New Hotel</h1>
-        <p className="text-sm text-steel font-body">Create a new property and send an owner invite</p>
-      </div>
+    <PageShell variant="dark" className="max-w-3xl">
+      <PageHeader
+        title="Onboard New Hotel"
+        description="Create a new property and send an owner invite"
+        variant="dark"
+      />
 
       {/* Progress Steps */}
       <div className="flex items-center gap-3 mb-8">
@@ -362,6 +367,6 @@ export function AdminPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

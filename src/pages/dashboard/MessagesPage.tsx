@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/dashboard/MessageComposer';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -20,7 +23,13 @@ export function MessagesPage() {
   const [showComposer, setShowComposer] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>(getPresetRange('month'));
 
-  if (isLoadingMessages) return <PageSpinner />;
+  if (isLoadingMessages) {
+    return (
+      <PageShell>
+        <PageLoading />
+      </PageShell>
+    );
+  }
 
   const filteredMessages = messages.filter(msg => {
     const sentDate = new Date(msg.sent_at || msg.created_at);
@@ -28,19 +37,17 @@ export function MessagesPage() {
   });
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Messages</h1>
-          <p className="text-sm text-steel font-body">
-            {filteredMessages.length} messages · {templates.length} templates
-          </p>
-        </div>
-        <Button onClick={() => setShowComposer(true)}>
-          <Plus size={16} className="mr-2" /> New Message
-        </Button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Messages"
+        description={`${filteredMessages.length} messages · ${templates.length} templates`}
+        variant="dark"
+        actions={
+          <Button onClick={() => setShowComposer(true)}>
+            <Plus size={16} className="mr-2" /> New Message
+          </Button>
+        }
+      />
 
       {/* Date Range Picker */}
       <div className="mb-6">
@@ -60,9 +67,17 @@ export function MessagesPage() {
         {/* Sent Messages Tab */}
         <TabsContent value="sent">
           {filteredMessages.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-steel font-body">No messages in this period</p>
-            </div>
+            <EmptyState
+              icon={Mail}
+              title="No messages in this period"
+              description="Try adjusting the date range or send a new message"
+              variant="dark"
+              action={
+                <Button onClick={() => setShowComposer(true)}>
+                  <Plus size={16} className="mr-2" /> New Message
+                </Button>
+              }
+            />
           ) : (
             <div className="space-y-3">
               {filteredMessages.map((msg) => (
@@ -170,6 +185,6 @@ export function MessagesPage() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

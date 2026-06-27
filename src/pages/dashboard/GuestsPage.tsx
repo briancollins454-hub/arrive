@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useGuests } from '@/hooks/useGuests';
 import { useBookings } from '@/hooks/useBookings';
 import { GuestProfile } from '@/components/dashboard/GuestProfile';
-import { PageSpinner } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageLoading } from '@/components/shared/PageLoading';
+import { PageShell } from '@/components/shared/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
@@ -26,7 +29,13 @@ export function GuestsPage() {
   const [showGdprErase, setShowGdprErase] = useState<Guest | null>(null);
   const [filterDNR, setFilterDNR] = useState(false);
 
-  if (isLoading) return <PageSpinner />;
+  if (isLoading) {
+    return (
+      <PageShell>
+        <PageLoading layout="cards" />
+      </PageShell>
+    );
+  }
 
   // Get unique tags
   const allTags = Array.from(new Set(guests.flatMap((g) => g.tags)));
@@ -49,13 +58,12 @@ export function GuestsPage() {
     : [];
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display gradient-text-vibrant mb-1.5 tracking-tight">Guests</h1>
-          <p className="text-sm text-steel font-body tracking-wide">{guests.length} registered guests</p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Guests"
+        description={`${guests.length} registered guests`}
+        variant="dark"
+        actions={
         <button
           onClick={() => {
             const rows = filtered.map(g => ({
@@ -76,7 +84,8 @@ export function GuestsPage() {
         >
           <Download size={14} /> Export
         </button>
-      </div>
+        }
+      />
 
       {/* Search & Filters */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
@@ -121,9 +130,12 @@ export function GuestsPage() {
 
       {/* Guest Grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-steel font-body">No guests found</p>
-        </div>
+        <EmptyState
+          icon={User}
+          title="No guests found"
+          description="Try adjusting your search or filters"
+          variant="dark"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map((guest) => (
@@ -348,6 +360,6 @@ export function GuestsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

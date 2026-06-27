@@ -5,6 +5,8 @@ import {
   ArrowRight, Shield, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { PageShell } from '@/components/shared/PageShell';
 import { Button } from '@/components/ui/Button';
 import { useBookings } from '@/hooks/useBookings';
 import { useRooms } from '@/hooks/useRooms';
@@ -221,12 +223,12 @@ export function PaymentPage() {
   })();
 
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-display font-bold gradient-text-vibrant tracking-tight">Payment Terminal</h1>
-        <p className="text-silver text-sm mt-1">Process guest payments securely</p>
-      </div>
+    <PageShell className="max-w-3xl space-y-6">
+      <PageHeader
+        title="Payment Terminal"
+        description="Process guest payments securely"
+        variant="dark"
+      />
 
       {/* Booking Selection */}
       <div className="glass-panel rounded-xl p-5 space-y-4">
@@ -478,6 +480,6 @@ export function PaymentPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
