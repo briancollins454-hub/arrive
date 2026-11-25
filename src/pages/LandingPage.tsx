@@ -203,6 +203,7 @@ export function LandingPage() {
             <Link to="/privacy" className="hover:text-white">Privacy</Link>
             <Link to="/terms" className="hover:text-white">Terms</Link>
             <a href="mailto:brian@thesupportsdesk.com" className="hover:text-white">brian@thesupportsdesk.com</a>
+            <a href="https://www.thesupportsdesk.com" className="hover:text-white">Built by The Supports Desk</a>
           </div>
         </div>
       </footer>
